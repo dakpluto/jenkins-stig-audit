@@ -1,0 +1,28 @@
+---
+# Files read (slurped) from JENKINS_HOME. Missing files are skipped.
+jsa_config_files:
+  - config.xml
+  - audit-trail.xml
+  - hudson.plugins.audit_trail.AuditTrailPlugin.xml
+  - org.jenkinsci.main.modules.sshd.SSHD.xml
+  - jenkins.security.apitoken.ApiTokenPropertyConfiguration.xml
+  - jenkins.model.JenkinsLocationConfiguration.xml
+  - secrets/slave-to-master-security-kill-switch
+
+# Redacts secrets (keystore passwords, tokens) before they leave the target.
+jsa_redact: >-
+  sed -E 's/((pass(word)?|passwd|secret|token)[^=[:space:]]*=)["'"'"']?[^[:space:]"'"'"']*/\1********/Ig'
+
+jsa_settings:
+  max_session_timeout: "{{ jenkins_stig_max_session_timeout }}"
+  banner_regex: "{{ jenkins_stig_banner_regex }}"
+  tls_termination: "{{ jenkins_stig_tls_termination }}"
+  approved_ports: "{{ jenkins_stig_approved_ports }}"
+  approved_plugins: "{{ jenkins_stig_approved_plugins }}"
+  prohibited_plugins: "{{ jenkins_stig_prohibited_plugins }}"
+  min_java_major: "{{ jenkins_stig_min_java_major }}"
+  update_center_max_age_days: "{{ jenkins_stig_update_center_max_age_days }}"
+  dangerous_properties: "{{ jenkins_stig_dangerous_properties }}"
+  error_disclosure_properties: "{{ jenkins_stig_error_disclosure_properties }}"
+  overrides: "{{ jenkins_stig_overrides }}"
+  audit_url: "{{ jenkins_audit_url }}"

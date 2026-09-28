@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Benchmark xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Test_Application_Server_SRG" xml:lang="en" xmlns="http://checklists.nist.gov/xccdf/1.1">
+  <status date="2026-01-01">accepted</status>
+  <title>Test Application Server Security Requirements Guide</title>
+  <description>Unit-test fixture; not DISA content.</description>
+  <notice id="terms-of-use" xml:lang="en"></notice>
+  <reference href="https://cyber.mil"><dc:publisher>DISA</dc:publisher><dc:source>STIG.DOD.MIL</dc:source></reference>
+  <plain-text id="release-info">Release: 9 Benchmark Date: 01 Jan 2026</plain-text>
+  <version>9</version>
+  <Group id="V-900001"><title>SRG-APP-000068-AS-000035</title>
+    <Rule id="SV-900001r1_rule" weight="10.0" severity="medium"><version>SRG-APP-000068-AS-000035</version>
+      <title>Banner test rule.</title>
+      <description>&lt;VulnDiscussion&gt;Banner discussion.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;Documentable&gt;false&lt;/Documentable&gt;</description>
+      <reference><dc:title>DPMS Target</dc:title><dc:identifier>1234</dc:identifier></reference>
+      <ident system="http://cyber.mil/cci">CCI-000048</ident>
+      <fixtext fixref="F-1">Fix banner.</fixtext>
+      <check system="C-1"><check-content-ref href="x" name="M" /><check-content>Check banner.</check-content></check>
+    </Rule></Group>
+  <Group id="V-900002"><title>SRG-APP-000516-AS-000237</title>
+    <Rule id="SV-900002r1_rule" weight="10.0" severity="medium"><version>SRG-APP-000516-AS-000237</version>
+      <title>Config rule A.</title><description>&lt;VulnDiscussion&gt;A&lt;/VulnDiscussion&gt;</description>
+      <ident system="http://cyber.mil/cci">CCI-000366</ident><fixtext>Fix A.</fixtext>
+      <check system="C-2"><check-content>Check A.</check-content></check></Rule></Group>
+  <Group id="V-900003"><title>SRG-APP-000516-AS-000238</title>
+    <Rule id="SV-900003r1_rule" weight="10.0" severity="low"><version>SRG-APP-000516-AS-000238</version>
+      <title>Config rule B.</title><description>&lt;VulnDiscussion&gt;B&lt;/VulnDiscussion&gt;</description>
+      <ident system="http://cyber.mil/cci">CCI-000366</ident><fixtext>Fix B.</fixtext>
+      <check system="C-3"><check-content>Check B.</check-content></check></Rule></Group>
+  <Group id="V-900004"><title>SRG-APP-000999-AS-000999</title>
+    <Rule id="SV-900004r1_rule" weight="10.0" severity="high"><version>SRG-APP-000999-AS-000999</version>
+      <title>Unautomated rule.</title><description>&lt;VulnDiscussion&gt;C&lt;/VulnDiscussion&gt;</description>
+      <fixtext>Fix C.</fixtext><check system="C-4"><check-content>Check C.</check-content></check></Rule></Group>
+</Benchmark>

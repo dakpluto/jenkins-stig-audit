@@ -1,0 +1,29 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <version>2.462.3</version>
+  <numExecutors>0</numExecutors>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy">
+    <roleMap type="globalRoles">
+      <role name="admin" pattern=".*">
+        <permissions><permission>hudson.model.Hudson.Administer</permission></permissions>
+        <assignedSIDs><sid type="GROUP">jenkins-admins</sid></assignedSIDs>
+      </role>
+      <role name="anon-read" pattern=".*">
+        <permissions><permission>hudson.model.Hudson.Read</permission></permissions>
+        <assignedSIDs><sid type="USER">anonymous</sid></assignedSIDs>
+      </role>
+    </roleMap>
+    <roleMap type="projectRoles"/>
+  </authorizationStrategy>
+  <securityRealm class="hudson.security.LDAPSecurityRealm" plugin="ldap@711.vb_d1a_491714dc">
+    <configurations>
+      <jenkins.security.plugins.ldap.LDAPConfiguration>
+        <server>ldap://dc01.example.mil:389</server>
+        <rootDN>dc=example,dc=mil</rootDN>
+      </jenkins.security.plugins.ldap.LDAPConfiguration>
+    </configurations>
+  </securityRealm>
+  <disableRememberMe>true</disableRememberMe>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer"/>
+</hudson>

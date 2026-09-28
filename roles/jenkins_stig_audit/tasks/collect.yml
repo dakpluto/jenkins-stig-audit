@@ -1,0 +1,167 @@
+---
+- name: Read Jenkins configuration files
+  ansible.builtin.slurp:
+    src: "{{ jsa_home }}/{{ item }}"
+  loop: "{{ jsa_config_files + ([] if jenkins_stig_update_center_file else ['updates/default.json']) }}"
+  register: _jsa_slurp
+  failed_when: false
+  check_mode: false
+
+- name: Decode configuration files
+  ansible.builtin.set_fact:
+    # Jenkins-encrypted secrets ({AQAAAB...}) are not needed for evaluation; drop them.
+    jsa_files: >-
+      {{ jsa_files | default({}) | combine({item.item: item.content | b64decode
+           | regex_replace('\{AQAAAB[A-Za-z0-9+/=]+\}', '{redacted}')}) }}
+  loop: "{{ _jsa_slurp.results | selectattr('content', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Record ownership and permissions of key Jenkins paths
+  vars:
+    _paths:
+      - "{{ jsa_home }}"
+      - "{{ jsa_home }}/secrets"
+      - "{{ jsa_home }}/secrets/master.key"
+      - "{{ jsa_home }}/secrets/hudson.util.Secret"
+      - "{{ jsa_home }}/secrets/initialAdminPassword"
+      - "{{ jsa_home }}/credentials.xml"
+      - "{{ jsa_home }}/config.xml"
+      - "{{ jsa_home }}/users"
+      - "{{ jsa_home }}/plugins"
+      - "{{ jsa_home }}/updates/default.json"
+      - "{{ jsa_home }}/jenkins.yaml"
+      - "{{ jsa_war }}"
+  ansible.builtin.shell: >-
+    find {{ _paths | map('quote') | join(' ') }} -maxdepth 0
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _jsa_stats
+  changed_when: false
+  check_mode: false
+
+- name: Record ownership and permissions of Jenkins log files
+  vars:
+    _dirs: "{{ jsa_files | default({}) | jenkins_audit_log_dirs(jsa_home, jsa_runtime) }}"
+  ansible.builtin.shell: >-
+    find {{ _dirs | map('quote') | join(' ') }} -maxdepth 1
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _jsa_logstats
+  changed_when: false
+  check_mode: false
+
+- name: Find world-writable files in JENKINS_HOME (workspaces and build records excluded)
+  ansible.builtin.shell: >-
+    find {{ jsa_home | quote }} -xdev -maxdepth 4
+    \( -path {{ (jsa_home ~ '/workspace') | quote }} -o -path {{ (jsa_home ~ '/jobs') | quote }}
+    -o -path {{ (jsa_home ~ '/caches') | quote }} -o -path {{ (jsa_home ~ '/fingerprints') | quote }} \) -prune
+    -o -perm -0002 ! -type l -print 2>/dev/null | head -n 200
+  register: _jsa_ww
+  changed_when: false
+  check_mode: false
+
+- name: Inventory installed plugins
+  ansible.builtin.shell: |
+    cd {{ (jsa_home ~ '/plugins') | quote }} 2>/dev/null || exit 0
+    for d in */; do
+      n=${d%/}; m="$n/META-INF/MANIFEST.MF"
+      [ -f "$m" ] || continue
+      v=$(awk -F': ' '/^Plugin-Version:/{gsub("\r","",$2); print $2; exit}' "$m")
+      dis=false
+      if [ -e "$n.jpi.disabled" ] || [ -e "$n.hpi.disabled" ]; then dis=true; fi
+      echo "$n|$v|$dis"
+    done
+  register: _jsa_plugins
+  changed_when: false
+  check_mode: false
+
+- name: Read service account details
+  ansible.builtin.shell: |
+    echo "PASSWD=$(getent passwd {{ jsa_user | quote }})"
+    echo "ID=$(id {{ jsa_user | quote }} 2>/dev/null)"
+  register: _jsa_account
+  changed_when: false
+  check_mode: false
+
+- name: List sudo rights of the service account
+  ansible.builtin.command: sudo -n -l -U {{ jsa_user | quote }}
+  register: _jsa_sudo
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Verify Jenkins package files against the RPM database
+  ansible.builtin.command: rpm -V jenkins
+  register: _jsa_rpmv
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _jsa_rpm.rc == 0
+
+- name: List listening TCP sockets
+  ansible.builtin.command: ss -tlnp
+  register: _jsa_ss
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read firewalld state
+  ansible.builtin.command: firewall-cmd --state
+  register: _jsa_fw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read firewalld active configuration
+  ansible.builtin.command: firewall-cmd --list-all
+  register: _jsa_fwcfg
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _jsa_fw.stdout == 'running'
+
+- name: Read FIPS mode and crypto policy
+  ansible.builtin.shell: |
+    echo "FIPS=$(cat /proc/sys/crypto/fips_enabled 2>/dev/null)"
+    echo "POLICY=$(update-crypto-policies --show 2>/dev/null)"
+  register: _jsa_fips
+  changed_when: false
+  check_mode: false
+
+- name: Read time synchronization status
+  ansible.builtin.shell: |
+    echo "CHRONYD=$(systemctl is-active chronyd 2>/dev/null)"
+    timedatectl show 2>/dev/null
+    true
+  register: _jsa_time
+  changed_when: false
+  check_mode: false
+
+- name: Read rsyslog configuration (comments removed)
+  ansible.builtin.shell: >-
+    cat /etc/rsyslog.conf /etc/rsyslog.d/*.conf 2>/dev/null | grep -Ev '^[[:space:]]*(#|$)'; true
+  register: _jsa_rsyslog
+  changed_when: false
+  check_mode: false
+
+- name: Report free space for Jenkins data and log filesystems
+  vars:
+    _dirs: "{{ [jsa_home] + (jsa_files | default({}) | jenkins_audit_log_dirs(jsa_home, jsa_runtime)) }}"
+  ansible.builtin.shell: "df -hP {{ _dirs | map('quote') | join(' ') }} 2>/dev/null; true"
+  register: _jsa_df
+  changed_when: false
+  check_mode: false
+
+- name: Check repositories for pending Jenkins/Java updates
+  ansible.builtin.command: dnf -q check-update jenkins 'java-*-openjdk*'
+  register: _jsa_dnf
+  changed_when: false
+  failed_when: _jsa_dnf.rc not in [0, 100]
+  check_mode: false
+  when: jenkins_stig_check_repo_updates | bool
+
+- name: Read update-center cache timestamp
+  ansible.builtin.stat:
+    path: "{{ jsa_home }}/updates/default.json"
+    get_checksum: false
+  register: _jsa_ucstat
+  when: jenkins_stig_update_center_file | length == 0

@@ -1,0 +1,84 @@
+---
+- name: Set report paths
+  ansible.builtin.set_fact:
+    jsa_report_path: "{{ jenkins_stig_report_dir }}/{{ inventory_hostname }}"
+    jsa_report_base: >-
+      {{ inventory_hostname }}_jenkins_appsrv_srg_{{ ansible_date_time.date }}
+
+- name: Parse the Application Server SRG XCCDF
+  ansible.builtin.set_fact:
+    jsa_xccdf: "{{ jenkins_stig_xccdf | stig_xccdf_rules }}"
+  when: jenkins_stig_xccdf | length > 0
+
+- name: Write reports
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Create the report directory
+      ansible.builtin.file:
+        path: "{{ jsa_report_path }}"
+        state: directory
+        mode: "0750"
+
+    - name: Write JSON results
+      ansible.builtin.copy:
+        dest: "{{ jsa_report_path }}/{{ jsa_report_base }}.json"
+        mode: "0640"
+        content: >-
+          {{ {'host': jsa_evidence.host, 'collected_at': jsa_evidence.collected_at,
+              'jenkins': {'version': jsa_evidence.rpm_version, 'home': jsa_home, 'running': jsa_evidence.running},
+              'summary': jsa_summary, 'results': jsa_results,
+              'srg_binding': (jsa_results | stig_bind(jsa_xccdf, jenkins_stig_rule_map)) if jsa_xccdf is defined else None}
+             | to_nice_json(indent=2) }}
+
+    - name: Write raw evidence
+      ansible.builtin.copy:
+        dest: "{{ jsa_report_path }}/{{ jsa_report_base }}_evidence.json"
+        mode: "0640"
+        content: "{{ jsa_evidence | to_nice_json(indent=2) }}"
+      when: jenkins_stig_save_raw_evidence | bool
+
+    - name: Write CSV results
+      ansible.builtin.copy:
+        dest: "{{ jsa_report_path }}/{{ jsa_report_base }}.csv"
+        mode: "0640"
+        content: "{{ jsa_results | stig_csv }}"
+
+    - name: Write HTML report
+      ansible.builtin.template:
+        src: report.html.j2
+        dest: "{{ jsa_report_path }}/{{ jsa_report_base }}.html"
+        mode: "0640"
+
+    - name: Write STIG Viewer checklist
+      vars:
+        _asset: >-
+          {{ jenkins_stig_asset | combine({
+               'host_name': ansible_hostname, 'host_fqdn': ansible_fqdn,
+               'host_ip': jsa_evidence.host.ip, 'host_mac': jsa_evidence.host.mac,
+               'collected_at': jsa_evidence.collected_at}) }}
+      ansible.builtin.copy:
+        dest: "{{ jsa_report_path }}/{{ jsa_report_base }}.ckl"
+        mode: "0640"
+        content: "{{ jsa_results | stig_ckl(jsa_xccdf, _asset, jenkins_stig_rule_map) }}"
+      when: jsa_xccdf is defined
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Open: {{ jsa_summary.by_status.Open }} (CAT I {{ jsa_summary.open_by_severity.high }},
+         CAT II {{ jsa_summary.open_by_severity.medium }}, CAT III {{ jsa_summary.open_by_severity.low }})"
+      - "NotAFinding: {{ jsa_summary.by_status.NotAFinding }}  Not_Reviewed: {{ jsa_summary.by_status.Not_Reviewed }}
+         Not_Applicable: {{ jsa_summary.by_status.Not_Applicable }}"
+      - "Open checks: {{ jsa_results | selectattr('status', 'eq', 'Open') | map(attribute='id') | join(', ') }}"
+      - "Reports: {{ jsa_report_path }}/{{ jsa_report_base }}.*"
+
+- name: Fail on Open findings of the configured severities
+  ansible.builtin.fail:
+    msg: >-
+      Open findings at severity {{ jenkins_stig_fail_on | join('/') }}:
+      {{ jsa_results | selectattr('status', 'eq', 'Open') | selectattr('severity', 'in', jenkins_stig_fail_on)
+         | map(attribute='id') | join(', ') }}
+  when: >-
+    jenkins_stig_fail_on | length > 0 and
+    (jsa_results | selectattr('status', 'eq', 'Open') | selectattr('severity', 'in', jenkins_stig_fail_on) | list | length) > 0

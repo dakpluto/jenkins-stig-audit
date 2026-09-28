@@ -1,0 +1,68 @@
+---
+# All probes run on the target against Jenkins itself (or jenkins_audit_url),
+# unauthenticated, using GET requests and TLS handshakes only.
+
+- name: Probe Jenkins HTTP endpoints without credentials
+  ansible.builtin.uri:
+    url: "{{ jsa_runtime.probe.base_url }}{{ item.path }}"
+    method: GET
+    validate_certs: false
+    follow_redirects: none
+    return_content: "{{ item.content }}"
+    timeout: 15
+  loop:
+    - {key: login, path: /login, content: true}
+    - {key: anon_api, path: /api/json, content: false}
+  loop_control:
+    label: "{{ item.key }}"
+  register: _jsa_http
+  failed_when: false
+  check_mode: false
+  when: jsa_runtime.probe.base_url | length > 0 and (jsa_running | bool or jenkins_audit_url | length > 0)
+
+- name: Probe for a plaintext HTTP listener alongside HTTPS
+  ansible.builtin.uri:
+    url: "{{ jsa_runtime.probe.plain_url }}"
+    method: GET
+    follow_redirects: none
+    timeout: 10
+  register: _jsa_plain
+  failed_when: false
+  check_mode: false
+  when: jsa_runtime.probe.plain_url | length > 0 and jsa_running | bool
+
+- name: Test which TLS protocol versions the endpoint accepts
+  vars:
+    _h: "{{ jsa_runtime.probe.tls_host }}"
+    _connect: "{{ ('[' ~ _h ~ ']') if ':' in _h else _h }}:{{ jsa_runtime.probe.tls_port }}"
+    _sni: "{{ '' if (_h is match('^[0-9.]+$') or ':' in _h) else '-servername ' ~ (_h | quote) }}"
+    _cipher: "{{ '' if item == 'tls1_3' else \"-cipher 'ALL:@SECLEVEL=0'\" }}"
+  # OPENSSL_CONF=/dev/null bypasses the *client's* crypto policy so the result
+  # reflects what the server accepts, not what the local policy allows.
+  ansible.builtin.shell: >-
+    echo | OPENSSL_CONF=/dev/null timeout 15
+    openssl s_client -connect {{ _connect }} {{ _sni }} -{{ item }} {{ _cipher }} 2>&1; true
+  loop: [tls1, tls1_1, tls1_2, tls1_3]
+  register: _jsa_tls
+  changed_when: false
+  check_mode: false
+  when: jsa_runtime.probe.tls_host | length > 0 and (jsa_running | bool or jenkins_audit_url | length > 0)
+
+- name: Collate HTTP probe results
+  ansible.builtin.set_fact:
+    jsa_http: >-
+      {{ jsa_http | default({}) | combine({item.item.key | default('plain_http'): {
+           'url': item.url | default(''), 'status': item.status | default(-1), 'msg': item.msg | default(''),
+           'content': item.content | default(''), 'x_jenkins': item.x_jenkins | default(''),
+           'x_hudson': item.x_hudson | default(''), 'server': item.server | default('')}}) }}
+  loop: "{{ (_jsa_http.results | default([])) + ([_jsa_plain] if _jsa_plain.status is defined else []) }}"
+  loop_control:
+    label: "{{ item.url | default('') }} -> {{ item.status | default('skipped') }}"
+  when: item.skipped is not defined
+
+- name: Collate TLS probe results
+  ansible.builtin.set_fact:
+    jsa_tls: >-
+      {{ dict(_jsa_tls.results | selectattr('stdout', 'defined') | map(attribute='item')
+              | zip(_jsa_tls.results | selectattr('stdout', 'defined') | map(attribute='stdout'))) }}
+  when: _jsa_tls.results is defined

@@ -1,0 +1,19 @@
+---
+# Read-only audit of a RHEL 8 Jenkins controller against the DISA Application
+# Server SRG. Nothing on the target is modified; every command task runs with
+# check_mode: false / changed_when: false so the role also works under --check.
+
+- name: Discover the Jenkins installation
+  ansible.builtin.import_tasks: discover.yml
+
+- name: Collect configuration and host evidence
+  ansible.builtin.import_tasks: collect.yml
+
+- name: Probe the live HTTP/TLS endpoints
+  ansible.builtin.import_tasks: probe.yml
+
+- name: Evaluate evidence against the SRG checks
+  ansible.builtin.import_tasks: evaluate.yml
+
+- name: Write reports on the controller
+  ansible.builtin.import_tasks: report.yml

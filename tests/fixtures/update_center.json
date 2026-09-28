@@ -1,0 +1,16 @@
+{
+  "connectionCheckUrl": "https://www.google.com/",
+  "core": {"name": "core", "version": "2.479"},
+  "deprecations": {"anything-goes-formatter": {"url": "https://www.jenkins.io/security/plugins/#suspensions"}},
+  "plugins": {
+    "git": {"name": "git", "version": "5.5.2"},
+    "audit-trail": {"name": "audit-trail", "version": "361.v82cde86c784e"},
+    "saml": {"name": "saml", "version": "4.464.vea_cb_75d7f5e0"}
+  },
+  "warnings": [
+    {"type": "core", "id": "core", "name": "Example core advisory", "url": "https://www.jenkins.io/security/advisory/2023-00-00/",
+     "versions": [{"lastVersion": "2.414.1", "pattern": "2[.](\\d|[1-9]\\d|[1-3]\\d\\d|40\\d|41[0-4])[.]\\d+(|[-].*)"}]},
+    {"type": "plugin", "id": "git", "name": "SECURITY-9999 example", "url": "https://www.jenkins.io/security/advisory/2023-00-00/#SECURITY-9999",
+     "versions": [{"lastVersion": "5.0.0", "pattern": "([0-4]|5[.]0)([.-].*)?"}]}
+  ]
+}

@@ -1,0 +1,77 @@
+---
+- name: Load update-center metadata supplied on the controller
+  ansible.builtin.set_fact:
+    jsa_update_center: "{{ lookup('ansible.builtin.file', jenkins_stig_update_center_file) }}"
+    jsa_update_center_age: "{{ jenkins_stig_update_center_file | file_age_days }}"
+    jsa_update_center_source: "{{ jenkins_stig_update_center_file }} (controller)"
+  when: jenkins_stig_update_center_file | length > 0
+
+- name: Use the update-center cache from JENKINS_HOME
+  ansible.builtin.set_fact:
+    jsa_update_center: "{{ (jsa_files | default({})).get('updates/default.json', '') }}"
+    jsa_update_center_age: >-
+      {{ ((ansible_date_time.epoch | float - _jsa_ucstat.stat.mtime) / 86400) | round(1)
+         if _jsa_ucstat.stat.exists | default(false) else None }}
+    jsa_update_center_source: "{{ jsa_home }}/updates/default.json"
+  when: jenkins_stig_update_center_file | length == 0
+
+- name: Assemble evidence
+  vars:
+    _acct: "{{ _jsa_account.stdout_lines }}"
+    _fips: "{{ _jsa_fips.stdout_lines }}"
+    _time: "{{ _jsa_time.stdout_lines }}"
+  ansible.builtin.set_fact:
+    jsa_evidence:
+      collected_at: "{{ ansible_date_time.iso8601 }}"
+      host:
+        inventory_hostname: "{{ inventory_hostname }}"
+        hostname: "{{ ansible_hostname }}"
+        fqdn: "{{ ansible_fqdn }}"
+        ip: "{{ ansible_default_ipv4.address | default('') }}"
+        mac: "{{ ansible_default_ipv4.macaddress | default('') }}"
+        os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      home: "{{ jsa_home }}"
+      running: "{{ jsa_running | bool }}"
+      rpm_version: "{{ _jsa_rpm.stdout if _jsa_rpm.rc == 0 else '' }}"
+      runtime: "{{ jsa_runtime }}"
+      env_text: "{{ jsa_env_text }}"
+      process:
+        pid: "{{ jsa_pid | default('') }}"
+        user: "{{ _jsa_puser.stdout | default('') | trim }}"
+        exe: "{{ _jsa_pexe.stdout | default('') }}"
+        java_version: "{{ (_jsa_java.stderr | default('')) ~ (_jsa_java.stdout | default('')) }}"
+      service_user: "{{ jsa_user }}"
+      war: "{{ jsa_war }}"
+      files: "{{ jsa_files | default({}) | dict2items | rejectattr('key', 'eq', 'updates/default.json') | items2dict }}"
+      stats: "{{ _jsa_stats.stdout_lines }}"
+      log_stats: "{{ _jsa_logstats.stdout_lines }}"
+      world_writable: "{{ _jsa_ww.stdout_lines }}"
+      plugins: "{{ _jsa_plugins.stdout_lines }}"
+      passwd: "{{ _acct | select('match', '^PASSWD=') | first | default('') | regex_replace('^PASSWD=', '') }}"
+      id: "{{ _acct | select('match', '^ID=') | first | default('') | regex_replace('^ID=', '') }}"
+      sudo: "{{ _jsa_sudo.stdout | default('') }}"
+      rpm_verify: "{{ _jsa_rpmv.stdout | default('') }}"
+      listeners: "{{ _jsa_ss.stdout | default('') }}"
+      firewalld_state: "{{ _jsa_fw.stdout | default('') | trim }}"
+      firewalld_config: "{{ _jsa_fwcfg.stdout | default('') }}"
+      fips_enabled: "{{ _fips | select('match', '^FIPS=') | first | default('') | regex_replace('^FIPS=', '') }}"
+      crypto_policy: "{{ _fips | select('match', '^POLICY=') | first | default('') | regex_replace('^POLICY=', '') }}"
+      chronyd: "{{ _time | select('match', '^CHRONYD=') | first | default('') | regex_replace('^CHRONYD=', '') }}"
+      timedatectl: "{{ _time | reject('match', '^CHRONYD=') | join('\n') }}"
+      rsyslog: "{{ _jsa_rsyslog.stdout | default('') }}"
+      disk: "{{ _jsa_df.stdout | default('') }}"
+      http: "{{ jsa_http | default({}) }}"
+      tls: "{{ jsa_tls | default({}) }}"
+      repo_updates: "{{ {'rc': _jsa_dnf.rc, 'stdout': _jsa_dnf.stdout} if (_jsa_dnf.rc is defined) else {} }}"
+      update_center_age_days: "{{ jsa_update_center_age }}"
+      update_center_source: "{{ jsa_update_center_source }}"
+
+- name: Evaluate checks
+  ansible.builtin.set_fact:
+    jsa_results: >-
+      {{ jsa_evidence | combine({'update_center': jsa_update_center | default('')})
+         | jenkins_stig_evaluate(jsa_settings) }}
+
+- name: Summarize results
+  ansible.builtin.set_fact:
+    jsa_summary: "{{ jsa_results | stig_summary }}"

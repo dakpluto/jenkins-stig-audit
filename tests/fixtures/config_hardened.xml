@@ -1,0 +1,21 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <version>2.462.3</version>
+  <numExecutors>0</numExecutors>
+  <mode>EXCLUSIVE</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
+    <permission>GROUP:hudson.model.Hudson.Administer:jenkins-admins</permission>
+    <permission>GROUP:hudson.model.Hudson.Read:jenkins-users</permission>
+    <permission>GROUP:hudson.model.Item.Build:jenkins-users</permission>
+  </authorizationStrategy>
+  <securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@4.464.vea_cb_75d7f5e0">
+    <displayNameAttributeName>displayName</displayNameAttributeName>
+  </securityRealm>
+  <disableRememberMe>true</disableRememberMe>
+  <markupFormatter class="hudson.markup.EscapedMarkupFormatter"/>
+  <slaveAgentPort>50000</slaveAgentPort>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
+  </crumbIssuer>
+</hudson>

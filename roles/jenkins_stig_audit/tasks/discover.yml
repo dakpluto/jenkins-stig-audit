@@ -1,0 +1,133 @@
+---
+- name: Gather platform facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', 'min', 'network']
+
+- name: Warn when the target is not RHEL 8
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} is {{ ansible_distribution }} {{ ansible_distribution_version }};
+      this audit was written for RHEL 8 and some checks may not apply.
+  when: not (ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8')
+
+- name: Query the Jenkins RPM
+  ansible.builtin.command: rpm -q --qf '%{VERSION}-%{RELEASE}' jenkins
+  register: _jsa_rpm
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Locate the running Jenkins JVM
+  ansible.builtin.shell: |
+    for p in $(pgrep -f '[j]enkins\.war'); do
+      if [ "$(cat /proc/$p/comm 2>/dev/null)" = "java" ]; then echo "$p"; break; fi
+    done
+  register: _jsa_pid
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Stop when Jenkins is not present on this host
+  when: _jsa_rpm.rc != 0 and _jsa_pid.stdout | length == 0 and jenkins_home | length == 0
+  block:
+    - name: Report that Jenkins was not found
+      ansible.builtin.debug:
+        msg: "No Jenkins RPM or running Jenkins JVM found on {{ inventory_hostname }}; skipping."
+
+    - name: End this host
+      ansible.builtin.meta: end_host
+
+- name: Set process state
+  ansible.builtin.set_fact:
+    jsa_running: "{{ _jsa_pid.stdout | length > 0 }}"
+    jsa_pid: "{{ _jsa_pid.stdout | trim }}"
+
+- name: Read Jenkins JVM details
+  when: jsa_running | bool
+  block:
+    - name: Read process owner
+      ansible.builtin.command: ps -o user= -p {{ jsa_pid }}
+      register: _jsa_puser
+      changed_when: false
+      check_mode: false
+
+    - name: Read java executable path
+      ansible.builtin.command: readlink -f /proc/{{ jsa_pid }}/exe
+      register: _jsa_pexe
+      changed_when: false
+      check_mode: false
+
+    - name: Read JVM command line (secrets redacted)
+      ansible.builtin.shell: "tr '\\0' '\\n' < /proc/{{ jsa_pid }}/cmdline | {{ jsa_redact }}"
+      register: _jsa_cmdline
+      changed_when: false
+      check_mode: false
+
+    - name: Read JENKINS_HOME from the process environment
+      ansible.builtin.shell: "tr '\\0' '\\n' < /proc/{{ jsa_pid }}/environ | sed -n 's/^JENKINS_HOME=//p'"
+      register: _jsa_envhome
+      changed_when: false
+      check_mode: false
+
+    - name: Read Java version
+      ansible.builtin.command: "{{ _jsa_pexe.stdout }} -version"
+      register: _jsa_java
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+- name: Read service unit and sysconfig settings (secrets redacted)
+  ansible.builtin.shell: |
+    {
+      systemctl show {{ jenkins_service_name | quote }} -p User -p ActiveState -p UnitFileState -p FragmentPath -p DropInPaths
+      systemctl cat {{ jenkins_service_name | quote }} | grep -E '^[[:space:]]*Environment='
+      grep -Ev '^[[:space:]]*(#|$)' /etc/sysconfig/jenkins
+    } 2>/dev/null | {{ jsa_redact }}
+  register: _jsa_unit
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Locate the Jenkins WAR from the RPM
+  ansible.builtin.shell: rpm -ql jenkins | grep -E '\.war$' | head -n1
+  register: _jsa_rpmwar
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _jsa_rpm.rc == 0
+
+- name: Resolve runtime settings and JENKINS_HOME
+  vars:
+    _unit_lines: "{{ _jsa_unit.stdout_lines }}"
+    _user_line: "{{ _unit_lines | select('match', '^User=') | first | default('User=') }}"
+  ansible.builtin.set_fact:
+    jsa_runtime: "{{ (_jsa_cmdline.stdout_lines | default([])) | jenkins_runtime(_jsa_unit.stdout, jenkins_audit_url) }}"
+    jsa_service_user: "{{ _user_line | regex_replace('^User=', '') }}"
+    jsa_env_text: "{{ _jsa_unit.stdout }}"
+
+- name: Resolve JENKINS_HOME, WAR and service account
+  ansible.builtin.set_fact:
+    jsa_home: >-
+      {{ (jenkins_home
+          or (_jsa_envhome.stdout | default('') | trim)
+          or jsa_runtime.properties.JENKINS_HOME | default('')
+          or jsa_runtime.env.JENKINS_HOME | default('')
+          or '/var/lib/jenkins') | regex_replace('/+$', '') }}
+    jsa_war: >-
+      {{ jsa_runtime.war
+         or (_jsa_rpmwar.stdout | default('') | trim)
+         or '/usr/share/java/jenkins.war' }}
+    jsa_user: >-
+      {{ (_jsa_puser.stdout | default('') | trim)
+         or jsa_service_user
+         or jsa_runtime.env.JENKINS_USER | default('')
+         or 'jenkins' }}
+
+- name: Show what was discovered
+  ansible.builtin.debug:
+    msg:
+      - "Jenkins RPM: {{ _jsa_rpm.stdout if _jsa_rpm.rc == 0 else 'not installed' }}"
+      - "Running: {{ jsa_running }} (pid {{ jsa_pid | default('-', true) }}, user {{ jsa_user }})"
+      - "JENKINS_HOME: {{ jsa_home }}"
+      - "WAR: {{ jsa_war }}"
+      - "Probe URL: {{ jsa_runtime.probe.base_url | default('-', true) }}"

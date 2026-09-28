@@ -1,0 +1,23 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>2.401.1</version>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
+    <permission>USER:hudson.model.Hudson.Administer:admin</permission>
+    <permission>GROUP:hudson.model.Hudson.Administer:authenticated</permission>
+    <permission>USER:hudson.model.Hudson.Read:anonymous</permission>
+    <permission>USER:hudson.model.Item.Read:anonymous</permission>
+  </authorizationStrategy>
+  <securityRealm class="hudson.security.HudsonPrivateSecurityRealm">
+    <disableSignup>false</disableSignup>
+    <enableCaptcha>false</enableCaptcha>
+  </securityRealm>
+  <disableRememberMe>false</disableRememberMe>
+  <markupFormatter class="hudson.markup.AnythingGoesMarkupFormatter" plugin="anything-goes-formatter@1.0"/>
+  <jdks/>
+  <slaveAgentPort>0</slaveAgentPort>
+  <label></label>
+</hudson>

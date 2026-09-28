@@ -1,0 +1,12 @@
+---
+# Read-only compliance audit of RHEL 8 Jenkins controllers against the DISA
+# Application Server SRG. Usage:
+#   ansible-playbook -i inventory/hosts.yml jenkins_stig_audit.yml
+#   ansible-playbook -i inventory/hosts.yml jenkins_stig_audit.yml \
+#     -e jenkins_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+- name: Jenkins Application Server SRG audit
+  hosts: jenkins
+  become: true
+  gather_facts: false
+  roles:
+    - jenkins_stig_audit

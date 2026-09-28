@@ -1,0 +1,13 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson.plugins.audit__trail.AuditTrailPlugin plugin="audit-trail@361.v82cde86c784e">
+  <pattern>.*/(?:configSubmit|doDelete|postBuildResult|enable|disable|cancelQueue|stop|toggleLogKeep|doWipeOutWorkspace|createItem|createView|toggleOffline|cancelQuietDown|quietDown|restart|exit|safeExit)/?.*</pattern>
+  <logBuildCause>true</logBuildCause>
+  <logCredentialsUsage>true</logCredentialsUsage>
+  <loggers>
+    <hudson.plugins.audit__trail.LogFileAuditLogger>
+      <log>/var/log/jenkins/audit-%g.log</log>
+      <limit>10</limit>
+      <count>5</count>
+    </hudson.plugins.audit__trail.LogFileAuditLogger>
+  </loggers>
+</hudson.plugins.audit__trail.AuditTrailPlugin>

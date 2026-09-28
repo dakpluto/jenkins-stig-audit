@@ -1,0 +1,87 @@
+---
+# ---------------------------------------------------------------------------
+# Discovery (leave blank to auto-detect)
+# ---------------------------------------------------------------------------
+jenkins_home: ""                 # e.g. /var/lib/jenkins
+jenkins_service_name: jenkins
+# URL used for HTTP/TLS probes, run *from the target host*. Leave blank to probe
+# Jenkins directly on its listener. Set it to the public https:// URL when a
+# reverse proxy terminates TLS so banner/header/TLS checks test what users see.
+jenkins_audit_url: ""
+
+# ---------------------------------------------------------------------------
+# Organization-defined values
+# ---------------------------------------------------------------------------
+jenkins_stig_max_session_timeout: 15          # minutes
+jenkins_stig_banner_regex: 'You are accessing a U\.S\. Government'
+jenkins_stig_tls_termination: auto            # auto | jenkins | proxy
+jenkins_stig_min_java_major: 17
+jenkins_stig_update_center_max_age_days: 7
+
+# PPSM-registered ports Jenkins may listen on. Empty = JNKS-018 left for manual review.
+jenkins_stig_approved_ports: []               # e.g. [8443, 50000]
+# Approved plugin baseline (plugin short names). Empty = JNKS-019 left for manual review.
+jenkins_stig_approved_plugins: []
+# Plugins that must never be installed.
+jenkins_stig_prohibited_plugins: []           # e.g. [anything-goes-formatter, scriptler]
+
+# JVM system properties that switch off Jenkins security protections.
+# 'value' (optional) restricts the match to that value (case-insensitive).
+jenkins_stig_dangerous_properties:
+  - {name: hudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION, value: "true"}
+  - {name: jenkins.security.ClassFilterImpl.SUPPRESS_WHITELIST, value: "true"}
+  - {name: jenkins.security.ClassFilterImpl.SUPPRESS_ALL, value: "true"}
+  - {name: hudson.remoting.ClassFilter}
+  - {name: hudson.model.ParametersAction.keepUndefinedParameters, value: "true"}
+  - {name: jenkins.security.SuspiciousRequestFilter.allowSemicolonsInPath, value: "true"}
+  - {name: org.kohsuke.stapler.Facet.allowViewNamePathTraversal, value: "true"}
+  - {name: jenkins.security.stapler.StaplerDispatchValidator.disabled, value: "true"}
+  - {name: jenkins.security.stapler.TypedFilter.prohibitStaticAccess, value: "false"}
+  - {name: jenkins.security.FrameOptionsPageDecorator.enabled, value: "false"}
+  - {name: hudson.model.DownloadService.noSignatureCheck, value: "true"}
+  - {name: hudson.model.User.allowNonExistentUserToLogin, value: "true"}
+  - {name: hudson.model.User.SECURITY_243_FULL_DEFENSE, value: "false"}
+  - {name: hudson.ConsoleNote.INSECURE, value: "true"}
+  - {name: jenkins.security.ApiTokenProperty.showTokenToAdmins, value: "true"}
+  - {name: permissive-script-security.enabled}
+
+# JVM system properties that expose stack traces / internals to users (JNKS-023).
+jenkins_stig_error_disclosure_properties:
+  - jenkins.model.Jenkins.SHOW_STACK_TRACE
+  - hudson.security.AccessDeniedException2.REPORT_GROUP_HEADERS
+
+# Record documented mitigations, risk acceptances or manual results.
+# status: NotAFinding | Open | Not_Applicable | Not_Reviewed
+jenkins_stig_overrides: {}
+#  JNKS-004:
+#    status: NotAFinding
+#    comment: "SAML to DoD IdP enforces CAC; verified by ISSO 2026-09-01"
+
+# ---------------------------------------------------------------------------
+# Checklist (.ckl) generation
+# ---------------------------------------------------------------------------
+# Path ON THE CONTROLLER to the DISA Application Server SRG XCCDF (.xml) or the
+# .zip downloaded from cyber.mil. Leave blank to skip the .ckl output.
+jenkins_stig_xccdf: ""
+# Bind a check to specific SRG rules (Vuln ID, Rule ID or full SRG-APP-xxxxxx-AS-xxxxxx).
+# Needed when a base SRG ID maps to several Application Server SRG rules.
+jenkins_stig_rule_map: {}
+#  JNKS-021: [V-XXXXXX, SRG-APP-000516-AS-XXXXXX]   # values from your XCCDF
+jenkins_stig_asset:
+  role: Member Server
+  marking: CUI
+  tech_area: Application Review
+  target_comment: Jenkins controller
+
+# ---------------------------------------------------------------------------
+# Optional / output
+# ---------------------------------------------------------------------------
+# Query configured repos for pending jenkins/java RPM updates (needs repo access).
+jenkins_stig_check_repo_updates: false
+# Path ON THE CONTROLLER to a current update-center.json (air-gapped sites):
+# https://updates.jenkins.io/update-center.actual.json
+jenkins_stig_update_center_file: ""
+jenkins_stig_report_dir: "{{ playbook_dir }}/reports"
+jenkins_stig_save_raw_evidence: true
+# Fail the host when Open findings of these severities exist (high|medium|low).
+jenkins_stig_fail_on: []
