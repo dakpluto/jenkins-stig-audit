@@ -1,9 +1,16 @@
 ---
+# A local run (inventory/local.yml) has inventory_hostname 'localhost'; name the
+# reports after the machine instead.
+- name: Set report host label
+  ansible.builtin.set_fact:
+    jsa_host_label: >-
+      {{ ansible_fqdn if inventory_hostname in ['localhost', '127.0.0.1', '::1'] else inventory_hostname }}
+
 - name: Set report paths
   ansible.builtin.set_fact:
-    jsa_report_path: "{{ jenkins_stig_report_dir }}/{{ inventory_hostname }}"
+    jsa_report_path: "{{ jenkins_stig_report_dir }}/{{ jsa_host_label }}"
     jsa_report_base: >-
-      {{ inventory_hostname }}_jenkins_appsrv_srg_{{ ansible_date_time.date }}
+      {{ jsa_host_label }}_jenkins_appsrv_srg_{{ ansible_date_time.date }}
 
 - name: Parse the Application Server SRG XCCDF
   ansible.builtin.set_fact:

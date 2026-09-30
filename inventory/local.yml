@@ -1,0 +1,12 @@
+---
+# Run the audit on the Jenkins controller itself, with no SSH and no separate
+# Ansible controller. Use with: ./run_local.sh  (or -i inventory/local.yml).
+# Modules run under the same Python as ansible-playbook, so the RHEL 8
+# platform-python 3.6 limitation of ansible-core 2.17+ does not apply here.
+all:
+  children:
+    jenkins:
+      hosts:
+        localhost:
+          ansible_connection: local
+          ansible_python_interpreter: "{{ ansible_playbook_python }}"

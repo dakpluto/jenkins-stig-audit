@@ -11,7 +11,7 @@ handshakes. It also works under `--check`.
 
 ## Outputs
 
-Reports are written on the controller under `reports/<host>/`:
+Reports are written on the machine running `ansible-playbook`, under `reports/<host>/`:
 
 | File | Contents |
 |---|---|
@@ -21,7 +21,30 @@ Reports are written on the controller under `reports/<host>/`:
 | `*.ckl` | STIG Viewer checklist for the whole SRG (only when `jenkins_stig_xccdf` is set) |
 | `*_evidence.json` | Raw collected evidence (secrets redacted), for assessor review |
 
-## Quick start
+## Quick start: run on the Jenkins controller itself
+
+No SSH and no separate Ansible machine are needed. Copy this directory to the
+Jenkins host and run it there:
+
+```bash
+sudo dnf install ansible-core        # RHEL 8 AppStream; the only dependency
+cd jenkins-stig-audit
+./run_local.sh                       # prompts for your sudo password if needed
+# optional: produce a STIG Viewer .ckl too
+./run_local.sh -e jenkins_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+```
+
+Reports are written under `./reports/<fqdn>/` on that host. `run_local.sh` runs
+`ansible-playbook -i inventory/local.yml jenkins_stig_audit.yml`, and any extra
+arguments are passed through (`--check`, `-e ...`, `-v`). Site settings still come from
+`inventory/group_vars/jenkins.yml`. When run locally, modules use the same Python
+as `ansible-playbook`, so the Python 3.6 limitation below doesn't apply.
+
+Air-gapped hosts: `dnf download --resolve ansible-core` on a connected RHEL 8
+machine and carry the RPMs across. For advisory checks, also bring
+`update-center.actual.json` (see `jenkins_stig_update_center_file`).
+
+## Quick start: run from a separate Ansible controller
 
 ```bash
 # 1. Controller: ansible-core 2.16 recommended (see "Python on RHEL 8" below)

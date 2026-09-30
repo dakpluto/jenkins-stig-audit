@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jenkins SRG Audit - {{ inventory_hostname | e }}</title>
+<title>Jenkins SRG Audit - {{ jsa_host_label | e }}</title>
 <style>
 :root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc;
         --open:#b3261e; --nf:#2e7d32; --nr:#8a6d00; --na:#5f6368; }
@@ -42,7 +42,7 @@ pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-m
 <main>
   <h1>Jenkins Application Server SRG Audit</h1>
   <div class="meta">
-    {{ inventory_hostname | e }} ({{ jsa_evidence.host.fqdn | e }}, {{ jsa_evidence.host.ip | e }}) &middot;
+    {{ jsa_host_label | e }} ({{ jsa_evidence.host.fqdn | e }}, {{ jsa_evidence.host.ip | e }}) &middot;
     {{ jsa_evidence.host.os | e }} &middot; Jenkins {{ jsa_evidence.rpm_version | default('unknown', true) | e }}
     &middot; JENKINS_HOME {{ jsa_home | e }} &middot; collected {{ jsa_evidence.collected_at | e }}
     {% if jsa_xccdf is defined %}<br>Benchmark: {{ jsa_xccdf.info.title | e }} V{{ jsa_xccdf.info.version | e }} {{ jsa_xccdf.info.releaseinfo | e }}{% endif %}
