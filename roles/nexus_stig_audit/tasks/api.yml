@@ -1,0 +1,42 @@
+---
+# Authenticated GET requests with the optional read-only account. Sets nsa_api.
+
+- name: Reset REST API results
+  ansible.builtin.set_fact:
+    nsa_api: {}
+
+- name: Query the Nexus REST API (read-only GETs)
+  ansible.builtin.uri:
+    url: "{{ nsa_runtime.probe.base_url }}{{ item.value }}"
+    method: GET
+    url_username: "{{ nexus_stig_api_user }}"
+    url_password: "{{ nexus_stig_api_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    follow_redirects: none
+    return_content: true
+    timeout: 20
+  loop: "{{ nsa_api_endpoints | dict2items }}"
+  register: _nsa_api
+  failed_when: false
+  check_mode: false
+  no_log: true   # carries the API password
+  when: >-
+    nexus_stig_api_user | length > 0 and nsa_runtime.probe.base_url | length > 0
+    and (nsa_running | bool or nexus_audit_url | length > 0)
+
+- name: Collate REST API results (password fields removed)
+  ansible.builtin.set_fact:
+    nsa_api: >-
+      {{ nsa_api | combine({item.item.key: {'status': item.status | default(-1), 'msg': item.msg | default(''),
+                                            'json': item.json | default(None) | nexus_api_sanitize}}) }}
+  loop: "{{ _nsa_api.results | default([]) | rejectattr('skipped', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item.key }} -> {{ item.status | default(-1) }}"
+
+- name: Warn when the REST API could not be read
+  ansible.builtin.debug:
+    msg: >-
+      Nexus REST API calls failed ({{ nsa_api | dict2items | map(attribute='value.status') | unique | join(', ') }});
+      checks that need it will be Not_Reviewed. Check nexus_stig_api_user and its privileges.
+  when: nsa_api | length > 0 and (nsa_api | dict2items | selectattr('value.status', 'eq', 200) | list | length) == 0

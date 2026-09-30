@@ -1,0 +1,27 @@
+---
+# Files read from the target. Missing files are skipped.
+nsa_config_files:
+  - {key: nexus.properties, base: data, path: etc/nexus.properties}
+  - {key: nexus-store.properties, base: data, path: etc/fabric/nexus-store.properties}
+  - {key: nexus-default.properties, base: install, path: etc/nexus-default.properties}
+  - {key: nexus.vmoptions, base: install, path: bin/nexus.vmoptions}
+  - {key: nexus.rc, base: install, path: bin/nexus.rc}
+  - {key: jetty-https.xml, base: install, path: etc/jetty/jetty-https.xml}
+
+# Authenticated, read-only REST API calls (only with nexus_stig_api_user).
+nsa_api_endpoints:
+  anonymous: /service/rest/v1/security/anonymous
+  realms: /service/rest/v1/security/realms/active
+  ldap: /service/rest/v1/security/ldap
+  users: /service/rest/v1/security/users
+  repositories: /service/rest/v1/repositories
+
+nsa_settings:
+  max_session_timeout: "{{ nexus_stig_max_session_timeout }}"
+  banner_regex: "{{ nexus_stig_banner_regex }}"
+  tls_termination: "{{ nexus_stig_tls_termination }}"
+  min_java_major: "{{ nexus_stig_min_java_major }}"
+  min_version: "{{ nexus_stig_min_version }}"
+  approved_ports: "{{ nexus_stig_approved_ports }}"
+  overrides: "{{ nexus_stig_overrides }}"
+  audit_url: "{{ nexus_audit_url }}"

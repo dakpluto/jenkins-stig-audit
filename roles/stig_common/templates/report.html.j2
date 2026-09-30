@@ -1,0 +1,116 @@
+<!doctype html>
+{# Rendered on the controller by roles/stig_common/tasks/report.yml. #}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ sc_product.name | e }} SRG Audit - {{ sc_host_label | e }}</title>
+<style>
+:root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc;
+        --open:#b3261e; --nf:#2e7d32; --nr:#8a6d00; --na:#5f6368; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#161615; --panel:#1f1f1d; --ink:#ecebe6; --muted:#a3a29c; --line:#34332f;
+          --open:#f28b82; --nf:#81c995; --nr:#fdd663; --na:#bdc1c6; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.meta { color:var(--muted); margin-bottom:20px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+.tile { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+.tile b { display:block; font-size:24px; font-variant-numeric:tabular-nums; }
+.tile span { color:var(--muted); font-size:12px; }
+.filters { margin:0 0 12px; display:flex; gap:6px; flex-wrap:wrap; }
+.filters button { background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; font:inherit; }
+.filters button.on { border-color:var(--ink); }
+details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
+summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:90px 118px 60px 1fr; gap:10px; align-items:baseline; }
+summary::-webkit-details-marker { display:none; }
+.id { font-family:ui-monospace,Consolas,monospace; color:var(--muted); }
+.id small { display:block; font-size:11px; }
+.st { font-weight:600; }
+.Open .st { color:var(--open); } .NotAFinding .st { color:var(--nf); }
+.Not_Reviewed .st { color:var(--nr); } .Not_Applicable .st { color:var(--na); }
+.body { padding:0 14px 14px; border-top:1px solid var(--line); }
+.body h4 { margin:12px 0 4px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-monospace,Consolas,monospace; background:var(--bg); padding:8px; border-radius:6px; }
+.srg { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+@media (max-width:640px) { summary { grid-template-columns:1fr 1fr; } summary .title { grid-column:1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{ sc_product.name | e }} Application Server SRG Audit</h1>
+  <div class="meta">
+    {{ sc_host_label | e }} ({{ sc_evidence.host.fqdn | e }}, {{ sc_evidence.host.ip | e }}) &middot;
+    {{ sc_evidence.host.os | e }} &middot; {{ sc_product.name | e }} {{ sc_product_info.version | default('unknown', true) | e }}
+{% for k, v in sc_product_info.items() if k != 'version' and v is string and v %}    &middot; {{ k | e }} {{ v | e }}
+{% endfor %}    &middot; collected {{ sc_evidence.collected_at | e }}
+    <br>Benchmark: {{ sc_srg_index.info.title | e }} V{{ sc_srg_index.info.version | e }} {{ sc_srg_index.info.releaseinfo | e }}{% if sc_xccdf is not defined %} (bundled V-ID index; set {{ sc_product.prefix }}_xccdf for the .ckl){% endif %}
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><b style="color:var(--open)">{{ sc_summary.by_status.Open }}</b><span>Open</span></div>
+    <div class="tile"><b>{{ sc_summary.open_by_severity.high }} / {{ sc_summary.open_by_severity.medium }} / {{ sc_summary.open_by_severity.low }}</b><span>Open CAT I / II / III</span></div>
+    <div class="tile"><b style="color:var(--nf)">{{ sc_summary.by_status.NotAFinding }}</b><span>Not a Finding</span></div>
+    <div class="tile"><b style="color:var(--nr)">{{ sc_summary.by_status.Not_Reviewed }}</b><span>Needs manual review</span></div>
+    <div class="tile"><b style="color:var(--na)">{{ sc_summary.by_status.Not_Applicable }}</b><span>Not Applicable</span></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="on" data-f="all">All</button>
+    <button data-f="Open">Open</button>
+    <button data-f="Not_Reviewed">Not Reviewed</button>
+    <button data-f="NotAFinding">Not a Finding</button>
+    <button data-f="Not_Applicable">Not Applicable</button>
+  </div>
+
+{% for r in sc_results %}
+  <details class="{{ r.status }}" data-status="{{ r.status }}"{% if r.status == 'Open' %} open{% endif %}>
+    <summary>
+      <span class="id">{{ r.id }}{% for v in sc_vuln_map[r.id] | selectattr('bound') %}<small>{{ v.vuln_num }}</small>{% endfor %}</span>
+      <span class="st">{{ r.status | replace('_', ' ') }}{% if r.overridden | default(false) %}*{% endif %}</span>
+      <span>{{ r.cat }}</span>
+      <span class="title">{{ r.title | e }}</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">{{ r.srg_ids | join(', ') }}</div>
+      <h4>STIG rules</h4>
+{%   for v in sc_vuln_map[r.id] %}
+      <div class="srg">{{ v.vuln_num }} &middot; {{ v.rule_ver | e }}{% if not v.bound %} (candidate: several rules share this SRG ID; pick one with {{ sc_product.prefix }}_rule_map){% endif %}<br>{{ v.rule_title | e }}</div>
+{%   else %}
+      <div class="srg">No rule in {{ sc_srg_index.info.title | e }} {{ sc_srg_index.info.releaseinfo | e }} matches these SRG IDs.</div>
+{%   endfor %}
+      <h4>Result</h4>
+      <pre>{{ r.finding_details | e }}</pre>
+{% if r.evidence %}
+      <h4>Evidence</h4>
+      <pre>{{ r.evidence | e }}</pre>
+{% endif %}
+{% if r.comments %}
+      <h4>Comments</h4>
+      <pre>{{ r.comments | e }}</pre>
+{% endif %}
+{% if r.status in ['Open', 'Not_Reviewed'] %}
+      <h4>Remediation</h4>
+      <pre>{{ r.fix | e }}</pre>
+{% endif %}
+    </div>
+  </details>
+{% endfor %}
+  <p class="meta">* status set by {{ sc_product.prefix }}_overrides. Automated results support, but do not replace, assessor review
+  of the full Application Server SRG.</p>
+</main>
+<script>
+document.getElementById('filters').addEventListener('click', function (e) {
+  var f = e.target.getAttribute('data-f'); if (!f) return;
+  document.querySelectorAll('#filters button').forEach(function (b) { b.classList.toggle('on', b === e.target); });
+  document.querySelectorAll('details').forEach(function (d) {
+    d.style.display = (f === 'all' || d.getAttribute('data-status') === f) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

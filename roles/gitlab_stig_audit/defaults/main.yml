@@ -1,0 +1,72 @@
+---
+# ---------------------------------------------------------------------------
+# Discovery (Omnibus GitLab defaults)
+# ---------------------------------------------------------------------------
+gitlab_config_dir: /etc/gitlab
+gitlab_data_dir: /var/opt/gitlab
+gitlab_log_dir: /var/log/gitlab
+gitlab_install_dir: /opt/gitlab
+# URL used for HTTP/TLS probes, run *from the target host*. Leave blank to use
+# external_url. Set it when a load balancer/proxy in front of GitLab terminates TLS.
+gitlab_audit_url: ""
+
+# ---------------------------------------------------------------------------
+# Organization-defined values
+# ---------------------------------------------------------------------------
+gitlab_stig_max_session_timeout: 15           # minutes
+gitlab_stig_max_inactive_days: 35
+gitlab_stig_banner_regex: 'You are accessing a U\.S\. Government'
+gitlab_stig_tls_termination: auto             # auto | gitlab | proxy
+# Lowest acceptable GitLab version, e.g. "17.3.4". Empty = GLAB-020 left for manual review.
+gitlab_stig_min_version: ""
+# PPSM-registered ports GitLab may listen on. Empty = GLAB-018 left for manual review.
+gitlab_stig_approved_ports: []                # e.g. [22, 443]
+# Approved bundled services (names from `gitlab-ctl status`). Empty = GLAB-019 left for manual review.
+gitlab_stig_approved_services: []             # e.g. [gitaly, gitlab-workhorse, logrotate, nginx, postgresql, puma, redis, sidekiq]
+# Application settings and the values GLAB-019 expects (least functionality).
+gitlab_stig_expected_settings:
+  usage_ping_enabled: false                   # Service Ping sends usage data to GitLab Inc.
+  gravatar_enabled: false                     # avatar lookups send e-mail hashes to gravatar.com
+
+# Accounts Omnibus creates. Shells listed in gitlab_stig_shell_exceptions are accepted.
+gitlab_stig_service_accounts: [git, gitlab-www, gitlab-redis, gitlab-psql, gitlab-prometheus]
+gitlab_stig_shell_exceptions:
+  git: "gitlab-shell needs a shell for Git over SSH"
+  gitlab-psql: "Omnibus default; used by gitlab-psql and gitlab-ctl for database maintenance"
+
+# Record documented mitigations, risk acceptances or manual results.
+# status: NotAFinding | Open | Not_Applicable | Not_Reviewed
+gitlab_stig_overrides: {}
+#  GLAB-009:
+#    status: Open
+#    comment: "No native control; accepted in POA&M item 42"
+
+# ---------------------------------------------------------------------------
+# Checklist (.ckl) generation
+# ---------------------------------------------------------------------------
+# Path ON THE CONTROLLER to the DISA Application Server SRG XCCDF (.xml or .zip).
+# Leave blank to skip the .ckl (the HTML report then uses the bundled V-ID index).
+gitlab_stig_xccdf: ""
+# Bind a check to specific SRG rules (Vuln ID, Rule ID or full SRG-APP-xxxxxx-AS-xxxxxx).
+gitlab_stig_rule_map: {}
+#  GLAB-006: [SRG-APP-000172-AS-000121]
+gitlab_stig_asset:
+  role: Member Server
+  marking: CUI
+  tech_area: Application Review
+  target_comment: GitLab server
+
+# ---------------------------------------------------------------------------
+# Optional / output
+# ---------------------------------------------------------------------------
+# Read application settings with `gitlab-rails runner` (read-only, takes 1-2 minutes).
+# Without it, the checks that depend on application settings are left Not_Reviewed.
+gitlab_stig_query_settings: true
+# Verify /opt/gitlab against the RPM database (can take a few minutes).
+gitlab_stig_rpm_verify: true
+# Query configured repos for a pending GitLab update (needs repo access).
+gitlab_stig_check_repo_updates: false
+gitlab_stig_report_dir: "{{ playbook_dir }}/reports"
+gitlab_stig_save_raw_evidence: true
+# Fail the host when Open findings of these severities exist (high|medium|low).
+gitlab_stig_fail_on: []

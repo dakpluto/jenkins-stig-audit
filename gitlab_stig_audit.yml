@@ -1,0 +1,12 @@
+---
+# Read-only compliance audit of RHEL 8 Omnibus GitLab servers against the DISA
+# Application Server SRG. Usage:
+#   ansible-playbook -i inventory/hosts.yml gitlab_stig_audit.yml
+#   ansible-playbook -i inventory/hosts.yml gitlab_stig_audit.yml \
+#     -e gitlab_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+- name: GitLab Application Server SRG audit
+  hosts: gitlab
+  become: true
+  gather_facts: false
+  roles:
+    - gitlab_stig_audit

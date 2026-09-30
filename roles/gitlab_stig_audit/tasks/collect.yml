@@ -1,0 +1,96 @@
+---
+- name: Read GitLab configuration files
+  ansible.builtin.slurp:
+    src: "{{ item.value }}"
+  loop: "{{ gsa_config_files | dict2items }}"
+  loop_control:
+    label: "{{ item.value }}"
+  register: _gsa_slurp
+  failed_when: false
+  check_mode: false
+  no_log: true   # gitlab.rb and gitlab.yml hold secrets; they are redacted below
+
+- name: Redact and decode configuration files
+  ansible.builtin.set_fact:
+    gsa_files: >-
+      {{ gsa_files | default({}) | combine({item.item.key: item.content | b64decode | stig_redact(true)}) }}
+  loop: "{{ _gsa_slurp.results | selectattr('content', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  no_log: true
+
+- name: Resolve external_url
+  ansible.builtin.set_fact:
+    gsa_external_url: >-
+      {{ (gsa_files | default({})).get('gitlab.yml', '')
+         | gitlab_external_url((gsa_files | default({})).get('gitlab.rb', '')) }}
+
+- name: Read application settings with gitlab-rails runner (read-only)
+  ansible.builtin.command:
+    argv: [timeout, "900", gitlab-rails, runner, "{{ gsa_rails_script }}"]
+  register: _gsa_rails
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: gitlab_stig_query_settings | bool and gsa_running | bool
+
+- name: Record ownership and permissions of key GitLab paths
+  vars:
+    _paths:
+      - "{{ gitlab_config_dir }}"
+      - "{{ gitlab_config_dir }}/gitlab.rb"
+      - "{{ gitlab_config_dir }}/gitlab-secrets.json"
+      - "{{ gitlab_config_dir }}/initial_root_password"
+      - "{{ gitlab_config_dir }}/ssl"
+      - "{{ gitlab_data_dir }}"
+      - "{{ gitlab_data_dir }}/.ssh/authorized_keys"
+      - "{{ gitlab_install_dir }}"
+      - "{{ gitlab_install_dir }}/bin"
+      - "{{ gitlab_install_dir }}/embedded/bin"
+  ansible.builtin.shell: >-
+    find {{ _paths | map('quote') | join(' ') }} -maxdepth 0 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null;
+    find {{ (gitlab_config_dir ~ '/ssl') | quote }} -maxdepth 1 -type f -name '*.key'
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _gsa_stats
+  changed_when: false
+  check_mode: false
+
+- name: Record ownership and permissions of GitLab log files (rotated files excluded)
+  ansible.builtin.shell: >-
+    find {{ gitlab_log_dir | quote }} -maxdepth 2 \( -type d -o -type f \) ! -name '@*' ! -name '*.gz'
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null | head -n 2000; true
+  register: _gsa_logstats
+  changed_when: false
+  check_mode: false
+
+- name: Find world-writable files in GitLab configuration and data directories
+  ansible.builtin.shell: >-
+    find {{ gitlab_config_dir | quote }} {{ gitlab_data_dir | quote }} -xdev -maxdepth 3
+    -perm -0002 ! -type l ! -type s ! -type p -print 2>/dev/null | head -n 200; true
+  register: _gsa_ww
+  changed_when: false
+  check_mode: false
+
+- name: List GitLab application processes and their owners
+  ansible.builtin.shell: >-
+    ps -eo user=,args= | grep -E '(^|[ /])(puma|sidekiq|gitaly|gitlab-workhorse)' | grep -v grep | cut -c1-300; true
+  register: _gsa_ps
+  changed_when: false
+  check_mode: false
+
+- name: Verify GitLab package files against the RPM database
+  ansible.builtin.command: rpm -V {{ gsa_package.name | quote }}
+  register: _gsa_rpmv
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: gitlab_stig_rpm_verify | bool and gsa_package.name | length > 0
+
+- name: Collect host evidence
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: host.yml
+  vars:
+    sc_accounts: "{{ gitlab_stig_service_accounts }}"
+    sc_df_dirs: ["{{ gitlab_data_dir }}", "{{ gitlab_log_dir }}"]
+    sc_update_packages: "{{ [gsa_package.name] if (gitlab_stig_check_repo_updates | bool and gsa_package.name) else [] }}"

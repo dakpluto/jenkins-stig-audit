@@ -1,0 +1,25 @@
+---
+# Site-specific values for the Nexus audit. See roles/nexus_stig_audit/defaults/main.yml
+# for every option and its default.
+
+# DISA Application Server SRG XCCDF (.zip from cyber.mil or the extracted .xml).
+nexus_stig_xccdf: ""    # "{{ playbook_dir }}/stig/U_Application_Server_SRG_V#R#_Manual.zip"
+
+# Public URL when a reverse proxy terminates TLS (probes then test what users see).
+nexus_audit_url: ""
+nexus_stig_tls_termination: auto
+
+# Read-only REST API account (see README). Keep the password in ansible-vault:
+#   ansible-vault encrypt_string 'the-password' --name nexus_stig_api_password
+nexus_stig_api_user: ""
+nexus_stig_api_password: ""
+
+nexus_stig_max_session_timeout: 15
+nexus_stig_min_version: ""
+nexus_stig_approved_ports: []
+
+# Documented mitigations / manual results.
+nexus_stig_overrides: {}
+#  NXRM-006:
+#    status: NotAFinding
+#    comment: "UI: Settings session timeout is 15 minutes; verified by ISSO 2026-09-01"

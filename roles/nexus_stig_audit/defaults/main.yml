@@ -1,0 +1,63 @@
+---
+# ---------------------------------------------------------------------------
+# Discovery (leave blank to auto-detect from the running JVM)
+# ---------------------------------------------------------------------------
+nexus_install_dir: ""            # e.g. /opt/nexus or /opt/sonatype/nexus3
+nexus_data_dir: ""               # e.g. /opt/sonatype-work/nexus3
+nexus_service_name: nexus
+# Checked in order when Nexus is not running and the directories above are blank.
+nexus_install_candidates: [/opt/nexus, /opt/sonatype/nexus, /opt/sonatype/nexus3]
+nexus_data_candidates: [/opt/sonatype-work/nexus3, /opt/sonatype/sonatype-work/nexus3, /nexus-data]
+# URL used for HTTP/TLS probes, run *from the target host*. Leave blank to probe
+# Nexus directly on its listener. Set it to the public https:// URL when a reverse
+# proxy terminates TLS so banner/header/TLS checks test what users see.
+nexus_audit_url: ""
+
+# Optional read-only account for the REST API (store the password with ansible-vault).
+# Without it, the realm, anonymous-access, user and LDAP checks are left Not_Reviewed.
+# Privileges needed: nx-settings-read, nx-users-read, nx-ldap-read, nx-repository-view-*-*-browse.
+nexus_stig_api_user: ""
+nexus_stig_api_password: ""
+
+# ---------------------------------------------------------------------------
+# Organization-defined values
+# ---------------------------------------------------------------------------
+nexus_stig_max_session_timeout: 15            # minutes
+nexus_stig_banner_regex: 'You are accessing a U\.S\. Government'
+nexus_stig_tls_termination: auto              # auto | nexus | proxy
+nexus_stig_min_java_major: 17
+# Lowest acceptable Nexus version, e.g. "3.70.1-02". Empty = NXRM-017 left for manual review.
+nexus_stig_min_version: ""
+# PPSM-registered ports Nexus may listen on. Empty = NXRM-015 left for manual review.
+nexus_stig_approved_ports: []                 # e.g. [8443]
+
+# Record documented mitigations, risk acceptances or manual results.
+# status: NotAFinding | Open | Not_Applicable | Not_Reviewed
+nexus_stig_overrides: {}
+#  NXRM-006:
+#    status: NotAFinding
+#    comment: "UI: Settings session timeout set to 15 minutes; verified by ISSO 2026-09-01"
+
+# ---------------------------------------------------------------------------
+# Checklist (.ckl) generation
+# ---------------------------------------------------------------------------
+# Path ON THE CONTROLLER to the DISA Application Server SRG XCCDF (.xml or .zip).
+# Leave blank to skip the .ckl (the HTML report then uses the bundled V-ID index).
+nexus_stig_xccdf: ""
+# Bind a check to specific SRG rules (Vuln ID, Rule ID or full SRG-APP-xxxxxx-AS-xxxxxx).
+nexus_stig_rule_map: {}
+nexus_stig_asset:
+  role: Member Server
+  marking: CUI
+  tech_area: Application Review
+  target_comment: Sonatype Nexus Repository
+
+# ---------------------------------------------------------------------------
+# Optional / output
+# ---------------------------------------------------------------------------
+# Query configured repos for a pending Nexus RPM update (RPM installs only; needs repo access).
+nexus_stig_check_repo_updates: false
+nexus_stig_report_dir: "{{ playbook_dir }}/reports"
+nexus_stig_save_raw_evidence: true
+# Fail the host when Open findings of these severities exist (high|medium|low).
+nexus_stig_fail_on: []

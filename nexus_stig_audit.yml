@@ -1,0 +1,12 @@
+---
+# Read-only compliance audit of RHEL 8 Sonatype Nexus Repository 3 servers against
+# the DISA Application Server SRG. Usage:
+#   ansible-playbook -i inventory/hosts.yml nexus_stig_audit.yml --ask-vault-pass
+#   ansible-playbook -i inventory/hosts.yml nexus_stig_audit.yml \
+#     -e nexus_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+- name: Nexus Repository Application Server SRG audit
+  hosts: nexus
+  become: true
+  gather_facts: false
+  roles:
+    - nexus_stig_audit

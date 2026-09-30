@@ -1,0 +1,58 @@
+---
+# Files read from the target (relative to the configured directories). Missing files are skipped.
+gsa_config_files:
+  gitlab.rb: "{{ gitlab_config_dir }}/gitlab.rb"
+  gitlab.yml: "{{ gitlab_data_dir }}/gitlab-rails/etc/gitlab.yml"
+  gitlab-http.conf: "{{ gitlab_data_dir }}/nginx/conf/gitlab-http.conf"
+
+# Application settings the checks read (plus the keys of gitlab_stig_expected_settings).
+gsa_setting_keys:
+  - signup_enabled
+  - require_admin_approval_after_user_signup
+  - require_two_factor_authentication
+  - two_factor_grace_period
+  - admin_mode
+  - session_expire_delay
+  - remember_me_enabled
+  - password_authentication_enabled_for_web
+  - password_authentication_enabled_for_git
+  - default_project_visibility
+  - default_group_visibility
+  - default_snippet_visibility
+  - restricted_visibility_levels
+  - allow_local_requests_from_web_hooks_and_services
+  - allow_local_requests_from_system_hooks
+  - deactivate_dormant_users
+  - deactivate_dormant_users_period
+  - enforce_terms
+
+# Read-only Ruby run by `gitlab-rails runner`; prints one JSON line.
+gsa_rails_script: |
+  begin
+    keys = %w[{{ (gsa_setting_keys + (gitlab_stig_expected_settings | list)) | unique | join(' ') }}]
+    s = ApplicationSetting.current
+    days = {{ gitlab_stig_max_inactive_days | int }}
+    out = {
+      'settings' => (s ? s.attributes.slice(*keys) : {}),
+      'admins' => User.admins.active.pluck(:username),
+      'dormant' => User.active.humans.where('last_activity_on < ?', days.days.ago).count,
+      'terms' => ApplicationSetting::Term.last&.terms.to_s[0, 4000]
+    }
+    puts out.to_json
+  rescue => e
+    puts({ 'error' => e.message }.to_json)
+  end
+
+gsa_settings:
+  max_session_timeout: "{{ gitlab_stig_max_session_timeout }}"
+  max_inactive_days: "{{ gitlab_stig_max_inactive_days }}"
+  banner_regex: "{{ gitlab_stig_banner_regex }}"
+  tls_termination: "{{ gitlab_stig_tls_termination }}"
+  min_version: "{{ gitlab_stig_min_version }}"
+  approved_ports: "{{ gitlab_stig_approved_ports }}"
+  approved_services: "{{ gitlab_stig_approved_services }}"
+  expected_settings: "{{ gitlab_stig_expected_settings }}"
+  service_accounts: "{{ gitlab_stig_service_accounts }}"
+  shell_exceptions: "{{ gitlab_stig_shell_exceptions }}"
+  overrides: "{{ gitlab_stig_overrides }}"
+  audit_url: "{{ gitlab_audit_url }}"

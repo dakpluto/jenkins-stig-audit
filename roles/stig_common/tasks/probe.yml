@@ -1,0 +1,63 @@
+---
+# Unauthenticated GET requests and TLS handshakes, run on the target. Sets sc_http and sc_tls.
+# Inputs:
+#   sc_http_requests  [{key, url, content (bool)}]
+#   sc_tls_host       host to test TLS versions against ('' = skip)
+#   sc_tls_port       its port
+
+- name: Reset probe results
+  ansible.builtin.set_fact:
+    sc_http: {}
+    sc_tls: {}
+
+- name: Probe HTTP endpoints without credentials
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    method: GET
+    validate_certs: false
+    follow_redirects: none
+    return_content: "{{ item.content | default(false) }}"
+    timeout: 15
+  loop: "{{ sc_http_requests }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: _sc_http
+  failed_when: false
+  check_mode: false
+
+- name: Collate HTTP probe results
+  ansible.builtin.set_fact:
+    sc_http: >-
+      {{ sc_http | combine({item.item.key: {
+           'url': item.url | default(item.item.url), 'status': item.status | default(-1),
+           'msg': item.msg | default(''), 'content': item.content | default(''),
+           'json': item.json | default(None), 'server': item.server | default(''),
+           'location': item.location | default('')}}) }}
+  loop: "{{ _sc_http.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.url }} -> {{ item.status | default('skipped') }}"
+  when: item.skipped is not defined
+
+- name: Test which TLS protocol versions the endpoint accepts
+  vars:
+    _h: "{{ sc_tls_host }}"
+    _connect: "{{ ('[' ~ _h ~ ']') if ':' in _h else _h }}:{{ sc_tls_port }}"
+    _sni: "{{ '' if (_h is match('^[0-9.]+$') or ':' in _h) else '-servername ' ~ (_h | quote) }}"
+    _cipher: "{{ '' if item == 'tls1_3' else \"-cipher 'ALL:@SECLEVEL=0'\" }}"
+  # OPENSSL_CONF=/dev/null bypasses the *client's* crypto policy so the result
+  # reflects what the server accepts, not what the local policy allows.
+  ansible.builtin.shell: >-
+    echo | OPENSSL_CONF=/dev/null timeout 15
+    openssl s_client -connect {{ _connect }} {{ _sni }} -{{ item }} {{ _cipher }} 2>&1; true
+  loop: [tls1, tls1_1, tls1_2, tls1_3]
+  register: _sc_tls
+  changed_when: false
+  check_mode: false
+  when: sc_tls_host | length > 0
+
+- name: Collate TLS probe results
+  ansible.builtin.set_fact:
+    sc_tls: >-
+      {{ dict(_sc_tls.results | selectattr('stdout', 'defined') | map(attribute='item')
+              | zip(_sc_tls.results | selectattr('stdout', 'defined') | map(attribute='stdout'))) }}
+  when: _sc_tls.results is defined

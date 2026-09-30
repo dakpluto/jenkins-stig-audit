@@ -1,0 +1,22 @@
+---
+# Site-specific values for the GitLab audit. See roles/gitlab_stig_audit/defaults/main.yml
+# for every option and its default.
+
+# DISA Application Server SRG XCCDF (.zip from cyber.mil or the extracted .xml).
+# When set, a STIG Viewer .ckl is written next to the other reports.
+gitlab_stig_xccdf: ""   # "{{ playbook_dir }}/stig/U_Application_Server_SRG_V#R#_Manual.zip"
+
+# Probe URL when a load balancer/proxy terminates TLS (defaults to external_url).
+gitlab_audit_url: ""
+gitlab_stig_tls_termination: auto
+
+gitlab_stig_max_session_timeout: 15
+gitlab_stig_min_version: ""
+gitlab_stig_approved_ports: []
+gitlab_stig_approved_services: []
+
+# Documented mitigations / manual results.
+gitlab_stig_overrides: {}
+#  GLAB-009:
+#    status: Open
+#    comment: "No native control; accepted in POA&M item 42"

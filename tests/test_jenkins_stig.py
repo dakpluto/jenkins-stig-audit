@@ -298,7 +298,7 @@ class ChecklistTests(unittest.TestCase):
                          [("V-900002", True, "SRG-APP-000516-AS-000237")])
 
     def test_bundled_index_maps_vuln_ids(self):
-        with open(os.path.join(os.path.dirname(FIX), "..", "roles", "jenkins_stig_audit", "files",
+        with open(os.path.join(os.path.dirname(FIX), "..", "roles", "stig_common", "files",
                                "app_server_srg_index.json")) as f:
             x = json.load(f)
         self.assertTrue(all(r["rule_ver"].startswith("SRG-APP-") for r in x["rules"]))

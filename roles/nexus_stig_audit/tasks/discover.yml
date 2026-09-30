@@ -1,0 +1,133 @@
+---
+- name: Gather platform facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', 'min', 'network']
+
+- name: Warn when the target is not RHEL 8
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} is {{ ansible_distribution }} {{ ansible_distribution_version }};
+      this audit was written for RHEL 8 and some checks may not apply.
+  when: not (ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8')
+
+- name: List installed Nexus packages
+  ansible.builtin.shell: rpm -qa --qf '%{NAME}|%{VERSION}-%{RELEASE}\n' '*nexus*' | sort
+  register: _nsa_rpm
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Locate the running Nexus JVM
+  ansible.builtin.shell: |
+    for p in $(pgrep -f '[Nn]exus|[Ss]onatype'); do
+      if [ "$(cat /proc/$p/comm 2>/dev/null)" = "java" ]; then echo "$p"; break; fi
+    done
+  register: _nsa_pid
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set process state
+  ansible.builtin.set_fact:
+    nsa_running: "{{ _nsa_pid.stdout | length > 0 }}"
+    nsa_pid: "{{ _nsa_pid.stdout | trim }}"
+    nsa_cmdline: []
+
+- name: Read Nexus JVM details
+  when: nsa_running | bool
+  block:
+    - name: Read process owner
+      ansible.builtin.command: ps -o user= -p {{ nsa_pid }}
+      register: _nsa_puser
+      changed_when: false
+      check_mode: false
+
+    - name: Read java executable path
+      ansible.builtin.command: readlink -f /proc/{{ nsa_pid }}/exe
+      register: _nsa_pexe
+      changed_when: false
+      check_mode: false
+
+    - name: Read JVM command line
+      ansible.builtin.shell: "tr '\\0' '\\n' < /proc/{{ nsa_pid }}/cmdline"
+      register: _nsa_cmdline
+      changed_when: false
+      check_mode: false
+      no_log: true   # may carry keystore passwords; redacted below
+
+    - name: Redact the JVM command line
+      ansible.builtin.set_fact:
+        nsa_cmdline: "{{ (_nsa_cmdline.stdout | stig_redact).splitlines() }}"
+
+    - name: Resolve karaf.home and karaf.data relative to the process directory
+      vars:
+        _home: "{{ nsa_cmdline | select('match', '^-Dkaraf.home=') | first | default('=') }}"
+        _data: "{{ nsa_cmdline | select('match', '^-Dkaraf.data=') | first | default('=') }}"
+      ansible.builtin.shell: >-
+        cd /proc/{{ nsa_pid }}/cwd &&
+        echo "HOME=$(readlink -f {{ _home.split('=', 1)[1] | default('', true) | quote }})" &&
+        echo "DATA=$(readlink -f {{ _data.split('=', 1)[1] | default('', true) | quote }})"
+      register: _nsa_karaf
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Read Java version
+      ansible.builtin.command: "{{ _nsa_pexe.stdout }} -version"
+      register: _nsa_java
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+- name: Look for an installation and data directory on disk
+  ansible.builtin.shell: |
+    for d in {{ nexus_install_candidates | map('quote') | join(' ') }}; do
+      if [ -d "$d/bin" ]; then echo "INSTALL=$(readlink -f "$d")"; break; fi
+    done
+    for d in {{ nexus_data_candidates | map('quote') | join(' ') }}; do
+      if [ -d "$d/etc" ] || [ -d "$d/log" ]; then echo "DATA=$(readlink -f "$d")"; break; fi
+    done
+    true
+  register: _nsa_disk
+  changed_when: false
+  check_mode: false
+
+- name: Read the systemd service account
+  ansible.builtin.command: systemctl show {{ nexus_service_name | quote }} -p User --value
+  register: _nsa_unit
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Resolve installation, data directory and service account
+  vars:
+    _karaf: "{{ _nsa_karaf.stdout_lines | default([]) }}"
+    _disk: "{{ _nsa_disk.stdout_lines }}"
+  ansible.builtin.set_fact:
+    nsa_install: >-
+      {{ (nexus_install_dir
+          or (_karaf | select('match', '^HOME=/') | first | default('') | regex_replace('^HOME=', ''))
+          or (_disk | select('match', '^INSTALL=') | first | default('') | regex_replace('^INSTALL=', ''))) | regex_replace('/+$', '') }}
+    nsa_data: >-
+      {{ (nexus_data_dir
+          or (_karaf | select('match', '^DATA=/') | first | default('') | regex_replace('^DATA=', ''))
+          or (_disk | select('match', '^DATA=') | first | default('') | regex_replace('^DATA=', ''))) | regex_replace('/+$', '') }}
+    nsa_user: >-
+      {{ (_nsa_puser.stdout | default('') | trim) or (_nsa_unit.stdout | default('') | trim) or 'nexus' }}
+
+- name: Stop when Nexus is not present on this host
+  when: not nsa_running | bool and nsa_install | length == 0 and nsa_data | length == 0
+  block:
+    - name: Report that Nexus was not found
+      ansible.builtin.debug:
+        msg: "No running Nexus JVM or Nexus installation found on {{ inventory_hostname }}; skipping."
+
+    - name: End this host
+      ansible.builtin.meta: end_host
+
+- name: Show what was discovered
+  ansible.builtin.debug:
+    msg:
+      - "Running: {{ nsa_running }} (pid {{ nsa_pid | default('-', true) }}, user {{ nsa_user }})"
+      - "Install: {{ nsa_install | default('-', true) }}  Data: {{ nsa_data | default('-', true) }}"
+      - "RPM: {{ _nsa_rpm.stdout | default('none', true) }}"

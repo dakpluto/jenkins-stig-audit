@@ -1,61 +1,74 @@
-# Jenkins Application Server SRG Audit (Ansible)
+# Application Server SRG Audits (Ansible): Jenkins, GitLab, Nexus
 
-Read-only Ansible audit of RHEL 8 Jenkins controllers against the DISA
-**Application Server Security Requirements Guide (SRG)**. DISA does not publish
-a Jenkins-specific STIG, so the Application Server SRG is the governing
-benchmark. This project turns its requirements into 29 concrete Jenkins checks.
+Read-only Ansible audits of RHEL 8 **Jenkins**, **Omnibus GitLab** and **Sonatype
+Nexus Repository 3** servers against the DISA **Application Server Security
+Requirements Guide (SRG)**. DISA does not publish a product STIG for any of the
+three, so the Application Server SRG is the governing benchmark. Each playbook
+turns its requirements into concrete product checks:
 
-The playbook **changes nothing on the target**. Every task only reads files,
-runs status commands, makes unauthenticated `GET` requests, or does TLS
-handshakes. It also works under `--check`.
+| Playbook | Inventory group | Checks |
+|---|---|---|
+| `jenkins_stig_audit.yml` | `jenkins` | 29 (`JNKS-*`) |
+| `gitlab_stig_audit.yml` | `gitlab` | 29 (`GLAB-*`) |
+| `nexus_stig_audit.yml` | `nexus` | 24 (`NXRM-*`) |
+
+The playbooks **change nothing on the target**. Every task only reads files,
+runs status commands, makes `GET` requests, or does TLS handshakes. They also
+work under `--check`.
 
 ## Outputs
 
-Reports are written on the machine running `ansible-playbook`, under `reports/<host>/`:
+Reports are written on the machine running `ansible-playbook`, under `reports/<host>/`,
+named `<host>_<product>_appsrv_srg_<date>.*`:
 
 | File | Contents |
 |---|---|
 | `*.html` | Human-readable report with status filters, Vuln IDs, evidence and remediation |
 | `*.json` | Machine-readable results, summary, and SRG→Vuln ID binding |
 | `*.csv` | One row per check, for POA&M / spreadsheet work |
-| `*.ckl` | STIG Viewer checklist for the whole SRG (only when `jenkins_stig_xccdf` is set) |
+| `*.ckl` | STIG Viewer checklist for the whole SRG (only when `<product>_stig_xccdf` is set) |
 | `*_evidence.json` | Raw collected evidence (secrets redacted), for assessor review |
 
-## Quick start: run on the Jenkins controller itself
+## Quick start: run on the server itself
 
 No SSH and no separate Ansible machine are needed. Copy this directory to the
-Jenkins host and run it there:
+server and run it there:
 
 ```bash
 sudo dnf install ansible-core        # RHEL 8 AppStream; the only dependency
 cd jenkins-stig-audit
-./run_local.sh                       # prompts for your sudo password if needed
+./run_local.sh                       # Jenkins; prompts for your sudo password if needed
+./run_local.sh gitlab                # Omnibus GitLab
+./run_local.sh nexus                 # Sonatype Nexus Repository
 # optional: produce a STIG Viewer .ckl too
-./run_local.sh -e jenkins_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+./run_local.sh gitlab -e gitlab_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
 ```
 
-Reports are written under `./reports/<fqdn>/` on that host. `run_local.sh` runs
-`ansible-playbook -i inventory/local.yml jenkins_stig_audit.yml`, and any extra
+Reports are written under `./reports/<fqdn>/` on that host. `run_local.sh [product]` runs
+`ansible-playbook -i inventory/local.yml <product>_stig_audit.yml`, and any extra
 arguments are passed through (`--check`, `-e ...`, `-v`). Site settings still come from
-`inventory/group_vars/jenkins.yml`. When run locally, modules use the same Python
+`inventory/group_vars/<product>.yml`. When run locally, modules use the same Python
 as `ansible-playbook`, so the Python 3.6 limitation below doesn't apply.
 
 Air-gapped hosts: `dnf download --resolve ansible-core` on a connected RHEL 8
-machine and carry the RPMs across. For advisory checks, also bring
+machine and carry the RPMs across. For Jenkins advisory checks, also bring
 `update-center.actual.json` (see `jenkins_stig_update_center_file`).
 
 ## Quick start: run from a separate Ansible controller
 
 ```bash
 # 1. Controller: ansible-core 2.16 recommended (see "Python on RHEL 8" below)
-# 2. Put the target in inventory/hosts.yml under the 'jenkins' group
+# 2. Put the targets in inventory/hosts.yml under 'jenkins', 'gitlab' or 'nexus'
 # 3. Optional: download the Application Server SRG from https://public.cyber.mil/stigs/
 #    and drop the zip in ./stig/
 ansible-playbook jenkins_stig_audit.yml \
   -e jenkins_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
+ansible-playbook gitlab_stig_audit.yml
+ansible-playbook nexus_stig_audit.yml --ask-vault-pass   # if the API password is vaulted
 ```
 
-The account needs `sudo` (root) because it reads `JENKINS_HOME/secrets`, `/proc/<pid>/cmdline`, and `ss -p`.
+The account needs `sudo` (root), because the audits read root-only configuration
+and secrets files, `/proc/<pid>/cmdline`, and `ss -p`.
 
 ### Python on RHEL 8
 RHEL 8's `platform-python` is 3.6. **ansible-core 2.17+ cannot manage Python 3.6
@@ -66,18 +79,29 @@ targets**, so do one of these:
 ## How it works
 
 ```
-discover.yml  find the RPM, the Jenkins JVM, JENKINS_HOME, WAR, service account
-collect.yml   slurp config XML, stat permissions, plugins, rpm -V, ss, firewalld,
-              FIPS, chrony, rsyslog, sudo rights, update-center cache
-probe.yml     GET /login and /api/json without credentials; openssl s_client per TLS version
-evaluate.yml  filter_plugins/jenkins_stig.py -> jenkins_stig_evaluate
-report.yml    JSON / CSV / HTML / CKL on the controller
+discover.yml  find the package, process, install/data directories, service account
+collect.yml   read config (secrets redacted), stat permissions, rpm -V, logs, host evidence
+probe         unauthenticated GETs; openssl s_client per TLS version
+evaluate.yml  filter_plugins/<product>_stig.py -> <product>_stig_evaluate
+report        JSON / CSV / HTML / CKL on the controller
 ```
 
-The pass/fail logic is all in `roles/jenkins_stig_audit/filter_plugins/jenkins_stig.py`,
-which is plain Python with unit tests (`python -m unittest discover -s tests -v`).
+The pass/fail logic is all in plain Python filter plugins with unit tests
+(`python -m unittest discover -s tests -v`; the GitLab YAML test also uses PyYAML,
+which Ansible ships):
 
-## Checks
+- `roles/jenkins_stig_audit/filter_plugins/jenkins_stig.py`
+- `roles/gitlab_stig_audit/filter_plugins/gitlab_stig.py`
+- `roles/nexus_stig_audit/filter_plugins/nexus_stig.py`
+- `roles/stig_common/`: the shared code for GitLab and Nexus (host evidence, HTTP/TLS
+  probes, redaction, host-level checks, the XCCDF/.ckl/CSV/HTML reports and the
+  bundled SRG index). The Jenkins role keeps its own copy of that code for now.
+
+Statuses use STIG Viewer's terms: `Open`, `NotAFinding`, `Not_Applicable`, `Not_Reviewed`.
+`Not_Reviewed` means the evidence was collected, but a person has to make the
+determination. For example, checking that a SAML IdP actually enforces CAC.
+
+## Jenkins checks
 
 | ID | Check | SRG (base IDs) |
 |---|---|---|
@@ -111,24 +135,111 @@ which is plain Python with unit tests (`python -m unittest discover -s tests -v`
 | JNKS-028 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
 | JNKS-029 | chronyd active and synchronized | 000116, 000374 |
 
-Statuses use STIG Viewer's terms: `Open`, `NotAFinding`, `Not_Applicable`, `Not_Reviewed`.
-`Not_Reviewed` means the evidence was collected, but a person has to make the
-determination. For example, checking that a SAML IdP actually enforces CAC.
+If Configuration-as-Code (`jenkins.yaml`) is in use, fix findings in the CasC
+file. Otherwise the next reload puts the old settings back.
+
+## GitLab checks
+
+Written for **Omnibus GitLab** (`gitlab-ee`, `gitlab-ce` or `gitlab-fips` RPM). Evidence
+comes from `/etc/gitlab/gitlab.rb`, the rendered `gitlab.yml`, `gitlab-ctl status`, file
+permissions, and unauthenticated probes of `external_url`. Application settings (sign-up,
+2FA, session length, visibility and so on) live in the database, so the role reads them
+with a read-only `gitlab-rails runner` script. That takes a minute or two; set
+`gitlab_stig_query_settings: false` to skip it, and those checks become `Not_Reviewed`.
+
+| ID | Check | SRG (base IDs) |
+|---|---|---|
+| GLAB-001 | LDAP/SAML/OIDC/smartcard in use and local password web sign-in disabled | 000148 |
+| GLAB-002 | Public visibility restricted; no projects listed anonymously (live probe) | 000033 |
+| GLAB-003 | Self-registration disabled (or admin approval required) | 000033 |
+| GLAB-004 | MFA enforced (2FA, smartcard, or an MFA IdP) | 000149, 000820 |
+| GLAB-005 | PIV/CAC accepted and verified (smartcard or CAC IdP) | 000391, 000392 |
+| GLAB-006 | LDAP uses `simple_tls`/`start_tls` with `verify_certificates` | 000172, 000439 |
+| GLAB-007 | "Remember me" disabled | 000400 |
+| GLAB-008 | Session duration ≤ org limit | 000295 |
+| GLAB-009 | Concurrent session limit (no native capability) | 000001 |
+| GLAB-010 | DoD banner on the sign-in page and acknowledged via enforced Terms | 000068, 000069 |
+| GLAB-011 | HTTPS external_url; HTTP redirects to HTTPS; Puma/Workhorse not exposed | 000014, 000015, 000439, 000172 |
+| GLAB-012 | No SSL / TLS 1.0 / 1.1 (live handshakes) | 000014, 000439 |
+| GLAB-013 | FIPS mode + crypto policy, and the `gitlab-fips` package | 000179, 000514 |
+| GLAB-014 | Service accounts unprivileged; app processes not root | 000342 |
+| GLAB-015 | `gitlab.rb`, `gitlab-secrets.json`, TLS keys 0600; `initial_root_password` removed | 000380, 000171, 000176 |
+| GLAB-016 | `/opt/gitlab` root-owned, `rpm -V` integrity | 000133 |
+| GLAB-017 | Admin Mode enabled; no GitLab Runner on the server | 000211 |
+| GLAB-018 | Approved ports, internal components on loopback, firewalld | 000142 |
+| GLAB-019 | Bundled services baseline; Service Ping / Gravatar off | 000141 |
+| GLAB-020 | Version ≥ org minimum; pending RPM updates | 000456, 001035 |
+| GLAB-021 | Webhooks/integrations cannot reach the local network (SSRF) | 000516 |
+| GLAB-022 | `/api/v4/version` not anonymous; no version in `Server` header | 000266, 000267 |
+| GLAB-023 | Audit events recorded (`audit_json.log`; CE is limited) | 000089, 000095–000100, 000503, 000509 |
+| GLAB-024 | NGINX access log | 000016 |
+| GLAB-025 | Log file/directory permissions | 000118, 000119, 000120 |
+| GLAB-026 | Logs off-loaded (`udp_log_shipping_host` or rsyslog) | 000358 |
+| GLAB-027 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
+| GLAB-028 | chronyd active and synchronized | 000116, 000374, 000920 |
+| GLAB-029 | No active accounts idle > 35 days; dormant-user deactivation | 000163, 000705 |
+
+## Nexus Repository checks
+
+Written for **Nexus Repository 3** run from the tarball or RPM (the role finds the install and
+`sonatype-work` directories from the running JVM, or from `nexus_install_dir` /
+`nexus_data_dir`). Realms, anonymous access, users and LDAP settings are kept in
+Nexus' database and are only exposed by its REST API. To evaluate them, give the role a
+**read-only account**. Create a role with the privileges `nx-settings-read`,
+`nx-users-read`, `nx-ldap-read` and `nx-repository-view-*-*-browse`, assign it to a
+dedicated local user, and set:
+
+```yaml
+nexus_stig_api_user: stig-audit
+nexus_stig_api_password: !vault |       # ansible-vault encrypt_string '...' --name nexus_stig_api_password
+  ...
+```
+
+Without it, NXRM-001 to NXRM-005 are `Not_Reviewed`. However, repositories
+visible anonymously and `nexus.security.randompassword=false` are still reported.
+The API calls are `GET`s only, and password fields are removed from the stored responses.
+
+| ID | Check | SRG (base IDs) |
+|---|---|---|
+| NXRM-001 | LDAP/SAML/PKI realm active and the local realm not active (API) | 000148 |
+| NXRM-002 | Anonymous access disabled (API + live probe) | 000033 |
+| NXRM-003 | Shared `admin` account disabled; no default password (`randompassword=false`) | 000153 |
+| NXRM-004 | PIV/CAC or MFA (Remote User Token realm behind a CAC proxy, or SAML) | 000149, 000391, 000392, 000820 |
+| NXRM-005 | LDAP connections use LDAPS (API) | 000172, 000439 |
+| NXRM-006 | Session timeout ≤ org limit (manual; not exposed by the API) | 000295 |
+| NXRM-007 | Concurrent session limit (no native capability) | 000001 |
+| NXRM-008 | DoD Notice & Consent banner before login | 000068, 000069 |
+| NXRM-009 | HTTPS only; no exposed plaintext Jetty listener | 000014, 000015, 000439, 000172 |
+| NXRM-010 | No SSL / TLS 1.0 / 1.1 (live handshakes) | 000014, 000439 |
+| NXRM-011 | FIPS mode + crypto policy; RHEL JDK rather than the bundled JDK | 000179, 000514 |
+| NXRM-012 | Non-root, nologin, no sudo/wheel/docker service account | 000342 |
+| NXRM-013 | Data dir, `nexus-store.properties`, keystores restricted; `admin.password` removed | 000380, 000171, 000176 |
+| NXRM-014 | Install directory not writable by the service account; `rpm -V` | 000133 |
+| NXRM-015 | Approved ports, firewalld | 000142 |
+| NXRM-016 | Groovy scripting disabled; repository inventory | 000141 |
+| NXRM-017 | Version ≥ org minimum; Java 17+ | 000456, 001035 |
+| NXRM-018 | No version in the `Server` header | 000266, 000267 |
+| NXRM-019 | Audit capability writing `log/audit/audit.log` | 000089, 000095–000100, 000503, 000509 |
+| NXRM-020 | Jetty request log | 000016 |
+| NXRM-021 | Log file/directory permissions | 000118, 000119, 000120 |
+| NXRM-022 | Logs off-loaded (rsyslog imfile + forwarding) | 000358 |
+| NXRM-023 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
+| NXRM-024 | chronyd active and synchronized | 000116, 000374, 000920 |
 
 ## Mapping to Vuln IDs (.ckl)
 
 The HTML report always shows each check's Vuln IDs (V-xxxxxx) and full
-`SRG-APP-xxxxxx-AS-xxxxxx` rule versions. Without `jenkins_stig_xccdf` they come
+`SRG-APP-xxxxxx-AS-xxxxxx` rule versions. Without `<product>_stig_xccdf` they come
 from a bundled index of the Application Server SRG V4R5
-(`roles/jenkins_stig_audit/files/app_server_srg_index.json`: Vuln ID, Rule ID,
-rule version and title only). The `.ckl` still needs the XCCDF you supply, and
-when it is set every Vuln ID, Rule ID, title, check and fix text comes from
-DISA's file instead of the index. Checks are bound to rules by base SRG ID:
+(`roles/stig_common/files/app_server_srg_index.json`: Vuln ID, Rule ID, rule
+version and title only). The `.ckl` still needs the XCCDF you supply, and when
+it is set every Vuln ID, Rule ID, title, check and fix text comes from DISA's
+file instead of the index. Checks are bound to rules by base SRG ID:
 
 - **One matching rule**: the check's status is written to that rule.
 - **Several matching rules** (for example, the catch-all `SRG-APP-000516`): the
   rule stays `Not_Reviewed`, and the check's result is added to its comments.
-  To resolve it, pin the check with `jenkins_stig_rule_map`:
+  To resolve it, pin the check with `<product>_stig_rule_map`:
   ```yaml
   jenkins_stig_rule_map:
     JNKS-021: [SRG-APP-000516-AS-000237]   # or V-xxxxxx / SV-xxxxxxrN_rule
@@ -140,27 +251,41 @@ Rules that no check covers stay `Not_Reviewed`, and you complete them in STIG Vi
 
 ## Tuning
 
-All options are in `roles/jenkins_stig_audit/defaults/main.yml`. Set per-site
-values in `inventory/group_vars/jenkins.yml`. The main ones:
+All options are in each role's `defaults/main.yml`. Set per-site values in
+`inventory/group_vars/<product>.yml`. Each product has the same core options, with
+its own prefix (`jenkins_stig_`, `gitlab_stig_`, `nexus_stig_`):
 
 | Variable | Purpose |
 |---|---|
-| `jenkins_audit_url` | Public URL when a reverse proxy terminates TLS, so banner/header/TLS checks test what users hit |
-| `jenkins_stig_tls_termination` | `auto` (detects a :443 proxy), `jenkins`, or `proxy` |
-| `jenkins_stig_max_session_timeout` | Organization-defined inactivity limit (minutes) |
-| `jenkins_stig_approved_ports` / `_approved_plugins` | Turn JNKS-018/019 from manual review into automated checks |
+| `<product>_audit_url` | Public URL when a reverse proxy terminates TLS, so banner/header/TLS checks test what users hit |
+| `*_tls_termination` | `auto` (detects a :443 proxy), the product name, or `proxy` |
+| `*_max_session_timeout` | Organization-defined inactivity limit (minutes) |
+| `*_approved_ports` | Turns the ports check from manual review into an automated one |
+| `*_overrides` | Record mitigations/risk acceptances. The original status is kept in the report |
+| `*_fail_on` | For example `[high]` to fail the play on Open CAT I findings (CI gating) |
+| `*_check_repo_updates` | Run `dnf check-update` for the product (needs repo access) |
+| `*_xccdf` / `*_rule_map` | SRG XCCDF for the `.ckl`, and pinned rule bindings |
+
+Product-specific options:
+
+| Variable | Purpose |
+|---|---|
+| `jenkins_stig_approved_plugins` / `_prohibited_plugins` | Plugin baseline for JNKS-019 |
 | `jenkins_stig_update_center_file` | For air-gapped sites: a copy of `update-center.actual.json` on the controller, used for advisory checks |
-| `jenkins_stig_overrides` | Record mitigations/risk acceptances. The original status is kept in the report |
-| `jenkins_stig_fail_on` | For example `[high]` to fail the play on Open CAT I findings (CI gating) |
-| `jenkins_stig_check_repo_updates` | Run `dnf check-update` for jenkins/java (needs repo access) |
+| `gitlab_stig_min_version` / `nexus_stig_min_version` | Lowest acceptable release; turns GLAB-020 / NXRM-017 into automated checks |
+| `gitlab_stig_approved_services` | `gitlab-ctl status` service baseline for GLAB-019 |
+| `gitlab_stig_expected_settings` | Application settings and their required values (GLAB-019) |
+| `gitlab_stig_query_settings` / `gitlab_stig_rpm_verify` | Skip the slower `gitlab-rails runner` / `rpm -V` steps |
+| `nexus_stig_api_user` / `nexus_stig_api_password` | Read-only REST API account (see above) |
+| `nexus_install_dir` / `nexus_data_dir` | Set when Nexus is stopped and not in a standard location |
 
 ## Scope notes
 
-- This covers the **Jenkins application layer**. Run the **RHEL 8 STIG** (for example
+- These audits cover the **application layer**. Run the **RHEL 8 STIG** (for example
   with the SCAP Compliance Checker or `ansible-lockdown/RHEL8-STIG` in audit mode)
   for the OS. A few checks here (FIPS, firewalld, chrony) overlap on purpose,
   because the SRG requires them for the application server.
-- If Configuration-as-Code (`jenkins.yaml`) is in use, fix findings in the CasC
-  file. Otherwise the next reload puts the old settings back.
+- GitLab's bundled PostgreSQL and Redis, and any database behind Nexus, are not
+  assessed here; use the PostgreSQL STIG / Redis guidance for them.
 - An automated result supports an assessor's determination but does not replace
   it. Review `Not_Reviewed` items and the SRG rules that no check covers.

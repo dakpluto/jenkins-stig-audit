@@ -1,0 +1,39 @@
+---
+- name: Assemble evidence
+  ansible.builtin.set_fact:
+    gsa_evidence:
+      collected_at: "{{ ansible_date_time.iso8601 }}"
+      host:
+        inventory_hostname: "{{ inventory_hostname }}"
+        hostname: "{{ ansible_hostname }}"
+        fqdn: "{{ ansible_fqdn }}"
+        ip: "{{ ansible_default_ipv4.address | default('') }}"
+        mac: "{{ ansible_default_ipv4.macaddress | default('') }}"
+        os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      package: "{{ gsa_package }}"
+      packages: "{{ _gsa_rpm.stdout | default('') }}"
+      version: "{{ gsa_version | trim }}"
+      running: "{{ gsa_running | bool }}"
+      services: "{{ _gsa_ctl.stdout | default('') }}"
+      external_url: "{{ gsa_external_url | trim }}"
+      config_dir: "{{ gitlab_config_dir }}"
+      data_dir: "{{ gitlab_data_dir }}"
+      log_dir: "{{ gitlab_log_dir }}"
+      install_dir: "{{ gitlab_install_dir }}"
+      gitlab_rb: "{{ (gsa_files | default({})).get('gitlab.rb', '') }}"
+      gitlab_yml: "{{ (gsa_files | default({})).get('gitlab.yml', '') }}"
+      nginx_conf: "{{ (gsa_files | default({})).get('gitlab-http.conf', '') }}"
+      rails: "{{ _gsa_rails.stdout_lines | default([]) | select('match', '^\\{') | list | last | default('') }}"
+      processes: "{{ _gsa_ps.stdout | default('') }}"
+      stats: "{{ _gsa_stats.stdout_lines }}"
+      log_stats: "{{ _gsa_logstats.stdout_lines }}"
+      world_writable: "{{ _gsa_ww.stdout_lines }}"
+      rpm_verify_ran: "{{ _gsa_rpmv.rc is defined }}"
+      rpm_verify: "{{ _gsa_rpmv.stdout | default('') }}"
+      system: "{{ sc_host }}"
+      http: "{{ sc_http }}"
+      tls: "{{ sc_tls }}"
+
+- name: Evaluate checks
+  ansible.builtin.set_fact:
+    gsa_results: "{{ gsa_evidence | gitlab_stig_evaluate(gsa_settings) }}"

@@ -24,7 +24,7 @@
     jsa_srg_index: "{{ jsa_xccdf if jsa_xccdf is defined else _index }}"
     jsa_vuln_map: "{{ jsa_results | stig_vuln_map(jsa_xccdf if jsa_xccdf is defined else _index, jenkins_stig_rule_map) }}"
   vars:
-    _index: "{{ lookup('ansible.builtin.file', role_path ~ '/files/app_server_srg_index.json') | from_json }}"
+    _index: "{{ lookup('ansible.builtin.file', role_path ~ '/../stig_common/files/app_server_srg_index.json') | from_json }}"
 
 - name: Write reports
   delegate_to: localhost

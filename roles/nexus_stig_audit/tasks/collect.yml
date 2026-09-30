@@ -1,0 +1,89 @@
+---
+- name: Read Nexus configuration files
+  ansible.builtin.slurp:
+    src: "{{ (nsa_data if item.base == 'data' else nsa_install) ~ '/' ~ item.path }}"
+  loop: >-
+    {{ nsa_config_files | selectattr('base', 'in', (['data'] if nsa_data else []) + (['install'] if nsa_install else []))
+       | list }}
+  loop_control:
+    label: "{{ item.key }}"
+  register: _nsa_slurp
+  failed_when: false
+  check_mode: false
+  no_log: true   # nexus-store.properties and jetty-https.xml hold passwords; redacted below
+
+- name: Redact and decode configuration files
+  ansible.builtin.set_fact:
+    nsa_files: >-
+      {{ nsa_files | default({}) | combine({item.item.key: item.content | b64decode | stig_redact(true)}) }}
+  loop: "{{ _nsa_slurp.results | selectattr('content', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  no_log: true
+
+- name: Resolve listener settings and probe URLs
+  ansible.builtin.set_fact:
+    nsa_runtime: "{{ nsa_files | default({}) | nexus_runtime(nsa_cmdline, nexus_audit_url) }}"
+
+- name: Read the installation layout (for the version)
+  ansible.builtin.shell: >-
+    readlink -f {{ nsa_install | quote }};
+    ls {{ (nsa_install ~ '/system/org/sonatype/nexus/nexus-base') | quote }} 2>/dev/null | sed 's|^|nexus-base/|';
+    ls {{ (nsa_install ~ '/bin') | quote }} 2>/dev/null | grep -E '^sonatype-nexus-repository-.*\.jar$'; true
+  register: _nsa_layout
+  changed_when: false
+  check_mode: false
+  when: nsa_install | length > 0
+
+- name: Record ownership and permissions of key Nexus paths
+  vars:
+    _paths: >-
+      {{ ([nsa_data, nsa_data ~ '/etc/nexus.properties', nsa_data ~ '/etc/fabric/nexus-store.properties',
+           nsa_data ~ '/keystores', nsa_data ~ '/keystores/node', nsa_data ~ '/etc/ssl/keystore.jks',
+           nsa_data ~ '/admin.password'] if nsa_data else [])
+         + ([nsa_install, nsa_install ~ '/bin', nsa_install ~ '/lib', nsa_install ~ '/system',
+             nsa_install ~ '/etc', nsa_install ~ '/etc/ssl/keystore.jks'] if nsa_install else []) }}
+  ansible.builtin.shell: >-
+    find {{ _paths | map('quote') | join(' ') }} -maxdepth 0 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _nsa_stats
+  changed_when: false
+  check_mode: false
+  when: _paths | length > 0
+
+- name: Record ownership and permissions of Nexus log files (compressed rotations excluded)
+  ansible.builtin.shell: >-
+    find {{ (nsa_data ~ '/log') | quote }} -maxdepth 2 \( -type d -o -type f \) ! -name '*.gz'
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null | head -n 2000; true
+  register: _nsa_logstats
+  changed_when: false
+  check_mode: false
+  when: nsa_data | length > 0
+
+- name: Find world-writable files in the Nexus directories (blob stores excluded)
+  ansible.builtin.shell: >-
+    find {{ ([nsa_install, nsa_data] | select | map('quote') | join(' ')) }} -xdev -maxdepth 3
+    -path {{ (nsa_data ~ '/blobs') | quote }} -prune -o
+    -perm -0002 ! -type l ! -type s ! -type p -print 2>/dev/null | head -n 200; true
+  register: _nsa_ww
+  changed_when: false
+  check_mode: false
+  when: ([nsa_install, nsa_data] | select | list | length) > 0
+
+- name: Verify Nexus package files against the RPM database
+  ansible.builtin.command: rpm -V {{ (_nsa_rpm.stdout_lines | first).split('|')[0] | quote }}
+  register: _nsa_rpmv
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _nsa_rpm.stdout_lines | length > 0
+
+- name: Collect host evidence
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: host.yml
+  vars:
+    sc_accounts: ["{{ nsa_user }}"]
+    sc_df_dirs: "{{ [nsa_data, nsa_data ~ '/log'] if nsa_data else ['/'] }}"
+    sc_update_packages: >-
+      {{ [(_nsa_rpm.stdout_lines | first).split('|')[0]]
+         if (nexus_stig_check_repo_updates | bool and _nsa_rpm.stdout_lines | length > 0) else [] }}

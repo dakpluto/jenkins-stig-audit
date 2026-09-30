@@ -1,0 +1,52 @@
+---
+# Read-only audit of a Sonatype Nexus Repository 3 server (RHEL 8) against the DISA
+# Application Server SRG. Nothing on the target is modified; every command task runs
+# with check_mode: false / changed_when: false so the role also works under --check.
+
+- name: Discover the Nexus installation
+  ansible.builtin.import_tasks: discover.yml
+
+- name: Collect configuration and host evidence
+  ansible.builtin.import_tasks: collect.yml
+
+- name: Probe the live HTTP/TLS endpoints
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: probe.yml
+  vars:
+    _plan: "{{ nsa_runtime.probe }}"
+    _live: "{{ nsa_running | bool or nexus_audit_url | length > 0 }}"
+    sc_http_requests: >-
+      {{ ([] if not (_plan.base_url and _live | bool) else [
+            {'key': 'ui', 'url': _plan.base_url ~ '/', 'content': true},
+            {'key': 'status', 'url': _plan.base_url ~ '/service/rest/v1/status'},
+            {'key': 'repositories', 'url': _plan.base_url ~ '/service/rest/v1/repositories', 'content': true}])
+         + ([{'key': 'plain_http', 'url': _plan.plain_url}] if (_plan.plain_url and nsa_running | bool) else []) }}
+    sc_tls_host: "{{ _plan.tls_host if _live | bool else '' }}"
+    sc_tls_port: "{{ _plan.tls_port }}"
+
+- name: Read the security configuration from the REST API
+  ansible.builtin.import_tasks: api.yml
+
+- name: Evaluate evidence against the SRG checks
+  ansible.builtin.import_tasks: evaluate.yml
+
+- name: Write reports on the controller
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: report.yml
+  vars:
+    sc_product: {key: nexus, name: Nexus Repository, tool: nexus_stig_audit, prefix: nexus_stig}
+    sc_results: "{{ nsa_results }}"
+    sc_evidence: "{{ nsa_evidence }}"
+    sc_product_info:
+      version: "{{ nsa_evidence.version }}"
+      install: "{{ nsa_install }}"
+      data: "{{ nsa_data }}"
+      running: "{{ nsa_running }}"
+    sc_xccdf_path: "{{ nexus_stig_xccdf }}"
+    sc_rule_map: "{{ nexus_stig_rule_map }}"
+    sc_asset: "{{ nexus_stig_asset }}"
+    sc_report_dir: "{{ nexus_stig_report_dir }}"
+    sc_save_raw_evidence: "{{ nexus_stig_save_raw_evidence }}"
+    sc_fail_on: "{{ nexus_stig_fail_on }}"

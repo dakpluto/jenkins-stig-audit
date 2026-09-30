@@ -1,0 +1,64 @@
+---
+- name: Gather platform facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', 'min', 'network']
+
+- name: Warn when the target is not RHEL 8
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} is {{ ansible_distribution }} {{ ansible_distribution_version }};
+      this audit was written for RHEL 8 and some checks may not apply.
+  when: not (ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8')
+
+- name: List installed GitLab packages
+  ansible.builtin.shell: rpm -qa --qf '%{NAME}|%{VERSION}-%{RELEASE}\n' 'gitlab*' | sort
+  register: _gsa_rpm
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read the Omnibus version manifest
+  ansible.builtin.command: head -n1 {{ (gitlab_install_dir ~ '/version-manifest.txt') | quote }}
+  register: _gsa_manifest
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Identify the GitLab package
+  vars:
+    _pkgs: "{{ _gsa_rpm.stdout_lines | reject('match', '^gitlab-runner') | select('match', '^gitlab-(ee|ce|fips)') | list }}"
+  ansible.builtin.set_fact:
+    gsa_package:
+      name: "{{ (_pkgs | first | default('|')).split('|')[0] }}"
+      version: "{{ (_pkgs | first | default('|')).split('|')[1] }}"
+    gsa_version: >-
+      {{ (_gsa_manifest.stdout.split() | last) if (_gsa_manifest.rc == 0 and _gsa_manifest.stdout | length > 0)
+         else ((_pkgs | first | default('|')).split('|')[1] | regex_replace('-.*$', '')) }}
+
+- name: Stop when GitLab is not present on this host
+  when: gsa_package.name | length == 0 and _gsa_manifest.rc != 0
+  block:
+    - name: Report that GitLab was not found
+      ansible.builtin.debug:
+        msg: "No Omnibus GitLab package or {{ gitlab_install_dir }} found on {{ inventory_hostname }}; skipping."
+
+    - name: End this host
+      ansible.builtin.meta: end_host
+
+- name: Read GitLab service status
+  ansible.builtin.command: gitlab-ctl status
+  register: _gsa_ctl
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set service state
+  ansible.builtin.set_fact:
+    gsa_running: "{{ _gsa_ctl.stdout is search('(?m)^run: ') }}"
+
+- name: Show what was discovered
+  ansible.builtin.debug:
+    msg:
+      - "GitLab package: {{ gsa_package.name | default('-', true) }} {{ gsa_package.version }} (version {{ gsa_version }})"
+      - "Running: {{ gsa_running }}"
+      - "Config: {{ gitlab_config_dir }}  Data: {{ gitlab_data_dir }}  Logs: {{ gitlab_log_dir }}"

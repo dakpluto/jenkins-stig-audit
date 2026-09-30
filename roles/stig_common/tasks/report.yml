@@ -1,0 +1,109 @@
+---
+# Writes JSON / CSV / HTML / CKL reports on the controller. Inputs:
+#   sc_product           {key, name, tool, prefix}  prefix = the role's variable prefix
+#   sc_results           evaluated check results
+#   sc_evidence          evidence dict (needs host.* and collected_at)
+#   sc_product_info      product details for the JSON report and HTML header
+#   sc_xccdf_path        Application Server SRG XCCDF on the controller ('' = bundled index, no .ckl)
+#   sc_rule_map, sc_asset, sc_report_dir, sc_save_raw_evidence, sc_fail_on
+
+- name: Summarize results
+  ansible.builtin.set_fact:
+    sc_summary: "{{ sc_results | stig_summary }}"
+
+# A local run (inventory/local.yml) has inventory_hostname 'localhost'; name the
+# reports after the machine instead.
+- name: Set report paths
+  vars:
+    _label: >-
+      {{ ansible_fqdn if inventory_hostname in ['localhost', '127.0.0.1', '::1'] else inventory_hostname }}
+  ansible.builtin.set_fact:
+    sc_host_label: "{{ _label }}"
+    sc_report_path: "{{ sc_report_dir }}/{{ _label }}"
+    sc_report_base: "{{ _label }}_{{ sc_product.key }}_appsrv_srg_{{ ansible_date_time.date }}"
+
+- name: Parse the Application Server SRG XCCDF
+  ansible.builtin.set_fact:
+    sc_xccdf: "{{ sc_xccdf_path | stig_xccdf_rules }}"
+  when: sc_xccdf_path | length > 0
+
+# Without an XCCDF, fall back to the bundled V-ID index so the HTML report still
+# shows Vuln IDs. The .ckl needs the full XCCDF.
+- name: Map checks to SRG Vuln IDs
+  vars:
+    _index: "{{ sc_xccdf if sc_xccdf is defined else (lookup('ansible.builtin.file', role_path ~ '/files/app_server_srg_index.json') | from_json) }}"
+  ansible.builtin.set_fact:
+    sc_srg_index: "{{ _index }}"
+    sc_vuln_map: "{{ sc_results | stig_vuln_map(_index, sc_rule_map) }}"
+
+- name: Write reports
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Create the report directory
+      ansible.builtin.file:
+        path: "{{ sc_report_path }}"
+        state: directory
+        mode: "0750"
+
+    - name: Write JSON results
+      ansible.builtin.copy:
+        dest: "{{ sc_report_path }}/{{ sc_report_base }}.json"
+        mode: "0640"
+        content: >-
+          {{ {'host': sc_evidence.host, 'collected_at': sc_evidence.collected_at,
+              sc_product.key: sc_product_info, 'summary': sc_summary, 'results': sc_results,
+              'srg_binding': sc_results | stig_bind(sc_srg_index, sc_rule_map)}
+             | to_nice_json(indent=2) }}
+
+    - name: Write raw evidence
+      ansible.builtin.copy:
+        dest: "{{ sc_report_path }}/{{ sc_report_base }}_evidence.json"
+        mode: "0640"
+        content: "{{ sc_evidence | to_nice_json(indent=2) }}"
+      when: sc_save_raw_evidence | bool
+
+    - name: Write CSV results
+      ansible.builtin.copy:
+        dest: "{{ sc_report_path }}/{{ sc_report_base }}.csv"
+        mode: "0640"
+        content: "{{ sc_results | stig_csv }}"
+
+    - name: Write HTML report
+      ansible.builtin.template:
+        src: report.html.j2
+        dest: "{{ sc_report_path }}/{{ sc_report_base }}.html"
+        mode: "0640"
+
+    - name: Write STIG Viewer checklist
+      vars:
+        _asset: >-
+          {{ sc_asset | combine({
+               'host_name': ansible_hostname, 'host_fqdn': ansible_fqdn,
+               'host_ip': sc_evidence.host.ip, 'host_mac': sc_evidence.host.mac,
+               'collected_at': sc_evidence.collected_at, 'tool': sc_product.tool}) }}
+      ansible.builtin.copy:
+        dest: "{{ sc_report_path }}/{{ sc_report_base }}.ckl"
+        mode: "0640"
+        content: "{{ sc_results | stig_ckl(sc_xccdf, _asset, sc_rule_map) }}"
+      when: sc_xccdf is defined
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Open: {{ sc_summary.by_status.Open }} (CAT I {{ sc_summary.open_by_severity.high }},
+         CAT II {{ sc_summary.open_by_severity.medium }}, CAT III {{ sc_summary.open_by_severity.low }})"
+      - "NotAFinding: {{ sc_summary.by_status.NotAFinding }}  Not_Reviewed: {{ sc_summary.by_status.Not_Reviewed }}
+         Not_Applicable: {{ sc_summary.by_status.Not_Applicable }}"
+      - "Open checks: {{ sc_results | selectattr('status', 'eq', 'Open') | map(attribute='id') | join(', ') }}"
+      - "Reports: {{ sc_report_path }}/{{ sc_report_base }}.*"
+
+- name: Fail on Open findings of the configured severities
+  ansible.builtin.fail:
+    msg: >-
+      Open findings at severity {{ sc_fail_on | join('/') }}:
+      {{ sc_results | selectattr('status', 'eq', 'Open') | selectattr('severity', 'in', sc_fail_on)
+         | map(attribute='id') | join(', ') }}
+  when: >-
+    sc_fail_on | length > 0 and
+    (sc_results | selectattr('status', 'eq', 'Open') | selectattr('severity', 'in', sc_fail_on) | list | length) > 0

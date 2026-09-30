@@ -1,0 +1,40 @@
+---
+- name: Assemble evidence
+  ansible.builtin.set_fact:
+    nsa_evidence:
+      collected_at: "{{ ansible_date_time.iso8601 }}"
+      host:
+        inventory_hostname: "{{ inventory_hostname }}"
+        hostname: "{{ ansible_hostname }}"
+        fqdn: "{{ ansible_fqdn }}"
+        ip: "{{ ansible_default_ipv4.address | default('') }}"
+        mac: "{{ ansible_default_ipv4.macaddress | default('') }}"
+        os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      running: "{{ nsa_running | bool }}"
+      process:
+        pid: "{{ nsa_pid | default('') }}"
+        user: "{{ _nsa_puser.stdout | default('') | trim }}"
+        exe: "{{ _nsa_pexe.stdout | default('') }}"
+        java_version: "{{ (_nsa_java.stderr | default('')) ~ (_nsa_java.stdout | default('')) }}"
+      service_user: "{{ nsa_user }}"
+      install_dir: "{{ nsa_install }}"
+      data_dir: "{{ nsa_data }}"
+      rpm: "{{ _nsa_rpm.stdout | default('') }}"
+      version: >-
+        {{ (_nsa_layout.stdout | default(''))
+           | nexus_version((sc_http.values() | map(attribute='server') | select | first | default(''))) }}
+      cmdline: "{{ nsa_cmdline }}"
+      files: "{{ nsa_files | default({}) }}"
+      runtime: "{{ nsa_runtime }}"
+      stats: "{{ _nsa_stats.stdout_lines | default([]) }}"
+      log_stats: "{{ _nsa_logstats.stdout_lines | default([]) }}"
+      world_writable: "{{ _nsa_ww.stdout_lines | default([]) }}"
+      rpm_verify: "{{ _nsa_rpmv.stdout | default('') }}"
+      system: "{{ sc_host }}"
+      http: "{{ sc_http }}"
+      tls: "{{ sc_tls }}"
+      api: "{{ nsa_api }}"
+
+- name: Evaluate checks
+  ansible.builtin.set_fact:
+    nsa_results: "{{ nsa_evidence | nexus_stig_evaluate(nsa_settings) }}"

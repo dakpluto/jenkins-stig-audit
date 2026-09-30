@@ -1,0 +1,48 @@
+---
+# Read-only audit of an Omnibus GitLab server (RHEL 8) against the DISA Application
+# Server SRG. Nothing on the target is modified; every command task runs with
+# check_mode: false / changed_when: false so the role also works under --check.
+
+- name: Discover the GitLab installation
+  ansible.builtin.import_tasks: discover.yml
+
+- name: Collect configuration and host evidence
+  ansible.builtin.import_tasks: collect.yml
+
+- name: Probe the live HTTP/TLS endpoints
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: probe.yml
+  vars:
+    _plan: "{{ gsa_external_url | gitlab_probe_plan(gitlab_audit_url) }}"
+    sc_http_requests: >-
+      {{ ([] if not _plan.base_url else [
+            {'key': 'sign_in', 'url': _plan.base_url ~ '/users/sign_in', 'content': true},
+            {'key': 'api_version', 'url': _plan.base_url ~ '/api/v4/version'},
+            {'key': 'api_projects', 'url': _plan.base_url ~ '/api/v4/projects?per_page=5', 'content': true}])
+         + ([{'key': 'plain_http', 'url': _plan.plain_url}] if _plan.plain_url else []) }}
+    sc_tls_host: "{{ _plan.tls_host }}"
+    sc_tls_port: "{{ _plan.tls_port }}"
+
+- name: Evaluate evidence against the SRG checks
+  ansible.builtin.import_tasks: evaluate.yml
+
+- name: Write reports on the controller
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: report.yml
+  vars:
+    sc_product: {key: gitlab, name: GitLab, tool: gitlab_stig_audit, prefix: gitlab_stig}
+    sc_results: "{{ gsa_results }}"
+    sc_evidence: "{{ gsa_evidence }}"
+    sc_product_info:
+      version: "{{ gsa_evidence.version }}"
+      package: "{{ gsa_evidence.package.name }}"
+      external_url: "{{ gsa_external_url }}"
+      running: "{{ gsa_evidence.running }}"
+    sc_xccdf_path: "{{ gitlab_stig_xccdf }}"
+    sc_rule_map: "{{ gitlab_stig_rule_map }}"
+    sc_asset: "{{ gitlab_stig_asset }}"
+    sc_report_dir: "{{ gitlab_stig_report_dir }}"
+    sc_save_raw_evidence: "{{ gitlab_stig_save_raw_evidence }}"
+    sc_fail_on: "{{ gitlab_stig_fail_on }}"

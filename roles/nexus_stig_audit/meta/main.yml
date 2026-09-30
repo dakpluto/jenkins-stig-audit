@@ -1,0 +1,4 @@
+---
+# stig_common provides the report/checklist filters, shared tasks and the SRG index.
+dependencies:
+  - role: stig_common

@@ -1,0 +1,116 @@
+---
+# Host-level evidence shared by the product roles (read-only). Sets sc_host.
+# Inputs:
+#   sc_accounts         service accounts to inspect
+#   sc_df_dirs          directories whose filesystems hold product data and logs
+#   sc_update_packages  packages for `dnf check-update` (empty list = skip)
+
+- name: Reset service account evidence
+  ansible.builtin.set_fact:
+    _sc_accounts: {}
+
+- name: List listening TCP sockets
+  ansible.builtin.command: ss -tlnp
+  register: _sc_ss
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read firewalld state
+  ansible.builtin.command: firewall-cmd --state
+  register: _sc_fw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read firewalld active configuration
+  ansible.builtin.command: firewall-cmd --list-all
+  register: _sc_fwcfg
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _sc_fw.stdout == 'running'
+
+- name: Read service account details
+  ansible.builtin.shell: |
+    echo "PASSWD=$(getent passwd {{ item | quote }})"
+    echo "ID=$(id {{ item | quote }} 2>/dev/null)"
+  loop: "{{ sc_accounts }}"
+  register: _sc_acct
+  changed_when: false
+  check_mode: false
+
+- name: List sudo rights of the service accounts
+  ansible.builtin.command: sudo -n -l -U {{ item | quote }}
+  loop: "{{ sc_accounts }}"
+  register: _sc_sudo
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Collate service account evidence
+  ansible.builtin.set_fact:
+    _sc_accounts: >-
+      {{ _sc_accounts | combine({item.0.item: {
+           'passwd': item.0.stdout_lines | select('match', '^PASSWD=') | first | default('') | regex_replace('^PASSWD=', ''),
+           'id': item.0.stdout_lines | select('match', '^ID=') | first | default('') | regex_replace('^ID=', ''),
+           'sudo': item.1.stdout | default('')}}) }}
+  loop: "{{ _sc_acct.results | zip(_sc_sudo.results) | list }}"
+  loop_control:
+    label: "{{ item.0.item }}"
+
+- name: Read FIPS mode and crypto policy
+  ansible.builtin.shell: |
+    echo "FIPS=$(cat /proc/sys/crypto/fips_enabled 2>/dev/null)"
+    echo "POLICY=$(update-crypto-policies --show 2>/dev/null)"
+  register: _sc_fips
+  changed_when: false
+  check_mode: false
+
+- name: Read time synchronization status
+  ansible.builtin.shell: |
+    echo "CHRONYD=$(systemctl is-active chronyd 2>/dev/null)"
+    timedatectl show 2>/dev/null
+    true
+  register: _sc_time
+  changed_when: false
+  check_mode: false
+
+- name: Read rsyslog configuration (comments removed)
+  ansible.builtin.shell: >-
+    cat /etc/rsyslog.conf /etc/rsyslog.d/*.conf 2>/dev/null | grep -Ev '^[[:space:]]*(#|$)'; true
+  register: _sc_rsyslog
+  changed_when: false
+  check_mode: false
+
+- name: Report free space for data and log filesystems
+  ansible.builtin.shell: "df -hP {{ sc_df_dirs | map('quote') | join(' ') }} 2>/dev/null; true"
+  register: _sc_df
+  changed_when: false
+  check_mode: false
+
+- name: Check repositories for pending product updates
+  ansible.builtin.command: "dnf -q check-update {{ sc_update_packages | map('quote') | join(' ') }}"
+  register: _sc_dnf
+  changed_when: false
+  failed_when: _sc_dnf.rc not in [0, 100]
+  check_mode: false
+  when: sc_update_packages | default([]) | length > 0
+
+- name: Assemble host evidence
+  vars:
+    _fips: "{{ _sc_fips.stdout_lines }}"
+    _time: "{{ _sc_time.stdout_lines }}"
+  ansible.builtin.set_fact:
+    sc_host:
+      listeners: "{{ _sc_ss.stdout | default('') }}"
+      firewalld_state: "{{ _sc_fw.stdout | default('') | trim }}"
+      firewalld_config: "{{ _sc_fwcfg.stdout | default('') }}"
+      accounts: "{{ _sc_accounts }}"
+      fips_enabled: "{{ _fips | select('match', '^FIPS=') | first | default('') | regex_replace('^FIPS=', '') }}"
+      crypto_policy: "{{ _fips | select('match', '^POLICY=') | first | default('') | regex_replace('^POLICY=', '') }}"
+      chronyd: "{{ _time | select('match', '^CHRONYD=') | first | default('') | regex_replace('^CHRONYD=', '') }}"
+      timedatectl: "{{ _time | reject('match', '^CHRONYD=') | join('\n') }}"
+      rsyslog: "{{ _sc_rsyslog.stdout | default('') }}"
+      disk: "{{ _sc_df.stdout | default('') }}"
+      repo_updates: "{{ {'rc': _sc_dnf.rc, 'stdout': _sc_dnf.stdout} if (_sc_dnf.rc is defined) else {} }}"
