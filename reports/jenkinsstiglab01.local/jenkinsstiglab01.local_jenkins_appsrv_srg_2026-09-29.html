@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jenkins SRG Audit - jenkinsstiglab01.local</title>
+<style>
+:root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc;
+        --open:#b3261e; --nf:#2e7d32; --nr:#8a6d00; --na:#5f6368; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#161615; --panel:#1f1f1d; --ink:#ecebe6; --muted:#a3a29c; --line:#34332f;
+          --open:#f28b82; --nf:#81c995; --nr:#fdd663; --na:#bdc1c6; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.meta { color:var(--muted); margin-bottom:20px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+.tile { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+.tile b { display:block; font-size:24px; font-variant-numeric:tabular-nums; }
+.tile span { color:var(--muted); font-size:12px; }
+.filters { margin:0 0 12px; display:flex; gap:6px; flex-wrap:wrap; }
+.filters button { background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; font:inherit; }
+.filters button.on { border-color:var(--ink); }
+details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
+summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:90px 118px 60px 1fr; gap:10px; align-items:baseline; }
+summary::-webkit-details-marker { display:none; }
+.id { font-family:ui-monospace,Consolas,monospace; color:var(--muted); }
+.st { font-weight:600; }
+.Open .st { color:var(--open); } .NotAFinding .st { color:var(--nf); }
+.Not_Reviewed .st { color:var(--nr); } .Not_Applicable .st { color:var(--na); }
+.body { padding:0 14px 14px; border-top:1px solid var(--line); }
+.body h4 { margin:12px 0 4px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-monospace,Consolas,monospace; background:var(--bg); padding:8px; border-radius:6px; }
+.srg { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+@media (max-width:640px) { summary { grid-template-columns:1fr 1fr; } summary .title { grid-column:1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Jenkins Application Server SRG Audit</h1>
+  <div class="meta">
+    jenkinsstiglab01.local (jenkinsstiglab01.local, 192.168.85.128) &middot;
+    Rocky 8.10 &middot; Jenkins unknown
+    &middot; JENKINS_HOME /var/lib/jenkins &middot; collected 2026-09-30T02:59:59Z
+      </div>
+
+  <div class="tiles">
+    <div class="tile"><b style="color:var(--open)">16</b><span>Open</span></div>
+    <div class="tile"><b>3 / 10 / 3</b><span>Open CAT I / II / III</span></div>
+    <div class="tile"><b style="color:var(--nf)">7</b><span>Not a Finding</span></div>
+    <div class="tile"><b style="color:var(--nr)">5</b><span>Needs manual review</span></div>
+    <div class="tile"><b style="color:var(--na)">1</b><span>Not Applicable</span></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="on" data-f="all">All</button>
+    <button data-f="Open">Open</button>
+    <button data-f="Not_Reviewed">Not Reviewed</button>
+    <button data-f="NotAFinding">Not a Finding</button>
+    <button data-f="Not_Applicable">Not Applicable</button>
+  </div>
+
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-001</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT I</span>
+      <span class="title">Jenkins must require authentication (a security realm is configured)</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000148, SRG-APP-000033</div>
+      <h4>Result</h4>
+      <pre>Authentication is required via security realm local (hudson.security.HudsonPrivateSecurityRealm).</pre>
+      <h4>Evidence</h4>
+      <pre>config.xml securityRealm class=hudson.security.HudsonPrivateSecurityRealm</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-002</span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">Jenkins authorization must enforce least privilege and deny anonymous access</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000033, SRG-APP-000340</div>
+      <h4>Result</h4>
+      <pre>Authorization strategy &#39;Logged-in users can do anything&#39; makes every authenticated user an administrator.</pre>
+      <h4>Evidence</h4>
+      <pre>config.xml authorizationStrategy class=hudson.security.FullControlOnceLoggedInAuthorizationStrategy
+Unauthenticated GET http://127.0.0.1:8080/api/json -&gt; HTTP 403</pre>
+      <h4>Remediation</h4>
+      <pre>Use Matrix-based or Role-based authorization. Grant no permissions to &#39;anonymous&#39;, do not grant Overall/Administer to &#39;authenticated&#39;, and restrict Administer to named admins/groups. Do not use &#39;Anyone can do anything&#39;, &#39;Legacy mode&#39;, or &#39;Logged-in users can do anything&#39;.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-003</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins local user self-registration must be disabled</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000033</div>
+      <h4>Result</h4>
+      <pre>Self sign-up is disabled (disableSignup=true).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-004</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins must use DoD PKI (CAC/PIV) or MFA for user authentication</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000149, SRG-APP-000391, SRG-APP-000392</div>
+      <h4>Result</h4>
+      <pre>Security realm &#39;local&#39; performs password-only authentication; no PKI/MFA is enforced by Jenkins.</pre>
+      <h4>Evidence</h4>
+      <pre>securityRealm class=hudson.security.HudsonPrivateSecurityRealm</pre>
+      <h4>Remediation</h4>
+      <pre>Federate authentication to an IdP that enforces CAC/PIV (SAML or OIDC plugin), or front Jenkins with a proxy that requires client certificates and passes identity via the reverse-proxy-auth plugin.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-005</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Account lockout and password complexity must be enforced</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000065, SRG-APP-000164</div>
+      <h4>Result</h4>
+      <pre>Jenkins&#39; built-in user database has no account lockout, password complexity, length or aging controls.</pre>
+      <h4>Evidence</h4>
+      <pre>securityRealm class=hudson.security.HudsonPrivateSecurityRealm</pre>
+      <h4>Remediation</h4>
+      <pre>Jenkins&#39; own user database cannot enforce lockout, complexity or aging. Delegate authentication to the enterprise directory/IdP that enforces DoD policy.</pre>
+    </div>
+  </details>
+  <details class="Not_Applicable" data-status="Not_Applicable">
+    <summary>
+      <span class="id">JNKS-006</span>
+      <span class="st">Not Applicable</span>
+      <span>CAT II</span>
+      <span class="title">Directory (LDAP/AD) authentication traffic must be encrypted and certificates validated</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000172, SRG-APP-000439</div>
+      <h4>Result</h4>
+      <pre>No LDAP/Active Directory realm in use (realm: local).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-007</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins &#39;Remember me&#39; persistent login must be disabled</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000400</div>
+      <h4>Result</h4>
+      <pre>&#39;Remember me&#39; is enabled; a persistent login cookie is issued.</pre>
+      <h4>Evidence</h4>
+      <pre>disableRememberMe=false</pre>
+      <h4>Remediation</h4>
+      <pre>Manage Jenkins &gt; Security: check &#39;Disable remember me&#39;.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-008</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins HTTP sessions must time out after the organization-defined inactivity period</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000295</div>
+      <h4>Result</h4>
+      <pre>No --sessionTimeout is configured; the servlet container default applies (organization limit: 15 minutes).</pre>
+      <h4>Evidence</h4>
+      <pre>runtime source: process
+--sessionTimeout=None
+--sessionEviction=None</pre>
+      <h4>Remediation</h4>
+      <pre>Add --sessionTimeout=&lt;minutes&gt; to JENKINS_OPTS (systemd override) or JENKINS_ARGS (/etc/sysconfig/jenkins) and restart Jenkins.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-009</span>
+      <span class="st">Open</span>
+      <span>CAT III</span>
+      <span class="title">Jenkins must limit concurrent sessions per account</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000001</div>
+      <h4>Result</h4>
+      <pre>Jenkins provides no mechanism to limit concurrent sessions per account.</pre>
+      <h4>Comments</h4>
+      <pre>Mitigate at the IdP/proxy or document a risk acceptance via jenkins_stig_overrides.</pre>
+      <h4>Remediation</h4>
+      <pre>Jenkins has no native concurrent-session limit. Enforce at the IdP/reverse proxy or document the risk acceptance (use jenkins_stig_overrides to record it).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-010</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">The DoD Notice and Consent Banner must be displayed before login</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000068</div>
+      <h4>Result</h4>
+      <pre>The login page does not display the DoD Notice and Consent Banner.</pre>
+      <h4>Evidence</h4>
+      <pre>GET http://127.0.0.1:8080/login did not match /You are accessing a U\.S\. Government/
+systemMessage (post-login only) present: False</pre>
+      <h4>Remediation</h4>
+      <pre>Display the Standard Mandatory DoD Notice and Consent Banner on the login page (e.g. the Login Theme plugin, the IdP login page, or the reverse proxy) with explicit acknowledgment.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-011</span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">Jenkins must only be reachable over HTTPS (no plaintext HTTP listeners)</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000014, SRG-APP-000015, SRG-APP-000439, SRG-APP-000172</div>
+      <h4>Result</h4>
+      <pre>Plaintext HTTP listener exposed on *:8080.
+Configured Jenkins URL uses http:// (http://192.168.85.128:8080/).</pre>
+      <h4>Evidence</h4>
+      <pre>httpPort=8080 httpListenAddress=(all) httpsPort=-1
+java listening on *:8080
+Configured Jenkins URL: http://192.168.85.128:8080/</pre>
+      <h4>Remediation</h4>
+      <pre>Enable HTTPS (JENKINS_HTTPS_PORT/--httpsPort with a DoD-issued certificate) and set --httpPort=-1, or bind HTTP to 127.0.0.1 behind a TLS-terminating reverse proxy. Set the Jenkins URL to https://.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">JNKS-012</span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins TLS endpoints must not accept SSL or TLS 1.0/1.1</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000014, SRG-APP-000439</div>
+      <h4>Result</h4>
+      <pre>No TLS endpoint was probed (HTTPS not enabled, Jenkins not running, or set jenkins_audit_url to the proxy URL).</pre>
+      <h4>Remediation</h4>
+      <pre>Restrict protocols to TLS 1.2+ (RHEL crypto-policy DEFAULT/FIPS, or the proxy&#39;s ssl_protocols/SSLProtocol directive).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-013</span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">FIPS 140-validated cryptography must be used</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000179, SRG-APP-000514</div>
+      <h4>Result</h4>
+      <pre>Kernel FIPS mode is not enabled (/proc/sys/crypto/fips_enabled=0).</pre>
+      <h4>Evidence</h4>
+      <pre>fips_enabled=0
+crypto-policy=FIPS:STIG</pre>
+      <h4>Remediation</h4>
+      <pre>Run &#39;fips-mode-setup --enable&#39; and reboot; do not pass -Dcom.redhat.fips=false or -Djava.security.disableSystemPropertiesFile=true to the JVM.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-014</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins must run under a non-privileged, non-interactive service account</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000342</div>
+      <h4>Result</h4>
+      <pre>Service account has an interactive login shell (/bin/bash).</pre>
+      <h4>Evidence</h4>
+      <pre>process user=jenkins.svc
+passwd: jenkins.svc:x:1001:1001::/home/jenkins.svc:/bin/bash
+id: uid=1001(jenkins.svc) gid=1001(jenkins.svc) groups=1001(jenkins.svc)</pre>
+      <h4>Remediation</h4>
+      <pre>Run Jenkins as the &#39;jenkins&#39; user (systemd User=jenkins) with shell /sbin/nologin, no sudo rights and no membership in wheel/docker/root groups.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-015</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">JENKINS_HOME configuration and secrets must be protected from unauthorized access</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000380, SRG-APP-000171</div>
+      <h4>Result</h4>
+      <pre>/var/lib/jenkins mode 0755 is too permissive (must not include 0007).
+/var/lib/jenkins/secrets/master.key mode 0644 is too permissive (must not include 0077).
+/var/lib/jenkins/config.xml mode 0644 is too permissive (must not include 0027).
+/var/lib/jenkins/users mode 0755 is too permissive (must not include 0007).</pre>
+      <h4>Evidence</h4>
+      <pre>0755 jenkins.svc:jenkins.svc /var/lib/jenkins
+0700 jenkins.svc:jenkins.svc /var/lib/jenkins/secrets
+0644 jenkins.svc:jenkins.svc /var/lib/jenkins/secrets/master.key
+0644 jenkins.svc:jenkins.svc /var/lib/jenkins/config.xml
+0755 jenkins.svc:jenkins.svc /var/lib/jenkins/users</pre>
+      <h4>Remediation</h4>
+      <pre>chmod 750 $JENKINS_HOME; chmod 700 $JENKINS_HOME/secrets; chmod 600 secrets/*; remove world-writable files; delete secrets/initialAdminPassword after setup.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-016</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins application binaries must be protected from modification</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133</div>
+      <h4>Result</h4>
+      <pre>/var/lib/jenkins/jenkins.war is group/world writable (mode 0777).</pre>
+      <h4>Evidence</h4>
+      <pre>0777 root:root /var/lib/jenkins/jenkins.war</pre>
+      <h4>Remediation</h4>
+      <pre>Keep jenkins.war owned by root and not writable by the jenkins account; reinstall the RPM if &#39;rpm -V jenkins&#39; reports digest changes.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-017</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Builds must not run on the Jenkins controller (management/user function separation)</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000211</div>
+      <h4>Result</h4>
+      <pre>Built-in node has 2 executor(s); builds can run on the controller.</pre>
+      <h4>Evidence</h4>
+      <pre>numExecutors=2
+agent kill-switch=absent</pre>
+      <h4>Remediation</h4>
+      <pre>Manage Jenkins &gt; Nodes &gt; Built-In Node: set &#39;# of executors&#39; to 0 and run builds on agents. Remove secrets/slave-to-master-security-kill-switch if present.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">JNKS-018</span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins must only use approved (PPSM) ports and protocols</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000142</div>
+      <h4>Result</h4>
+      <pre>Compare the ports below with the system&#39;s PPSM registration (or set jenkins_stig_approved_ports to automate).</pre>
+      <h4>Evidence</h4>
+      <pre>Inbound agent TCP port: disabled
+SSH server port: disabled
+Ports opened by Jenkins JVM: 8080
+firewalld: running
+  public (active)
+    target: default
+    icmp-block-inversion: no
+    interfaces: ens160
+    sources: 
+    services: cockpit dhcpv6-client ssh
+    ports: 8080/tcp
+    protocols: 
+    forward: no
+    masquerade: no
+    forward-ports: 
+    source-ports: 
+    icmp-blocks: 
+    rich rules: </pre>
+      <h4>Remediation</h4>
+      <pre>Set the inbound agent TCP port to a fixed registered port or disable it; disable the SSH server unless required; keep firewalld active; declare jenkins_stig_approved_ports.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">JNKS-019</span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Unnecessary, deprecated or unapproved plugins must be removed</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000141</div>
+      <h4>Result</h4>
+      <pre>Review the plugin inventory for mission need (or set jenkins_stig_approved_plugins to automate).</pre>
+      <h4>Evidence</h4>
+      <pre>92 plugins installed:
+  ant 520.vd082ecfb_16a_9
+  antisamy-markup-formatter 173.v680e3a_b_69ff3
+  apache-httpcomponents-client-4-api 4.5.14-269.vfa_2321039a_83
+  asm-api 9.10.1-216.va_9256d3b_844b_
+  bootstrap5-api 5.3.8-1048.va_c299057e35c
+  bouncycastle-api 2.30.1.85.2-304.v4b_5b_62e59a_a_7
+  branch-api 2.1303.v9f3b_95dc329d
+  build-timeout 1.41
+  caffeine-api 3.2.4-208.v7e2da_a_7db_82b_
+  checks-api 422.vc7e8b_51488c6
+  cloudbees-folder 6.1106.v3a_d9a_6d2465e
+  commons-lang3-api 3.20.0-109.ve43756e2d2b_4
+  commons-text-api 1.15.0-218.va_61573470393
+  credentials 1511.v2e3cb_0008ef0
+  credentials-binding 728.v902a_273b_8947
+  dark-theme 652.vea_da_dfea_e769
+  display-url-api 2.217.va_6b_de84cc74b_
+  durable-task 686.v80ff80875b_82
+  echarts-api 6.1.0-1321.v86c4c5114494
+  eddsa-api 0.3.0.1-29.v67e9a_1c969b_b_
+  email-ext 2038.v7b_8817a_499d9
+  font-awesome-api 7.3.1-1013.v0835a_879ec6d
+  git 5.10.1
+  git-client 6.6.1
+  github 1.47.0
+  github-api 1.330-492.v3941a_032db_2a_
+  github-branch-source 1983.vfa_27ed961853
+  gradle 2.20.1253.vc116f0763a_eb_
+  gson-api 2.14.0-201.v8eefe5515533
+  instance-identity 203.v15e81a_1b_7a_38
+  ionicons-api 94.vcc3065403257
+  jackson-annotations2-api 2.22-19.v10a_a_582ea_26e
+  jackson2-api 2.22.2-445.vdc613f1d8012
+  jackson3-api 3.2.3-101.v69fc84453a_8e
+  jakarta-activation-api 2.1.4-1
+  jakarta-mail-api 2.1.5-1
+  jakarta-xml-bind-api 4.0.9-19.v2b_a_5b_44d9a_1c
+  javax-activation-api 1.2.0-8
+  jaxb 2.3.9-143.v5979df3304e6
+  jjwt-api 0.13.0-141.vd58b_a_9592b_6c
+  joda-time-api 2.14.4-206.vc0945a_7c5f95
+  jquery3-api 3.7.1-687.v68d468e40b_30
+  json-api 20260814-226.v20f9685d642c
+  json-path-api 3.0.0-218.vcd4dd1355de2
+  jsoup 1.23.2-106.v1161f282b_eb_f
+  junit 1431.vc0d98912a_756
+  ldap 825.v2fca_37dd5b_cb_
+  mailer 534.v1b_36f5864073
+  matrix-auth 3.3
+  matrix-project 928.v1effc3f3a_236
+  mina-sshd-api-common 2.19.0-192.v2b_a_7b_2c1dc71
+  mina-sshd-api-core 2.19.0-192.v2b_a_7b_2c1dc71
+  okhttp-api 5.3.2-200.vedb_720a_cf1f8
+  pipeline-build-step 601.v6d4c6d1a_9dc7
+  pipeline-github-lib 65.v203688e7727e
+  pipeline-graph-view 1041.v107d70db_b_1a_f
+  pipeline-groovy-lib 806.v408277b_33d1d
+  pipeline-input-step 560.v56198a_642157
+  pipeline-milestone-step 152.v6e22b_8cfc66c
+  pipeline-model-api 2.2293.v6e7193cec599
+  pipeline-model-definition 2.2293.v6e7193cec599
+  pipeline-model-extensions 2.2293.v6e7193cec599
+  pipeline-stage-step 345.va_96187909426
+  pipeline-stage-tags-metadata 2.2293.v6e7193cec599
+  plain-credentials 199.v9f8e1f741799
+  plugin-util-api 7.1341.v039f146993d9
+  prism-api 1.30.0-741.v034eb_0b_0a_a_fa_
+  resource-disposer 0.25
+  scm-api 728.vc30dcf7a_0df5
+  script-security 1429.v0810f1b_530f5
+  snakeyaml-api 2.5-149.v72471e9c6371
+  snakeyaml-engine-api 3.1.1-12.v4320c7d6f89c
+  ssh-credentials 372.va_250881b_08cd
+  ssh-slaves 3.1097.v868116049892
+  structs 362.va_b_695ef4fdf9
+  theme-manager 346.v06cca_64c6a_37
+  timestamper 1.30
+  token-macro 477.vd4f0dc3cb_cf1
+  trilead-api 2.284.v1974ea_324382
+  variant 70.va_d9f17f859e0
+  woodstox-core-api 7.2.2-10.vcb_629759b_2c2
+  workflow-aggregator 608.v67378e9d3db_1
+  workflow-api 1413.v2ff1a_5e720fa_
+  workflow-basic-steps 1098.v808b_fd7f8cf4
+  workflow-cps 4383.v04fa_a_3d67b_d9
+  workflow-durable-task-step 1479.v56e587f413a_7
+  workflow-job 1602.v2a_70b_80a_2396
+  workflow-multibranch 842.v3a_b_59b_57b_e6e
+  workflow-scm-step 487.v41313a_96b_65d
+  workflow-step-api 724.v538c2362b_dfb_
+  workflow-support 1015.v785e5a_b_b_8b_22
+  ws-cleanup 0.49</pre>
+      <h4>Remediation</h4>
+      <pre>Uninstall plugins that are not mission-required, deprecated, or disabled; maintain an approved plugin baseline (jenkins_stig_approved_plugins).</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-020</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Security-relevant updates for Jenkins core, plugins and Java must be installed</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000456</div>
+      <h4>Result</h4>
+      <pre>No applicable security advisories; supported Java runtime.</pre>
+      <h4>Evidence</h4>
+      <pre>Jenkins core: 2.568.3
+Java: openjdk version &#34;21.0.12.1&#34; 2026-08-18 LTS
+0 plugin(s) have newer releases available.
+Update-center data age: 0.7 days (source: /var/lib/jenkins/updates/default.json)</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-021</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins security protections must not be disabled via system properties or legacy settings</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000516</div>
+      <h4>Result</h4>
+      <pre>No security protections are disabled.</pre>
+      <h4>Evidence</h4>
+      <pre>JVM system properties: none</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-022</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins must sanitize user-supplied markup and keep its Content-Security-Policy</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000251</div>
+      <h4>Result</h4>
+      <pre>User markup is escaped/sanitized and the default CSP is in place.</pre>
+      <h4>Evidence</h4>
+      <pre>markupFormatter=hudson.markup.EscapedMarkupFormatter (default)</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-023</span>
+      <span class="st">Open</span>
+      <span>CAT III</span>
+      <span class="title">Jenkins must not reveal stack traces or version details to users</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000266, SRG-APP-000267</div>
+      <h4>Result</h4>
+      <pre>Response header X-Jenkins discloses product/version information (2.568.3).
+Response header X-Hudson discloses product/version information (1.395).
+Response header Server discloses product/version information (Jetty(12.1.12)).</pre>
+      <h4>Evidence</h4>
+      <pre>X-Jenkins: 2.568.3
+X-Hudson: 1.395
+Server: Jetty(12.1.12)</pre>
+      <h4>Remediation</h4>
+      <pre>Remove stack-trace/diagnostic system properties; strip X-Jenkins, X-Hudson, X-Jenkins-Session and Server headers at the reverse proxy.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-024</span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins must generate audit records for security-relevant events</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000089, SRG-APP-000095, SRG-APP-000096, SRG-APP-000097, SRG-APP-000098, SRG-APP-000099, SRG-APP-000100</div>
+      <h4>Result</h4>
+      <pre>The Audit Trail plugin is not installed/enabled; Jenkins does not record who performed security-relevant actions.</pre>
+      <h4>Evidence</h4>
+      <pre>audit-trail plugin: not installed
+config: absent</pre>
+      <h4>Remediation</h4>
+      <pre>Install the Audit Trail plugin and configure at least one logger (log file or syslog).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">JNKS-025</span>
+      <span class="st">Open</span>
+      <span>CAT III</span>
+      <span class="title">Jenkins must log remote (HTTP) access</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000016</div>
+      <h4>Result</h4>
+      <pre>HTTP access logging is not enabled.</pre>
+      <h4>Remediation</h4>
+      <pre>Enable the Winstone access log (--accessLoggerClassName=winstone.accesslog.SimpleAccessLogger --simpleAccessLogger.file=/var/log/jenkins/access_log) or log at the reverse proxy.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">JNKS-026</span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Jenkins log files must be protected from unauthorized read, modification and deletion</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000118, SRG-APP-000119, SRG-APP-000120</div>
+      <h4>Result</h4>
+      <pre>No Jenkins log files found (Jenkins may log only to journald); verify journal permissions under the OS STIG.</pre>
+      <h4>Remediation</h4>
+      <pre>chmod 0750 on log directories and 0640 (or stricter) on log files; owner jenkins or root.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-027</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT III</span>
+      <span class="title">Jenkins audit records must be off-loaded to a centralized log server</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000358</div>
+      <h4>Result</h4>
+      <pre>System logs are forwarded to a remote log server.</pre>
+      <h4>Evidence</h4>
+      <pre>rsyslog forwarding: *.* @@logcollector
+rsyslog imfile:        StateFile=&#34;imjournal.state&#34;) # File to store the position in the journal</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">JNKS-028</span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT III</span>
+      <span class="title">Audit storage capacity must be allocated and monitored</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000357, SRG-APP-000359</div>
+      <h4>Result</h4>
+      <pre>Verify log storage is sized for the retention period and the SA/ISSO is alerted at 75% capacity.</pre>
+      <h4>Evidence</h4>
+      <pre>Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p5  5.6G  905M  4.7G  16% /var</pre>
+      <h4>Remediation</h4>
+      <pre>Place logs on a dedicated filesystem sized for retention and alert the SA/ISSO at 75% usage.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">JNKS-029</span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Audit time stamps must come from a synchronized, authoritative time source</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000116, SRG-APP-000374</div>
+      <h4>Result</h4>
+      <pre>Time is synchronized by chronyd.</pre>
+      <h4>Evidence</h4>
+      <pre>chronyd: active
+CanNTP=yes
+LocalRTC=no
+NTP=yes
+NTPSynchronized=yes
+RTCTimeUSec=Tue 2026-09-29 22:00:23 CDT
+TimeUSec=Tue 2026-09-29 22:00:23 CDT
+Timezone=America/Chicago</pre>
+    </div>
+  </details>
+  <p class="meta">* status set by jenkins_stig_overrides. Automated results support, but do not replace, assessor review
+  of the full Application Server SRG.</p>
+</main>
+<script>
+document.getElementById('filters').addEventListener('click', function (e) {
+  var f = e.target.getAttribute('data-f'); if (!f) return;
+  document.querySelectorAll('#filters button').forEach(function (b) { b.classList.toggle('on', b === e.target); });
+  document.querySelectorAll('details').forEach(function (d) {
+    d.style.display = (f === 'all' || d.getAttribute('data-status') === f) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>
