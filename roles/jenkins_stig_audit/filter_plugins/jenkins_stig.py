@@ -550,7 +550,10 @@ def _strip_html(body):
 def _load_update_center(text):
     if not text:
         return None
-    t = text.strip()
+    # Ansible templating turns a JSON-looking string into a dict before it gets here.
+    if isinstance(text, dict):
+        return text
+    t = str(text).strip()
     if t.startswith("updateCenter.post("):
         t = t[len("updateCenter.post("):]
         t = t.rstrip().rstrip(";").rstrip()

@@ -214,6 +214,13 @@ class EvaluateTests(unittest.TestCase):
         self.assertEqual(r["JNKS-019"]["status"], js.NR)
         self.assertEqual(r["JNKS-009"]["status"], js.OPEN)
 
+    def test_update_center_already_parsed(self):
+        # Ansible converts a JSON-looking string fact into a dict before the filter sees it.
+        ev = hardened_evidence()
+        expected = js.jenkins_stig_evaluate(ev, SETTINGS)
+        ev["update_center"] = json.loads(ev["update_center"])
+        self.assertEqual(js.jenkins_stig_evaluate(ev, SETTINGS), expected)
+
     def test_approved_lists_and_overrides(self):
         s = dict(SETTINGS, approved_ports=[8443], approved_plugins=["audit-trail", "saml", "matrix-auth", "git"],
                  overrides={"JNKS-009": {"status": "Not_Applicable", "comment": "IdP limits sessions"},
