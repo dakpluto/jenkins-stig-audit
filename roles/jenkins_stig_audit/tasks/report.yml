@@ -17,6 +17,11 @@
     jsa_xccdf: "{{ jenkins_stig_xccdf | stig_xccdf_rules }}"
   when: jenkins_stig_xccdf | length > 0
 
+- name: Map checks to SRG Vuln IDs
+  ansible.builtin.set_fact:
+    jsa_vuln_map: "{{ jsa_results | stig_vuln_map(jsa_xccdf, jenkins_stig_rule_map) }}"
+  when: jsa_xccdf is defined
+
 - name: Write reports
   delegate_to: localhost
   become: false

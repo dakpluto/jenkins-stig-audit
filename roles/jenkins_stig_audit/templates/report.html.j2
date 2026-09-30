@@ -28,6 +28,7 @@ details { background:var(--panel); border:1px solid var(--line); border-radius:8
 summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:90px 118px 60px 1fr; gap:10px; align-items:baseline; }
 summary::-webkit-details-marker { display:none; }
 .id { font-family:ui-monospace,Consolas,monospace; color:var(--muted); }
+.id small { display:block; font-size:11px; }
 .st { font-weight:600; }
 .Open .st { color:var(--open); } .NotAFinding .st { color:var(--nf); }
 .Not_Reviewed .st { color:var(--nr); } .Not_Applicable .st { color:var(--na); }
@@ -67,7 +68,7 @@ pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-m
 {% for r in jsa_results %}
   <details class="{{ r.status }}" data-status="{{ r.status }}"{% if r.status == 'Open' %} open{% endif %}>
     <summary>
-      <span class="id">{{ r.id }}</span>
+      <span class="id">{{ r.id }}{% if jsa_vuln_map is defined %}{% for v in jsa_vuln_map[r.id] | selectattr('bound') %}<small>{{ v.vuln_num }}</small>{% endfor %}{% endif %}</span>
       <span class="st">{{ r.status | replace('_', ' ') }}{% if r.overridden | default(false) %}*{% endif %}</span>
       <span>{{ r.cat }}</span>
       <span class="title">{{ r.title | e }}</span>
@@ -75,6 +76,16 @@ pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-m
     <div class="body">
       <h4>SRG requirements</h4>
       <div class="srg">{{ r.srg_ids | join(', ') }}</div>
+{% if jsa_vuln_map is defined %}
+      <h4>STIG rules</h4>
+{%   for v in jsa_vuln_map[r.id] %}
+      <div class="srg">{{ v.vuln_num }} &middot; {{ v.rule_ver | e }}{% if not v.bound %} (candidate: several rules share this SRG ID; pick one with jenkins_stig_rule_map){% endif %}<br>{{ v.rule_title | e }}</div>
+{%   else %}
+      <div class="srg">No rule in {{ jsa_xccdf.info.title | e }} matches these SRG IDs.</div>
+{%   endfor %}
+{% else %}
+      <div class="meta">Set jenkins_stig_xccdf to the Application Server SRG to show V-IDs.</div>
+{% endif %}
       <h4>Result</h4>
       <pre>{{ r.finding_details | e }}</pre>
 {% if r.evidence %}

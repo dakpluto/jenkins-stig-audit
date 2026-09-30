@@ -283,6 +283,20 @@ class ChecklistTests(unittest.TestCase):
         self.assertEqual(st["V-900002"], "Open")
         self.assertEqual(st["V-900003"], "Not_Reviewed")
 
+    def test_vuln_map_matches_binding(self):
+        x = js.stig_xccdf_rules(os.path.join(FIX, "mini_xccdf.xml"))
+        res = js.jenkins_stig_evaluate(insecure_evidence(), SETTINGS)
+        m = js.stig_vuln_map(res, x)
+        self.assertEqual(set(m), set(r["id"] for r in res))
+        banner = [c for c, vs in m.items() if any(v["vuln_num"] == "V-900001" for v in vs)]
+        self.assertTrue(banner)
+        self.assertTrue(all(v["bound"] for c in banner for v in m[c] if v["vuln_num"] == "V-900001"))
+        self.assertEqual([(v["vuln_num"], v["bound"]) for v in m["JNKS-021"]],
+                         [("V-900002", False), ("V-900003", False)])
+        m = js.stig_vuln_map(res, x, {"JNKS-021": ["V-900002"]})
+        self.assertEqual([(v["vuln_num"], v["bound"], v["rule_ver"]) for v in m["JNKS-021"]],
+                         [("V-900002", True, "SRG-APP-000516-AS-000237")])
+
     def test_csv_and_summary(self):
         res = js.jenkins_stig_evaluate(hardened_evidence(), SETTINGS)
         self.assertTrue(js.stig_csv(res).startswith("Check,Severity,Status"))

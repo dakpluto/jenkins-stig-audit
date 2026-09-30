@@ -1316,6 +1316,25 @@ def stig_bind(results, xccdf, rule_map=None):
     return {"bound": bound, "related": related, "ambiguous": ambiguous, "unmatched": unmatched}
 
 
+def stig_vuln_map(results, xccdf, rule_map=None):
+    """Per check, the XCCDF rules it maps to: {check_id: [{vuln_num, rule_ver, rule_title, bound}]}.
+
+    Uses stig_bind, so the report shows the same binding the .ckl gets. bound=False marks a
+    candidate from an ambiguous base SRG ID (resolve it with jenkins_stig_rule_map).
+    """
+    binding = stig_bind(results, xccdf, rule_map)
+    rules = dict((r["vuln_num"], r) for r in xccdf["rules"])
+    out = dict((res["id"], []) for res in results)
+    for groups, bound in ((binding["bound"], True), (binding["related"], False)):
+        for vuln in sorted(groups):
+            for cid in groups[vuln]:
+                if not any(e["vuln_num"] == vuln for e in out[cid]):
+                    r = rules[vuln]
+                    out[cid].append({"vuln_num": vuln, "rule_ver": r["rule_ver"],
+                                     "rule_title": r["rule_title"], "bound": bound})
+    return out
+
+
 def _aggregate(statuses):
     if OPEN in statuses:
         return OPEN
@@ -1430,6 +1449,7 @@ class FilterModule(object):
             "jenkins_stig_evaluate": jenkins_stig_evaluate,
             "stig_xccdf_rules": stig_xccdf_rules,
             "stig_bind": stig_bind,
+            "stig_vuln_map": stig_vuln_map,
             "stig_ckl": stig_ckl,
             "stig_csv": stig_csv,
             "stig_summary": stig_summary,
