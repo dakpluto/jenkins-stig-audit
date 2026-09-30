@@ -15,7 +15,7 @@ Reports are written on the machine running `ansible-playbook`, under `reports/<h
 
 | File | Contents |
 |---|---|
-| `*.html` | Human-readable report with status filters, evidence and remediation |
+| `*.html` | Human-readable report with status filters, Vuln IDs, evidence and remediation |
 | `*.json` | Machine-readable results, summary, and SRG→Vuln ID binding |
 | `*.csv` | One row per check, for POA&M / spreadsheet work |
 | `*.ckl` | STIG Viewer checklist for the whole SRG (only when `jenkins_stig_xccdf` is set) |
@@ -117,9 +117,13 @@ determination. For example, checking that a SAML IdP actually enforces CAC.
 
 ## Mapping to Vuln IDs (.ckl)
 
-This repo deliberately contains **no DISA Vuln/Rule IDs**. You supply the
-current XCCDF, and every Vuln ID, Rule ID, title, check and fix text in the
-checklist comes from DISA's file. Checks are bound to rules by base SRG ID:
+The HTML report always shows each check's Vuln IDs (V-xxxxxx) and full
+`SRG-APP-xxxxxx-AS-xxxxxx` rule versions. Without `jenkins_stig_xccdf` they come
+from a bundled index of the Application Server SRG V4R5
+(`roles/jenkins_stig_audit/files/app_server_srg_index.json`: Vuln ID, Rule ID,
+rule version and title only). The `.ckl` still needs the XCCDF you supply, and
+when it is set every Vuln ID, Rule ID, title, check and fix text comes from
+DISA's file instead of the index. Checks are bound to rules by base SRG ID:
 
 - **One matching rule**: the check's status is written to that rule.
 - **Several matching rules** (for example, the catch-all `SRG-APP-000516`): the

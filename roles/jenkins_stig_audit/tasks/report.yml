@@ -17,10 +17,14 @@
     jsa_xccdf: "{{ jenkins_stig_xccdf | stig_xccdf_rules }}"
   when: jenkins_stig_xccdf | length > 0
 
+# Without an XCCDF, fall back to the bundled V-ID index (V4R5) so the HTML report
+# still shows Vuln IDs. The .ckl needs the full XCCDF.
 - name: Map checks to SRG Vuln IDs
   ansible.builtin.set_fact:
-    jsa_vuln_map: "{{ jsa_results | stig_vuln_map(jsa_xccdf, jenkins_stig_rule_map) }}"
-  when: jsa_xccdf is defined
+    jsa_srg_index: "{{ jsa_xccdf if jsa_xccdf is defined else _index }}"
+    jsa_vuln_map: "{{ jsa_results | stig_vuln_map(jsa_xccdf if jsa_xccdf is defined else _index, jenkins_stig_rule_map) }}"
+  vars:
+    _index: "{{ lookup('ansible.builtin.file', role_path ~ '/files/app_server_srg_index.json') | from_json }}"
 
 - name: Write reports
   delegate_to: localhost

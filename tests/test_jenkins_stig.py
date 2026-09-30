@@ -297,6 +297,15 @@ class ChecklistTests(unittest.TestCase):
         self.assertEqual([(v["vuln_num"], v["bound"], v["rule_ver"]) for v in m["JNKS-021"]],
                          [("V-900002", True, "SRG-APP-000516-AS-000237")])
 
+    def test_bundled_index_maps_vuln_ids(self):
+        with open(os.path.join(os.path.dirname(FIX), "..", "roles", "jenkins_stig_audit", "files",
+                               "app_server_srg_index.json")) as f:
+            x = json.load(f)
+        self.assertTrue(all(r["rule_ver"].startswith("SRG-APP-") for r in x["rules"]))
+        res = js.jenkins_stig_evaluate(insecure_evidence(), SETTINGS)
+        m = js.stig_vuln_map(res, x)
+        self.assertEqual([v["vuln_num"] for v in m["JNKS-003"] if v["bound"]], ["V-204712"])
+
     def test_csv_and_summary(self):
         res = js.jenkins_stig_evaluate(hardened_evidence(), SETTINGS)
         self.assertTrue(js.stig_csv(res).startswith("Check,Severity,Status"))
