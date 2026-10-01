@@ -1,0 +1,12 @@
+---
+# Read-only compliance audit of Crunchy Data PostgreSQL 16 servers (RHEL) against the
+# DISA Crunchy Data Postgres 16 STIG. Usage:
+#   ansible-playbook -i inventory/hosts.yml postgres_stig_audit.yml
+#   ansible-playbook -i inventory/hosts.yml postgres_stig_audit.yml \
+#     -e postgres_stig_xccdf=stig/U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG.zip
+- name: Crunchy Data Postgres 16 STIG audit
+  hosts: postgres
+  become: true
+  gather_facts: false
+  roles:
+    - postgres_stig_audit

@@ -1,0 +1,74 @@
+---
+# Read-only SQL (run in a default_transaction_read_only session). Password hashes are
+# never selected; only their type is.
+psa_instance_sql: |
+  SELECT json_build_object(
+    'version', version(),
+    'settings', (SELECT json_object_agg(name, json_build_object('setting', setting, 'unit', unit, 'source', source))
+                 FROM pg_settings),
+    'file_settings', (SELECT json_object_agg(name, setting) FROM pg_file_settings WHERE applied),
+    'roles', (SELECT json_agg(json_build_object('name', rolname, 'super', rolsuper, 'createrole', rolcreaterole,
+                'createdb', rolcreatedb, 'login', rolcanlogin, 'replication', rolreplication,
+                'bypassrls', rolbypassrls, 'connlimit', rolconnlimit, 'validuntil', rolvaliduntil) ORDER BY rolname)
+              FROM pg_roles WHERE rolname !~ '^pg_'),
+    'passwords', (SELECT json_agg(json_build_object('name', rolname, 'kind',
+                    CASE WHEN rolpassword IS NULL THEN 'none'
+                         WHEN rolpassword LIKE 'SCRAM-SHA-256$%' THEN 'scram-sha-256'
+                         WHEN rolpassword LIKE 'md5%' THEN 'md5' ELSE 'plaintext' END))
+                  FROM pg_authid WHERE rolcanlogin),
+    'hba', (SELECT json_agg(json_build_object('line', line_number, 'type', type, 'database', database,
+              'user', user_name, 'address', address, 'netmask', netmask, 'method', auth_method,
+              'options', options, 'error', error) ORDER BY rule_number) FROM pg_hba_file_rules),
+    'ident', (SELECT json_agg(json_build_object('map', map_name, 'system', sys_name, 'user', pg_username))
+              FROM pg_ident_file_mappings),
+    'databases', (SELECT json_agg(json_build_object('name', datname, 'acl', datacl::text, 'connect', datallowconn))
+                  FROM pg_database),
+    'pgcrypto_available', EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pgcrypto')
+  );
+
+psa_database_sql: |
+  SELECT json_build_object(
+    'db', current_database(),
+    'extensions', (SELECT json_agg(json_build_object('name', extname, 'version', extversion)) FROM pg_extension),
+    'untrusted_languages', (SELECT json_agg(lanname) FROM pg_language
+                            WHERE NOT lanpltrusted AND lanname NOT IN ('internal', 'c')),
+    'secdef', (SELECT json_agg(n.nspname || '.' || p.proname || ' (owner ' || pg_get_userbyid(p.proowner) || ')')
+               FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+               WHERE p.prosecdef AND n.nspname NOT IN ('pg_catalog', 'information_schema')),
+    'schemas', (SELECT json_agg(json_build_object('name', nspname, 'owner', pg_get_userbyid(nspowner),
+                  'acl', nspacl::text, 'public_create', has_schema_privilege('public', oid, 'CREATE')))
+                FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname <> 'information_schema'),
+    'object_owners', (SELECT json_agg(DISTINCT pg_get_userbyid(c.relowner)) FROM pg_class c
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'),
+    'function_owners', (SELECT json_agg(DISTINCT pg_get_userbyid(p.proowner)) FROM pg_proc p
+                        JOIN pg_namespace n ON n.oid = p.pronamespace
+                        WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'),
+    'rls_tables', (SELECT count(*) FROM pg_class WHERE relrowsecurity)
+  );
+
+# psql as the database owner over the local socket, read-only.
+psa_psql: >-
+  {{ ['runuser', '-u', postgres_os_user, '--', 'env', 'PGOPTIONS=-c default_transaction_read_only=on',
+      'PGAPPNAME=stig_audit', postgres_bin_dir ~ '/psql', '-X', '-A', '-t', '-q', '-v', 'ON_ERROR_STOP=1',
+      '-h', psa_socket_dir, '-p', psa_port | string] }}
+
+psa_settings:
+  pg_user: "{{ postgres_os_user }}"
+  max_connections: "{{ postgres_stig_max_connections }}"
+  approved_superusers: "{{ postgres_stig_approved_superusers }}"
+  approved_admins: "{{ postgres_stig_approved_admins }}"
+  hba_exceptions: "{{ postgres_stig_hba_exceptions }}"
+  approved_extensions: "{{ postgres_stig_approved_extensions }}"
+  approved_packages: "{{ postgres_stig_approved_packages }}"
+  approved_security_definer: "{{ postgres_stig_approved_security_definer }}"
+  approved_owners: "{{ postgres_stig_approved_owners }}"
+  approved_ports: "{{ postgres_stig_approved_ports }}"
+  log_timezone: "{{ postgres_stig_log_timezone }}"
+  syslog_facility: "{{ postgres_stig_syslog_facility }}"
+  dod_issuer_regex: "{{ postgres_stig_dod_issuer_regex }}"
+  classified: "{{ postgres_stig_classified }}"
+  security_labeling_required: "{{ postgres_stig_security_labeling_required }}"
+  categories_required: "{{ postgres_stig_categories_required }}"
+  min_version: "{{ postgres_stig_min_version }}"
+  overrides: "{{ postgres_stig_overrides }}"

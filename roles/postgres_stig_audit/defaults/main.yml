@@ -1,0 +1,75 @@
+---
+# ---------------------------------------------------------------------------
+# Discovery (Crunchy Data / PGDG layout on RHEL)
+# ---------------------------------------------------------------------------
+postgres_version: 16
+postgres_install_dir: "/usr/pgsql-{{ postgres_version }}"
+postgres_bin_dir: "{{ postgres_install_dir }}/bin"
+postgres_service_name: "postgresql-{{ postgres_version }}"
+postgres_os_user: postgres
+# Leave blank to use the running postmaster's -D, the service's PGDATA, or
+# /var/lib/pgsql/<version>/data.
+postgres_pgdata: ""
+
+# Read settings, roles, pg_hba rules, extensions, etc. with psql (as postgres over the
+# local socket, in a read-only transaction). Without it, settings come from
+# postgresql.conf and the role/extension checks are left Not_Reviewed.
+postgres_stig_query_sql: true
+
+# ---------------------------------------------------------------------------
+# Organization-defined values (from the system security plan)
+# ---------------------------------------------------------------------------
+postgres_stig_max_connections: ""             # documented max_connections, e.g. 200
+postgres_stig_approved_superusers: [postgres]
+# Roles allowed Superuser / Create role / Create DB / Bypass RLS (CD16-00-004600).
+postgres_stig_approved_admins: [postgres]
+# Documented pg_hba.conf entries that may use methods other than gss/sspi/ldap/cert
+# (CD16-00-000200). Regexes matched against "type database user address method".
+postgres_stig_hba_exceptions: []
+#  - '^local all postgres\s+peer$'
+postgres_stig_approved_extensions: []         # e.g. [pgaudit, pgcrypto]; empty = manual review
+postgres_stig_approved_packages: []           # rpm names; empty = manual review
+postgres_stig_approved_security_definer: []   # regexes matched against "db: schema.function (owner x)"
+postgres_stig_approved_owners: []             # roles authorized to own objects; empty = manual review
+postgres_stig_approved_ports: []              # e.g. [5432]; empty = manual review
+postgres_stig_log_timezone: UTC
+postgres_stig_syslog_facility: ""             # expected syslog_facility, e.g. local0
+# Issuer of the server certificate must match this (CD16-00-008400).
+postgres_stig_dod_issuer_regex: 'O\s*=\s*U\.S\. Government.*OU\s*=\s*DoD'
+# Answers from the system documentation. Leave null when unknown (the rule is then evaluated or reviewed).
+postgres_stig_classified: null                # false = unclassified (CD16-00-008300 Not_Applicable)
+postgres_stig_security_labeling_required: null   # false = CD16-00-006400/6500/6600 Not a Finding
+postgres_stig_categories_required: null       # false = CD16-00-010400 Not_Applicable
+# Lowest acceptable PostgreSQL version, e.g. "16.6". Empty = CD16-00-009200/009300 left for manual review.
+postgres_stig_min_version: ""
+
+# Record documented mitigations, risk acceptances or manual results (keyed by STIG ID).
+# status: NotAFinding | Open | Not_Applicable | Not_Reviewed
+postgres_stig_overrides: {}
+#  CD16-00-005400:
+#    status: NotAFinding
+#    comment: "No production data is copied off this system (SSP 4.2)"
+
+# ---------------------------------------------------------------------------
+# Checklist (.ckl) generation
+# ---------------------------------------------------------------------------
+# Path ON THE CONTROLLER to the Crunchy Data Postgres 16 STIG XCCDF (.xml or the
+# U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG .zip). Leave blank to skip the .ckl.
+postgres_stig_xccdf: ""
+postgres_stig_rule_map: {}
+postgres_stig_asset:
+  role: Member Server
+  marking: CUI
+  tech_area: Database Review
+  target_comment: Crunchy Data PostgreSQL 16
+  web_or_database: "true"
+
+# ---------------------------------------------------------------------------
+# Optional / output
+# ---------------------------------------------------------------------------
+# Query configured repos for a pending PostgreSQL update (needs repo access).
+postgres_stig_check_repo_updates: false
+postgres_stig_report_dir: "{{ playbook_dir }}/reports"
+postgres_stig_save_raw_evidence: true
+# Fail the host when Open findings of these severities exist (high|medium|low).
+postgres_stig_fail_on: []

@@ -1,16 +1,19 @@
-# Application Server SRG Audits (Ansible): Jenkins, GitLab, Nexus
+# DISA SRG/STIG Audits (Ansible): Jenkins, GitLab, Nexus, PostgreSQL
 
-Read-only Ansible audits of RHEL 8 **Jenkins**, **Omnibus GitLab** and **Sonatype
-Nexus Repository 3** servers against the DISA **Application Server Security
-Requirements Guide (SRG)**. DISA does not publish a product STIG for any of the
-three, so the Application Server SRG is the governing benchmark. Each playbook
-turns its requirements into concrete product checks:
+Read-only Ansible audits of RHEL servers against DISA benchmarks:
 
-| Playbook | Inventory group | Checks |
-|---|---|---|
-| `jenkins_stig_audit.yml` | `jenkins` | 29 (`JNKS-*`) |
-| `gitlab_stig_audit.yml` | `gitlab` | 29 (`GLAB-*`) |
-| `nexus_stig_audit.yml` | `nexus` | 24 (`NXRM-*`) |
+- **Jenkins**, **Omnibus GitLab** and **Sonatype Nexus Repository 3** against the
+  **Application Server Security Requirements Guide (SRG)**. DISA publishes no
+  product STIG for these, so each playbook turns the SRG into concrete product checks.
+- **Crunchy Data PostgreSQL 16** against DISA's product STIG, the **Crunchy Data
+  Postgres 16 STIG (V1R3)**, with one result per STIG rule.
+
+| Playbook | Inventory group | Benchmark | Checks |
+|---|---|---|---|
+| `jenkins_stig_audit.yml` | `jenkins` | Application Server SRG | 29 (`JNKS-*`) |
+| `gitlab_stig_audit.yml` | `gitlab` | Application Server SRG | 29 (`GLAB-*`) |
+| `nexus_stig_audit.yml` | `nexus` | Application Server SRG | 24 (`NXRM-*`) |
+| `postgres_stig_audit.yml` | `postgres` | Crunchy Data Postgres 16 STIG V1R3 | 111 (`CD16-00-*`, every rule) |
 
 The playbooks **change nothing on the target**. Every task only reads files,
 runs status commands, makes `GET` requests, or does TLS handshakes. They also
@@ -40,6 +43,7 @@ cd jenkins-stig-audit
 ./run_local.sh                       # Jenkins; prompts for your sudo password if needed
 ./run_local.sh gitlab                # Omnibus GitLab
 ./run_local.sh nexus                 # Sonatype Nexus Repository
+./run_local.sh postgres              # Crunchy Data PostgreSQL 16
 # optional: produce a STIG Viewer .ckl too
 ./run_local.sh gitlab -e gitlab_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
 ```
@@ -93,6 +97,7 @@ which Ansible ships):
 - `roles/jenkins_stig_audit/filter_plugins/jenkins_stig.py`
 - `roles/gitlab_stig_audit/filter_plugins/gitlab_stig.py`
 - `roles/nexus_stig_audit/filter_plugins/nexus_stig.py`
+- `roles/postgres_stig_audit/filter_plugins/postgres_stig.py`
 - `roles/stig_common/`: the shared code for GitLab and Nexus (host evidence, HTTP/TLS
   probes, redaction, host-level checks, the XCCDF/.ckl/CSV/HTML reports and the
   bundled SRG index). The Jenkins role keeps its own copy of that code for now.
@@ -226,7 +231,61 @@ The API calls are `GET`s only, and password fields are removed from the stored r
 | NXRM-023 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
 | NXRM-024 | chronyd active and synchronized | 000116, 000374, 000920 |
 
+## Crunchy Data PostgreSQL 16 (product STIG)
+
+Written for **Crunchy Data PostgreSQL 16** (PGDG-layout RPMs: `/usr/pgsql-16`,
+`postgresql-16` service, `PGDATA=/var/lib/pgsql/16/data`; all configurable). Because this is a
+product STIG, every one of its 111 rules gets its own result, named by its STIG ID
+(`CD16-00-000100` ...) and bound directly to its Vuln ID. Titles and fix text in the
+report are DISA's (`roles/postgres_stig_audit/files/crunchy_pg16_stig_index.json`).
+For a STIG Viewer checklist, pass the STIG's XCCDF:
+`-e postgres_stig_xccdf=stig/U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG.zip`.
+
+How the evidence is gathered (all read-only):
+
+- **SQL**: `psql` runs as `postgres` over the local socket with
+  `default_transaction_read_only=on`. It reads `pg_settings`, `pg_file_settings`, roles,
+  password *types* (never the hashes), `pg_hba_file_rules`, `pg_ident_file_mappings`,
+  and in each database the extensions, untrusted languages, `SECURITY DEFINER`
+  functions, schema privileges and object owners. If psql cannot connect, settings
+  come from `postgresql.conf`/`postgresql.auto.conf` and `pg_hba.conf`, and the
+  role/extension rules are `Not_Reviewed`.
+- **Files**: ownership and modes of `PGDATA` (recursively), the config, SSL key/CRL and
+  log files, and `/usr/pgsql-16` (and which RPMs own its files).
+- **Host**: FIPS mode and the OpenSSL FIPS provider, rsyslog forwarding, disk usage.
+
+Many of DISA's check procedures *write* to the database (`CREATE ROLE bob`, a test table,
+a failed login) and then look for the log entry. The audit does not do that. For those
+rules it verifies the configuration that produces the record (logging enabled,
+`log_min_messages`/`log_min_error_statement`, `pgaudit.log` classes, `log_connections`)
+and shows how many `AUDIT:`, `permission denied`, `connection authorized` and `FATAL`
+entries the newest log already holds. Each such result carries a comment saying so;
+run the test during the assessment if your assessor requires it.
+
+What is automated:
+
+| Area | Rules |
+|---|---|
+| pgaudit preloaded and `pgaudit.log` classes (`role, read, write, ddl`), `log_catalog` | 000500, 000700, 000900, 009400–011100, 011400, 011800 |
+| Logging enabled so denials/errors are recorded; `log_line_prefix` tokens; connections/disconnections | 000400, 000800, 001000–001500, 007600, 007900, 009000, 009500–011900 (denial rules), 011200–012000 |
+| Log file mode 0600 and ownership; `client_min_messages = error` | 002000–002200, 006000, 006100 |
+| PGDATA/config/software ownership and permissions; pgaudit files root-owned; only PostgreSQL RPMs in `/usr/pgsql-16` | 000600, 002300–002600, 002800, 005600 |
+| `pg_hba.conf`: gss/sspi/ldap/cert only (plus documented exceptions), no `trust`, no `password`/`md5`, `hostssl … cert clientcert=verify-ca` + CRL | 000200, 003600, 003900, 004000 |
+| `scram-sha-256` storage, SSL on, private key protection, DoD-issued certificate, FIPS | 003800, 004100, 004400, 004900, 008400, 008800, 008900, 012200, 012300 |
+| Superusers/admin attributes, connection limits, keepalives/`statement_timeout`, extensions, untrusted languages, `SECURITY DEFINER`, PUBLIC `CREATE` | 000100, 003200, 003400, 004600, 004700, 006800, 006900, 007700, 007800 |
+| Port, `log_timezone`, syslog + forwarding, single PostgreSQL major version, version ≥ org minimum | 003500, 007000, 007500, 008000, 009100–009300, 012400 |
+
+The remaining rules (documentation, procedures, application code review, encryption at rest,
+security labels) are `Not_Reviewed` with the relevant evidence attached; record the
+outcome with `postgres_stig_overrides` (keyed by STIG ID). Organization-defined values,
+such as approved superusers, extensions, ports, `pg_hba.conf` exceptions, `max_connections`,
+the minimum version, and whether the system is classified, are in
+`roles/postgres_stig_audit/defaults/main.yml`.
+
 ## Mapping to Vuln IDs (.ckl)
+
+The PostgreSQL audit binds each result to its own Vuln ID. The rest of this section
+applies to the SRG-based audits.
 
 The HTML report always shows each check's Vuln IDs (V-xxxxxx) and full
 `SRG-APP-xxxxxx-AS-xxxxxx` rule versions. Without `<product>_stig_xccdf` they come
@@ -286,6 +345,7 @@ Product-specific options:
   for the OS. A few checks here (FIPS, firewalld, chrony) overlap on purpose,
   because the SRG requires them for the application server.
 - GitLab's bundled PostgreSQL and Redis, and any database behind Nexus, are not
-  assessed here; use the PostgreSQL STIG / Redis guidance for them.
+  assessed by those playbooks. The PostgreSQL playbook targets a Crunchy Data
+  PostgreSQL 16 server, not GitLab's embedded database.
 - An automated result supports an assessor's determination but does not replace
   it. Review `Not_Reviewed` items and the SRG rules that no check covers.

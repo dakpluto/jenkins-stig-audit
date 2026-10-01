@@ -1,0 +1,97 @@
+---
+- name: Gather platform facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', 'min', 'network']
+
+- name: Warn when the target is not RHEL
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} is {{ ansible_distribution }} {{ ansible_distribution_version }};
+      this audit was written for Crunchy Data PostgreSQL on RHEL and some checks may not apply.
+  when: ansible_os_family != 'RedHat'
+
+- name: List installed PostgreSQL packages
+  ansible.builtin.shell: >-
+    rpm -qa --qf '%{NAME}|%{VERSION}-%{RELEASE}|%{VENDOR}\n'
+    | grep -Ei '^(postgresql|pgaudit|pgbackrest|set_user|crunchy|postgis)' | sort; true
+  register: _psa_rpm
+  changed_when: false
+  check_mode: false
+
+- name: List running postmaster processes
+  ansible.builtin.shell: |
+    for p in $(pgrep -x postgres); do
+      pp=$(ps -o ppid= -p "$p" | tr -d ' ')
+      if [ "$(cat /proc/$pp/comm 2>/dev/null)" != "postgres" ]; then
+        echo "$p|$(readlink -f /proc/$p/exe)|$(tr '\0' ' ' < /proc/$p/cmdline)"
+      fi
+    done
+    true
+  register: _psa_pm
+  changed_when: false
+  check_mode: false
+
+- name: Read PGDATA from the service unit
+  ansible.builtin.shell: >-
+    systemctl show {{ postgres_service_name | quote }} -p Environment --value 2>/dev/null
+    | tr ' ' '\n' | sed -n 's/^PGDATA=//p' | head -n1; true
+  register: _psa_unit
+  changed_when: false
+  check_mode: false
+
+- name: Resolve the PostgreSQL {{ postgres_version }} cluster
+  vars:
+    _pick: "{{ _psa_pm.stdout | pg_pick_postmaster(postgres_bin_dir, postgres_pgdata) }}"
+    _unit_pgdata: "{{ _psa_unit.stdout | default('') | trim }}"
+  ansible.builtin.set_fact:
+    psa_pid: "{{ _pick.pid }}"
+    psa_running: "{{ _pick.pid | length > 0 }}"
+    psa_pgdata: >-
+      {{ (postgres_pgdata or _pick.pgdata or _unit_pgdata
+          or '/var/lib/pgsql/' ~ postgres_version ~ '/data') | regex_replace('/+$', '') }}
+
+- name: Check that PGDATA exists
+  ansible.builtin.stat:
+    path: "{{ psa_pgdata }}"
+    get_checksum: false
+  register: _psa_pgdata_stat
+
+- name: Stop when PostgreSQL {{ postgres_version }} is not present on this host
+  when: >-
+    not psa_running | bool and not _psa_pgdata_stat.stat.exists
+    and (_psa_rpm.stdout_lines | select('match', '^postgresql' ~ postgres_version) | list | length) == 0
+  block:
+    - name: Report that PostgreSQL was not found
+      ansible.builtin.debug:
+        msg: "No PostgreSQL {{ postgres_version }} packages, postmaster or PGDATA found on {{ inventory_hostname }}; skipping."
+
+    - name: End this host
+      ansible.builtin.meta: end_host
+
+- name: Read the port and socket directory from postmaster.pid
+  ansible.builtin.command: sed -n '4p;5p' {{ (psa_pgdata ~ '/postmaster.pid') | quote }}
+  register: _psa_pidfile
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: psa_running | bool
+
+- name: Read the PostgreSQL server version
+  ansible.builtin.command: "{{ postgres_bin_dir }}/postgres --version"
+  register: _psa_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set connection details
+  ansible.builtin.set_fact:
+    psa_port: "{{ (_psa_pidfile.stdout_lines | default([]))[0] | default('5432', true) | trim }}"
+    psa_socket_dir: "{{ (_psa_pidfile.stdout_lines | default([]))[1] | default('/var/run/postgresql', true) | trim }}"
+    psa_version: "{{ _psa_version.stdout | default('') | regex_search('[0-9]+[.][0-9]+') | default('', true) }}"
+
+- name: Show what was discovered
+  ansible.builtin.debug:
+    msg:
+      - "PostgreSQL {{ psa_version | default('?', true) }}; running: {{ psa_running }} (pid {{ psa_pid | default('-', true) }})"
+      - "PGDATA: {{ psa_pgdata }}  socket: {{ psa_socket_dir }}:{{ psa_port }}"
+      - "Packages: {{ _psa_rpm.stdout_lines | map('regex_replace', '[|].*$', '') | join(', ') }}"

@@ -1,0 +1,1009 @@
+{
+ "info": {
+  "title": "Crunchy Data Postgres 16 Security Technical Implementation Guide",
+  "version": "1",
+  "releaseinfo": "Release: 3 Benchmark Date: 2026-06-08",
+  "source": "DISA U_Crunchy_Data_Postgres_16_V1R3 (rule index and fix text)"
+ },
+ "rules": [
+  {
+   "vuln_num": "V-261857",
+   "group_title": "SRG-APP-000001-DB-000031",
+   "rule_id": "SV-261857r1000976_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000100",
+   "rule_title": "PostgreSQL must limit the number of concurrent sessions to an organization-defined number per user for all accounts and/or account types.",
+   "fix": "To configure the maximum amount of connections allowed to the database, as the database administrator (shown here as \"postgres\") change the following in postgresql.conf (the value 10 is an example; set the value to suit local conditions):\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nmax_connections = 10\n\nRestart the database:\n\n$ sudo systemctl restart postgresql-${PGVER?}\n\nTo limit the amount of connections allowed by a specific role, as the database administrator, run the following SQL:\n\n$ psql -c \"ALTER ROLE <rolname> CONNECTION LIMIT 1\";"
+  },
+  {
+   "vuln_num": "V-261858",
+   "group_title": "SRG-APP-000023-DB-000001",
+   "rule_id": "SV-261858r1043176_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-000200",
+   "rule_title": "PostgreSQL must integrate with an organization-level authentication/access mechanism providing account management and automation for all users, groups, roles, and any other principals.",
+   "fix": "Integrate PostgreSQL security with an organization-level authentication/access mechanism providing account management for all users, groups, roles, and any other principals.\n\nAs the database administrator (shown here as \"postgres\"), edit pg_hba.conf authentication file:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/pg_hba.conf\n\nFor each PostgreSQL-managed account that is not documented and approved, either transfer it to management by the external mechanism, or document the need for it and obtain approval, as appropriate."
+  },
+  {
+   "vuln_num": "V-261859",
+   "group_title": "SRG-APP-000033-DB-000084",
+   "rule_id": "SV-261859r1137654_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-000300",
+   "rule_title": "PostgreSQL must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.",
+   "fix": "Create and/or maintain documentation of each group role's appropriate permissions on database objects.\n\nImplement these permissions in the database and remove any permissions that exceed those documented.\n\nThe following are examples of how to use role privileges in PostgreSQL to enforce access controls. For a complete list of privileges, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html.\n\n#### Roles Example 1\n\nThe following example demonstrates how to create an admin role with CREATEDB and CREATEROLE privileges.\n\nAs the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n\n$ psql -c \"CREATE ROLE admin WITH CREATEDB CREATEROLE\"\n\n#### Roles Example 2\n\nThe following example demonstrates how to create a role with a password that expires and makes the role a member of the \"admin\" group.\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261860",
+   "group_title": "SRG-APP-000080-DB-000063",
+   "rule_id": "SV-261860r1000977_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000400",
+   "rule_title": "PostgreSQL must protect against a user falsely repudiating having performed organization-defined actions.",
+   "fix": "Configure the database to supply additional auditing information to protect against a user falsely repudiating having performed organization-defined actions.\n\nUsing \"pgaudit\", PostgreSQL can be configured to audit these requests. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nTo ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nModify the configuration of audit logs to include details identifying the individual user:\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nExtra parameters can be added to the setting log_line_prefix to identify the user:\n\nlog_line_prefix = '< %m %a %u %d %r %p >'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261861",
+   "group_title": "SRG-APP-000089-DB-000064",
+   "rule_id": "SV-261861r1000588_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000500",
+   "rule_title": "PostgreSQL must provide audit record generation capability for DOD-defined auditable events within all DBMS/database components.",
+   "fix": "Configure PostgreSQL to generate audit records for at least the DOD minimum set of events.\n\nUsing \"pgaudit\", PostgreSQL can be configured to audit these requests. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nTo ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261862",
+   "group_title": "SRG-APP-000090-DB-000065",
+   "rule_id": "SV-261862r1000591_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000600",
+   "rule_title": "PostgreSQL must allow only the information system security manager (ISSM), or individuals or roles appointed by the ISSM, to select which events are to be audited.",
+   "fix": "Configure PostgreSQL's settings to allow designated personnel to select which auditable events are audited.\n\nUsing pgaudit allows administrators the flexibility to choose what they log. For an overview of the capabilities of pgaudit, refer to https://github.com/pgaudit/pgaudit.\n\nRefer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nRefer to supplementary content APPENDIX-C for instructions on enabling logging. Only administrators/superuser can change PostgreSQL configurations. Access to the database administrator must be limited to designated personnel only.\n\nTo ensure that postgresql.conf is owned by the database owner:\n\n$ chown postgres:postgres ${PGDATA?}/postgresql.conf\n$ chmod 600 ${PGDATA?}/postgresql.conf"
+  },
+  {
+   "vuln_num": "V-261863",
+   "group_title": "SRG-APP-000091-DB-000066",
+   "rule_id": "SV-261863r1000954_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000700",
+   "rule_title": "PostgreSQL must be able to generate audit records when privileges/permissions are retrieved.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log_catalog = 'on'\npgaudit.log = 'read'\n\nNote: For this requirement the pgaudit.log must contain 'read' however APPENDIX-C suggests setting pgaudit.log='ddl, role, read, write' to fulfill all requirements.\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261864",
+   "group_title": "SRG-APP-000091-DB-000325",
+   "rule_id": "SV-261864r1000597_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000800",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to retrieve privileges/permissions occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to access privileges occur.\n\nAll denials are logged if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261865",
+   "group_title": "SRG-APP-000092-DB-000208",
+   "rule_id": "SV-261865r1000600_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-000900",
+   "rule_title": "PostgreSQL must initiate session auditing upon startup.",
+   "fix": "Configure PostgreSQL to enable auditing.\n\nTo ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nFor session logging, using pgaudit is recommended. For instructions on how to setup pgaudit, refer to supplementary content APPENDIX-B."
+  },
+  {
+   "vuln_num": "V-261866",
+   "group_title": "SRG-APP-000095-DB-000039",
+   "rule_id": "SV-261866r1000603_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001000",
+   "rule_title": "PostgreSQL must produce audit records containing sufficient information to establish what type of events occurred.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled the following configurations must be made to log connections, date/time, username and session identifier.\n\nEdit the postgresql.conf file as a privileged user:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters based on the organization's needs (minimum requirements are as follows):\n\nlog_connections = on\nlog_disconnections = on\nlog_line_prefix = '< %m %u %d %c: >'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261867",
+   "group_title": "SRG-APP-000096-DB-000040",
+   "rule_id": "SV-261867r1000955_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001100",
+   "rule_title": "PostgreSQL must produce audit records containing time stamps to establish when the events occurred.",
+   "fix": "Logging must be enabled to capture timestamps. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled, the following configurations must be made to log events with timestamps:\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd %m to log_line_prefix to enable timestamps with milliseconds:\n\nlog_line_prefix = '< %m >'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261868",
+   "group_title": "SRG-APP-000097-DB-000041",
+   "rule_id": "SV-261868r1000609_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001200",
+   "rule_title": "PostgreSQL must produce audit records containing sufficient information to establish where the events occurred.",
+   "fix": "$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nExtra parameters can be added to the setting log_line_prefix to log application related information:\n\n# %a = application name\n# %u = user name\n# %d = database name\n# %r = remote host and port\n# %p = process ID\n# %m = timestamp with milliseconds\n# %i = command tag\n# %s = session startup\n# %e = SQL state\n\nFor example:\n\nlog_line_prefix = '< %m %a %u %d %r %p %i %e %s>'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261869",
+   "group_title": "SRG-APP-000098-DB-000042",
+   "rule_id": "SV-261869r1000956_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001300",
+   "rule_title": "PostgreSQL must produce audit records containing sufficient information to establish the sources (origins) of the events.",
+   "fix": "To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nIf logging is enabled, the following configurations can be made to log the source of an event.\n\nAs the database administrator, edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\n###### Log Line Prefix\n\nExtra parameters can be added to the setting log_line_prefix to log source of event:\n\n# %a = application name\n# %u = user name\n# %d = database name\n# %r = remote host and port\n# %p = process ID\n# %m = timestamp with milliseconds\n\nFor example:\nlog_line_prefix = '< %m %a %u %d %r %p %m >'\n\n###### Log Hostname\n\nBy default, only IP address is logged. To also log the hostname, the following parameter can also be set in postgresql.conf:\n\nlog_hostname = on\n\nAs the system administrator, reload the server with the new configuration:\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261870",
+   "group_title": "SRG-APP-000099-DB-000043",
+   "rule_id": "SV-261870r1000615_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001400",
+   "rule_title": "PostgreSQL must produce audit records containing sufficient information to establish the outcome (success or failure) of the events.",
+   "fix": "Using pgaudit, PostgreSQL can be configured to audit various facets of PostgreSQL. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nAll errors, denials, and unsuccessful requests are logged if logging is enabled. Refer to supplementary content APPENDIX-C for documentation on enabling logging.\n\nWith pgaudit and logging enabled, set the configuration settings in postgresql.conf, as the database administrator (shown here as \"postgres\"), to the following:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\npgaudit.log_catalog='on'\npgaudit.log_level='log'\npgaudit.log_parameter='on'\npgaudit.log_statement_once='off'\npgaudit.log='ddl, role, read, write'\n\nTune the following logging configurations in postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_line_prefix = '< %m %u %d %e: >'\nlog_error_verbosity = default\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261871",
+   "group_title": "SRG-APP-000100-DB-000201",
+   "rule_id": "SV-261871r1000618_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001500",
+   "rule_title": "PostgreSQL must produce audit records containing sufficient information to establish the identity of any user/subject or process associated with the event.",
+   "fix": "Logging must be enabled to capture the identity of any user/subject or process associated with an event. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nTo enable username, database name, process ID, remote host/port and application name in logging, as the database administrator (shown here as \"postgres\"), edit the following in postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_line_prefix = '< %m %u %d %p %r %a >'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261872",
+   "group_title": "SRG-APP-000101-DB-000044",
+   "rule_id": "SV-261872r1000621_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001600",
+   "rule_title": "PostgreSQL must include additional, more detailed, organization-defined information in the audit records for audit events identified by type, location, or subject.",
+   "fix": "Configure PostgreSQL audit settings to include all organization-defined detailed information in the audit records for audit events identified by type, location, or subject.\n\nUsing pgaudit, PostgreSQL can be configured to audit these requests. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nTo ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261873",
+   "group_title": "SRG-APP-000109-DB-000049",
+   "rule_id": "SV-261873r1043188_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001700",
+   "rule_title": "PostgreSQL must, by default, shut down upon audit failure, to include the unavailability of space for more audit log records; or must be configurable to shut down upon audit failure.",
+   "fix": "Modify PostgreSQL, OS, or third-party logging application settings to alert appropriate personnel when a specific percentage of log storage capacity is reached."
+  },
+  {
+   "vuln_num": "V-261874",
+   "group_title": "SRG-APP-000109-DB-000321",
+   "rule_id": "SV-261874r1043188_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-001800",
+   "rule_title": "PostgreSQL must be configurable to overwrite audit log records, oldest first (first-in-first-out [FIFO]), in the event of unavailability of space for more audit log records.",
+   "fix": "Establish a process with accompanying tools for monitoring available disk space and ensuring that sufficient disk space is maintained to continue generating audit logs, overwriting the oldest existing records if necessary."
+  },
+  {
+   "vuln_num": "V-261875",
+   "group_title": "SRG-APP-000118-DB-000059",
+   "rule_id": "SV-261875r1000630_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002000",
+   "rule_title": "The audit information produced by PostgreSQL must be protected from unauthorized read access.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\n#### syslog Logging\n\nIf PostgreSQL is configured to use syslog for logging, consult organization location and permissions for syslog log files.\n\n#### stderr Logging\n\nIf PostgreSQL is configured to use stderr for logging, permissions of the log files can be set in postgresql.conf.\n\nAs the database administrator (shown here as \"postgres\"), edit the following settings of logs in the postgresql.conf file:\n\nNote: Consult the organization's documentation on acceptable log privileges.\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_file_mode = 0600\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261876",
+   "group_title": "SRG-APP-000119-DB-000060",
+   "rule_id": "SV-261876r1000978_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002100",
+   "rule_title": "The audit information produced by PostgreSQL must be protected from unauthorized modification.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\n#### stderr Logging\n\nWith stderr logging enabled, as the database owner (shown here as \"postgres\"), set the following parameter in postgresql.conf:\n\n$ vi ${PGDATA?}/postgresql.conf\nlog_file_mode = 0600\n\nTo change the owner and permissions of the log files, run the following:\n\n$ chown postgres:postgres ${PGDATA?}/${PGLOG?}\n$ chmod 0700 ${PGDATA?}/${PGLOG?}\n$ chmod 600 ${PGDATA?}/${PGLOG?}/*.log\n\n#### syslog Logging\n\nIf PostgreSQL is configured to use syslog for logging, the log files must be configured to be owned by root with 0600 permissions.\n\n$ chown root:root <log directory name>/<log_filename>\n$ chmod 0700 <log directory name>\n$ chmod 0600 <log directory name>/*.log"
+  },
+  {
+   "vuln_num": "V-261877",
+   "group_title": "SRG-APP-000120-DB-000061",
+   "rule_id": "SV-261877r1000968_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002200",
+   "rule_title": "The audit information produced by PostgreSQL must be protected from unauthorized deletion.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\n#### stderr Logging\n\nWith stderr logging enabled, as the database owner (shown here as \"postgres\"), set the following parameter in postgresql.conf:\n\n$ vi ${PGDATA?}/postgresql.conf\nlog_file_mode = 0600\n\nTo change the owner and permissions of the log files, run the following:\n\n$ chown postgres:postgres ${PGDATA?}/${PGLOG?}\n$ chmod 0700 ${PGDATA?}/${PGLOG?}\n$ chmod 600 ${PGDATA?}/${PGLOG?}/*.log\n\n#### syslog Logging\n\nIf PostgreSQL is configured to use syslog for logging, the log files must be configured to be owned by root with 0600 permissions.\n\n$ chown root:root <log directory name>/<log_filename>\n$ chmod 0700 <log directory name>\n$ chmod 0600 <log directory name>/*.log"
+  },
+  {
+   "vuln_num": "V-261878",
+   "group_title": "SRG-APP-000121-DB-000202",
+   "rule_id": "SV-261878r1000958_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002300",
+   "rule_title": "PostgreSQL must protect its audit features from unauthorized access.",
+   "fix": "If PGLOG or PGDATA are not owned by postgres user and group, configure them as follows:\n\n$ sudo chown -R postgres:postgres ${PGDATA?}\n$ sudo chown -R postgres:postgres ${PGLOG?}\n\nIf the pgaudit installation is not owned by root user and group, configure it as follows:\n\n$ sudo chown -R root:root /usr/pgsql-${PGVER?}/share/extension/pgaudit*\n\nTo remove superuser from a role, as the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"ALTER ROLE <role-name> WITH NOSUPERUSER\""
+  },
+  {
+   "vuln_num": "V-261879",
+   "group_title": "SRG-APP-000122-DB-000203",
+   "rule_id": "SV-261879r1000960_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002400",
+   "rule_title": "PostgreSQL must protect its audit configuration from unauthorized modification.",
+   "fix": "Apply or modify access controls and permissions (both within PostgreSQL and in the file system/operating system) to tools used to view or modify audit log data. Tools must be configurable by authorized personnel only.\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_file_mode = 0600\n\nAs the database administrator (shown here as \"postgres\"), change the ownership and permissions of configuration files in PGDATA:\n\n$ sudo su - postgres\n$ chown postgres:postgres ${PGDATA?}/*.conf\n$ chmod 0600 ${PGDATA?}/*.conf"
+  },
+  {
+   "vuln_num": "V-261880",
+   "group_title": "SRG-APP-000123-DB-000204",
+   "rule_id": "SV-261880r1000959_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002500",
+   "rule_title": "PostgreSQL must protect its audit features from unauthorized removal.",
+   "fix": "As the system administrator, change the permissions of PGDATA:\n\n$ sudo chown -R postgres:postgres ${PGDATA?}\n$ sudo chmod 700 ${PGDATA?}\n\nAs the system administrator, change the permissions of pgsql:\n\n$ sudo chown -R root:root /usr/pgsql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261881",
+   "group_title": "SRG-APP-000133-DB-000179",
+   "rule_id": "SV-261881r1000648_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002600",
+   "rule_title": "PostgreSQL must limit privileges to change software modules, to include stored procedures, functions and triggers, and links to software external to PostgreSQL.",
+   "fix": "As the database administrator (shown here as \"postgres\"), change the ownership and permissions of configuration files in PGDATA:\n\n$ sudo su - postgres\n$ chown postgres:postgres ${PGDATA?}/postgresql.conf\n$ chmod 0600 ${PGDATA?}/postgresql.conf\n\nAs the server administrator, change the ownership and permissions of shared objects in /usr/pgsql-${PGVER?}/*.so\n\n$ sudo chown root:root /usr/pgsql-${PGVER?}/lib/*.so\n$ sudo chmod 0755 /usr/pgsql-${PGVER?}/lib/*.so\n\nAs the service administrator, change the ownership and permissions of executables in /usr/pgsql-${PGVER?}/bin:\n\n$ sudo chown root:root /usr/pgsql-${PGVER?}/bin/*\n$ sudo chmod 0755 /usr/pgsql-${PGVER?}/bin/*"
+  },
+  {
+   "vuln_num": "V-261882",
+   "group_title": "SRG-APP-000133-DB-000198",
+   "rule_id": "SV-261882r1000651_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-002700",
+   "rule_title": "The PostgreSQL software installation account must be restricted to authorized users.",
+   "fix": "Develop, document, and implement procedures to restrict and track use of the PostgreSQL software installation account(s)."
+  },
+  {
+   "vuln_num": "V-261883",
+   "group_title": "SRG-APP-000133-DB-000199",
+   "rule_id": "SV-261883r1000654_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002800",
+   "rule_title": "Database software, including PostgreSQL configuration files, must be stored in dedicated directories, or DASD pools, separate from the host OS and other applications.",
+   "fix": "Install all applications on directories separate from the PostgreSQL software library directory. Relocate any directories or reinstall other application software that currently shares the PostgreSQL software library directory."
+  },
+  {
+   "vuln_num": "V-261884",
+   "group_title": "SRG-APP-000133-DB-000200",
+   "rule_id": "SV-261884r1000657_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-002900",
+   "rule_title": "Database objects (including but not limited to tables, indexes, storage, stored procedures, functions, triggers, links to software external to the DBMS, etc.) must be owned by database/PostgreSQL principals authorized for ownership.",
+   "fix": "Assign ownership of authorized objects to authorized object owner accounts.\n\n#### Schema Owner\n\nTo create a schema owned by the user \"bob\", run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"CREATE SCHEMA test AUTHORIZATION bob\"\n\nTo alter the ownership of an existing object to be owned by the user \"bob\", run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"ALTER SCHEMA test OWNER TO bob\""
+  },
+  {
+   "vuln_num": "V-261885",
+   "group_title": "SRG-APP-000133-DB-000362",
+   "rule_id": "SV-261885r1000949_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003000",
+   "rule_title": "The role(s)/group(s) used to modify database structure (including but not necessarily limited to tables, indexes, storage, etc.) and logic modules (stored procedures, functions, triggers, links to software external to PostgreSQL, etc.) must be restricted to authorized users.",
+   "fix": "As the database administrator, revoke any permissions from a role that are deemed unnecessary by running the following SQL:\n\nALTER ROLE bob NOCREATEDB;\nALTER ROLE bob NOCREATEROLE;\nALTER ROLE bob NOSUPERUSER;\nALTER ROLE bob NOINHERIT;\nREVOKE SELECT ON some_function FROM bob;"
+  },
+  {
+   "vuln_num": "V-261886",
+   "group_title": "SRG-APP-000141-DB-000091",
+   "rule_id": "SV-261886r1000951_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003200",
+   "rule_title": "Unused database components, PostgreSQL software, and database objects must be removed.",
+   "fix": "To remove extensions, use the following commands:\n\n$ sudo su - postgres\n$ psql -c \"DROP EXTENSION <extension_name>\"\n\nNote: Removal of plpgsql is not recommended."
+  },
+  {
+   "vuln_num": "V-261887",
+   "group_title": "SRG-APP-000141-DB-000092",
+   "rule_id": "SV-261887r1000666_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003300",
+   "rule_title": "Unused database components that are integrated in PostgreSQL and cannot be uninstalled must be disabled.",
+   "fix": "To remove any unneeded executables, as the system administrator, run the following:\n\n# RHEL/CENT Systems\n$ sudo yum erase <package_name>\n\n# Debian Systems\n$ sudo apt-get remove <package_name>"
+  },
+  {
+   "vuln_num": "V-261888",
+   "group_title": "SRG-APP-000141-DB-000093",
+   "rule_id": "SV-261888r1000669_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003400",
+   "rule_title": "Access to external executables must be disabled or restricted.",
+   "fix": "To remove superuser from a role, as the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"ALTER ROLE <role-name> WITH NOSUPERUSER\"\n\nTo remove extensions from PostgreSQL, as the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"DROP EXTENSION extension_name\""
+  },
+  {
+   "vuln_num": "V-261889",
+   "group_title": "SRG-APP-000142-DB-000094",
+   "rule_id": "SV-261889r1043177_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003500",
+   "rule_title": "PostgreSQL must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments.",
+   "fix": "To change the listening port of the database, as the database administrator, change the following setting in postgresql.conf:\n\n$ sudo su - postgres\n$ vi $PGDATA/postgresql.conf\n\nChange the port parameter to the desired port.\n\nTo change the listening address of the database, as the database administrator, change the following setting in postgresql.conf:\nlisten_addresses = '10.0.0.1, 127.0.0.1'\n\nRestart the database:\n\n# SYSTEMD SERVER ONLY\n$ sudo systemctl restart postgresql-${PGVER?}\n\nNote: psql uses the port 5432 by default. This can be changed by specifying the port with psql or by setting the PGPORT environment variable:\n\n$ psql -p 5432 -c \"SHOW port\"\n$ export PGPORT=5432"
+  },
+  {
+   "vuln_num": "V-261890",
+   "group_title": "SRG-APP-000148-DB-000103",
+   "rule_id": "SV-261890r1051115_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-003600",
+   "rule_title": "PostgreSQL must uniquely identify and authenticate organizational users (or processes acting on behalf of organizational users).",
+   "fix": "Configure PostgreSQL settings to uniquely identify and authenticate all organizational users who log on/connect to the system.\n\nTo create roles, use the following SQL:\n\nCREATE ROLE <role_name> [OPTIONS]\n\nFor more information on CREATE ROLE, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html.\n\nFor each role created, the database administrator can specify database authentication by editing pg_hba.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/pg_hba.conf\n\nAn example pg_hba entry looks like this:\n\n# TYPE DATABASE USER ADDRESS METHOD\nhost test_db bob 192.168.0.0/16 scram-sha-256\n\nFor more information on pg_hba.conf, refer to the official documentation: https://www.postgresql.org/docs/current/static/auth-pg-hba-conf.html."
+  },
+  {
+   "vuln_num": "V-261891",
+   "group_title": "SRG-APP-000171-DB-000074",
+   "rule_id": "SV-261891r1000970_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-003800",
+   "rule_title": "If passwords are used for authentication, PostgreSQL must store only hashed, salted representations of passwords.",
+   "fix": "To enable password_encryption, as the database administrator, edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\npassword_encryption = 'scram-sha-256'\n\nInstitute a policy of not using the \"WITH UNENCRYPTED PASSWORD\" option with the CREATE ROLE/USER and ALTER ROLE/USER commands. (This option overrides the setting of the password_encryption configuration parameter.)\n\nAs the system administrator, restart the server with the new configuration:\n\n# SYSTEMD SERVER ONLY\n$ sudo systemctl restart postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261892",
+   "group_title": "SRG-APP-000172-DB-000075",
+   "rule_id": "SV-261892r1000681_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-003900",
+   "rule_title": "If passwords are used for authentication, PostgreSQL must transmit only encrypted representations of passwords.",
+   "fix": "As the database administrator (shown here as \"postgres\"), edit pg_hba.conf authentication file and change all entries of \"password\" to \"scram-sha-256\":\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/pg_hba.conf\nhost all all .example.com scram-sha-256"
+  },
+  {
+   "vuln_num": "V-261893",
+   "group_title": "SRG-APP-000175-DB-000067",
+   "rule_id": "SV-261893r1000684_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004000",
+   "rule_title": "PostgreSQL, when using PKI-based authentication, must validate certificates by performing RFC 5280-compliant certification path validation.",
+   "fix": "To configure PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.\n\nTo generate a Certificate Revocation List, refer to the official Red Hat Documentation: https://access.redhat.com/documentation/en-US/Red_Hat_Update_Infrastructure/2.1/html/Administration_Guide/chap-Red_Hat_Update_Infrastructure-Administration_Guide-Certification_Revocation_List_CRL.html.\n\nAs the database administrator (shown here as \"postgres\"), copy the CRL file into the data directory:\n\nAs the system administrator, copy the CRL file into the PostgreSQL Data Directory:\n\n$ sudo cp root.crl ${PGDATA?}/root.crl\n\nAs the database administrator (shown here as \"postgres\"), set the ssl_crl_file parameter to the filename of the CRL:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nssl_crl_file = 'root.crl'\n\nIn pg_hba.conf, require ssl authentication:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/pg_hba.conf\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261894",
+   "group_title": "SRG-APP-000176-DB-000068",
+   "rule_id": "SV-261894r1000687_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-004100",
+   "rule_title": "PostgreSQL must enforce authorized access to all PKI private keys stored/used by PostgreSQL.",
+   "fix": "Store all PostgreSQL PKI private keys in a FIPS 140-2-validated cryptographic module.\n\nEnsure access to PostgreSQL PKI private keys is restricted to only authenticated and authorized users.\n\nPostgreSQL private key(s) can be stored in $PGDATA directory, which is only accessible by the database owner (usually postgres, DBA) user. Do not allow access to this system account to unauthorized users.\n\nTo put the keys in a different directory, as the database administrator (shown here as \"postgres\"), set the following settings to a protected directory:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nssl_ca_file = \"/some/protected/directory/root.crt\"\nssl_crl_file = \"/some/protected/directory/root.crl\"\nssl_cert_file = \"/some/protected/directory/server.crt\"\nssl_key_file = \"/some/protected/directory/server.key\"\n\nAs the system administrator, restart the server with the new configuration:\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261895",
+   "group_title": "SRG-APP-000177-DB-000069",
+   "rule_id": "SV-261895r1000690_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004200",
+   "rule_title": "PostgreSQL must map the PKI-authenticated identity to an associated user account.",
+   "fix": "Configure PostgreSQL to map authenticated identities directly to PostgreSQL user accounts.\n\nFor information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G."
+  },
+  {
+   "vuln_num": "V-261896",
+   "group_title": "SRG-APP-000179-DB-000114",
+   "rule_id": "SV-261896r1193213_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-004400",
+   "rule_title": "PostgreSQL must use NIST FIPS 140-2/140-3 validated cryptographic modules for cryptographic operations.",
+   "fix": "If crypto.fips_enabled = 0 for Red Hat Linux, configure the operating system to implement DOD-approved encryption.\n\nTo enable strict FIPS compliance, the fips=1 kernel option must be added to the kernel command line during system installation so key generation is done with FIPS-approved algorithms and continuous monitoring tests in place.\n\nEnable FIPS mode with the following command:\n\n# sudo fips-mode-setup --enable\n\nModify the kernel command line of the current kernel in the \"grub.cfg\" file by adding the following option to the GRUB_CMDLINE_LINUX key in the \"/etc/default/grub\" file and then rebuilding the \"grub.cfg\" file:\n\nfips=1\n\nChanges to \"/etc/default/grub\" require rebuilding the \"grub.cfg\" file.\n\nOn BIOS-based machines, use the following command:\n\n# sudo grub2-mkconfig -o /boot/grub2/grub.cfg\n\nOn UEFI-based machines, use the following command:\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261897",
+   "group_title": "SRG-APP-000180-DB-000115",
+   "rule_id": "SV-261897r1000696_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004500",
+   "rule_title": "PostgreSQL must uniquely identify and authenticate nonorganizational users (or processes acting on behalf of nonorganizational users).",
+   "fix": "To drop a role, as the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"DROP ROLE <role_to_drop>\"\n\nTo create a role, as the database administrator, run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"CREATE ROLE <role name> LOGIN\"\n\nFor the complete list of permissions allowed by roles, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html."
+  },
+  {
+   "vuln_num": "V-261898",
+   "group_title": "SRG-APP-000211-DB-000122",
+   "rule_id": "SV-261898r1137655_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004600",
+   "rule_title": "PostgreSQL must separate user functionality (including user interface services) from database management functionality.",
+   "fix": "Configure PostgreSQL to separate database administration and general user functionality.\n\nDo not grant superuser, create role, create db, or bypass rls role attributes to users that do not require it.\n\nTo remove privileges, refer to the following example:\n\nALTER ROLE <username> NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;"
+  },
+  {
+   "vuln_num": "V-261899",
+   "group_title": "SRG-APP-000220-DB-000149",
+   "rule_id": "SV-261899r1043179_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004700",
+   "rule_title": "PostgreSQL must invalidate session identifiers upon user logout or other session termination.",
+   "fix": "As the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi $PGDATA/postgresql.conf\n\nSet the following parameters to organizational requirements:\n\nstatement_timeout = 10000 #milliseconds\ntcp_keepalives_idle = 10 # seconds\ntcp_keepalives_interval = 10 # seconds\ntcp_keepalives_count = 10\n\nAs the system administrator, restart the server with the new configuration:\n\n$ sudo systemctl restart postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261900",
+   "group_title": "SRG-APP-000224-DB-000384",
+   "rule_id": "SV-261900r1043181_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-004900",
+   "rule_title": "PostgreSQL must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values.",
+   "fix": "To configure PostgreSQL to use SSL, as a database owner (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameter:\n\nssl = on\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.\n\nFor further SSL configurations, refer to the official documentation: https://www.postgresql.org/docs/current/static/ssl-tcp.html."
+  },
+  {
+   "vuln_num": "V-261901",
+   "group_title": "SRG-APP-000231-DB-000154",
+   "rule_id": "SV-261901r1000708_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-005200",
+   "rule_title": "PostgreSQL must protect the confidentiality and integrity of all information at rest.",
+   "fix": "Apply appropriate controls to protect the confidentiality and integrity of data at rest in the database.\n\nThe pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.\n\nWith pgcrypto installed, it is possible to insert encrypted data into the database:\n\nINSERT INTO accounts(username, password) VALUES ('bob', crypt('a_secure_password', gen_salt('xdes')));"
+  },
+  {
+   "vuln_num": "V-261902",
+   "group_title": "SRG-APP-000233-DB-000124",
+   "rule_id": "SV-261902r1000711_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005300",
+   "rule_title": "PostgreSQL must isolate security functions from nonsecurity functions.",
+   "fix": "Do not locate security-related database objects with application tables or schema.\n\nReview any site-specific applications security modules built into the database: determine what schema they are located in and take appropriate action.\n\nDo not grant access to pg_catalog or information_schema to anyone but the database administrator(s). Access to the database administrator account(s) must not be granted to anyone without official approval."
+  },
+  {
+   "vuln_num": "V-261903",
+   "group_title": "SRG-APP-000243-DB-000128",
+   "rule_id": "SV-261903r1137656_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005400",
+   "rule_title": "Database contents must be protected from unauthorized and unintended information transfer by enforcement of a data-transfer policy.",
+   "fix": "Modify any code used for moving data from production to development/test systems to comply with the organization-defined data transfer policy, and to ensure copies of production data are not left in unsecured locations."
+  },
+  {
+   "vuln_num": "V-261904",
+   "group_title": "SRG-APP-000243-DB-000374",
+   "rule_id": "SV-261904r1137658_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005600",
+   "rule_title": "Access to database files must be limited to relevant processes and to authorized, administrative users.",
+   "fix": "Configure the permissions granted by the operating system/file system on the database files, database log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files.\n\nAny files (for example: extra configuration files) created in ${PGDATA?} must be owned by the database administrator, with only owner permissions to read, write, and execute."
+  },
+  {
+   "vuln_num": "V-261905",
+   "group_title": "SRG-APP-000251-DB-000160",
+   "rule_id": "SV-261905r1000720_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005700",
+   "rule_title": "PostgreSQL must check the validity of all data inputs except those specifically identified by the organization.",
+   "fix": "Modify database code to properly validate data before it is put into the database or acted upon by the database.\n\nModify the database to contain constraints and validity checking on database columns and tables that require them for data integrity.\n\nUse prepared statements when taking user input.\n\nDo not allow general users direct console access to PostgreSQL."
+  },
+  {
+   "vuln_num": "V-261906",
+   "group_title": "SRG-APP-000251-DB-000391",
+   "rule_id": "SV-261906r1000979_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005800",
+   "rule_title": "PostgreSQL and associated applications must reserve the use of dynamic code execution for situations that require it.",
+   "fix": "Where dynamic code execution is employed in circumstances where the objective could practically be satisfied by static execution with strongly typed parameters, modify the code to do so."
+  },
+  {
+   "vuln_num": "V-261907",
+   "group_title": "SRG-APP-000251-DB-000392",
+   "rule_id": "SV-261907r1000726_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-005900",
+   "rule_title": "PostgreSQL and associated applications, when making use of dynamic code execution, must scan input data for invalid values that may indicate a code injection attack.",
+   "fix": "Where dynamic code execution is used, modify the code to implement protections against code injection (i.e., prepared statements)."
+  },
+  {
+   "vuln_num": "V-261908",
+   "group_title": "SRG-APP-000266-DB-000162",
+   "rule_id": "SV-261908r1000729_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006000",
+   "rule_title": "PostgreSQL must provide nonprivileged users with error messages that provide information necessary for corrective actions without revealing information that could be exploited by adversaries.",
+   "fix": "As the database administrator, edit \"postgresql.conf\":\n\n$ sudo su - postgres\n$ vi $PGDATA/postgresql.conf\n\nChange the client_min_messages parameter to be \"error\":\n\nclient_min_messages = error\n\nReload the server with the new configuration (this just reloads settings currently in memory; it will not cause an interruption):\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261909",
+   "group_title": "SRG-APP-000267-DB-000163",
+   "rule_id": "SV-261909r1000980_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006100",
+   "rule_title": "PostgreSQL must reveal detailed error messages only to the information system security officer (ISSO), information system security manager (ISSM), system administrator (SA), and database administrator (DBA).",
+   "fix": "To set the level of detail for error messages exposed to clients, as the DBA (shown here as \"postgres\"), run the following commands:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nclient_min_messages = error"
+  },
+  {
+   "vuln_num": "V-261910",
+   "group_title": "SRG-APP-000295-DB-000305",
+   "rule_id": "SV-261910r1043182_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006200",
+   "rule_title": "PostgreSQL must automatically terminate a user session after organization-defined conditions or trigger events requiring session disconnect.",
+   "fix": "Configure PostgreSQL to automatically terminate a user session after organization-defined conditions or trigger events requiring session termination.\n\nExamples follow.\n\n### Change a role to nologin and disconnect the user\n\nALTER ROLE '<username>' NOLOGIN;\nSELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename='<usename>';\n\n### Disconnecting users during a specific time range\nRefer to supplementary content APPENDIX-A for a bash script for this example.\n\nThe script found in APPENDIX-A using the -l command can disable all users with rolcanlogin=t from logging in. The script keeps track of who it disables in a .restore_login file. After the specified time is over, the same script can be run with the -r command to restore all login connections.\n\nThis script would be added to a cron job:\n\n# lock at 5 am every day of the week, month, year at the 0 minute mark.\n[...] (see the STIG for the full fix text)"
+  },
+  {
+   "vuln_num": "V-261911",
+   "group_title": "SRG-APP-000311-DB-000308",
+   "rule_id": "SV-261911r1138540_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006400",
+   "rule_title": "PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in storage.",
+   "fix": "In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).\n\nRLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D."
+  },
+  {
+   "vuln_num": "V-261912",
+   "group_title": "SRG-APP-000313-DB-000309",
+   "rule_id": "SV-261912r1138541_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006500",
+   "rule_title": "PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in process.",
+   "fix": "In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).\n\nRLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D."
+  },
+  {
+   "vuln_num": "V-261913",
+   "group_title": "SRG-APP-000314-DB-000310",
+   "rule_id": "SV-261913r1138542_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006600",
+   "rule_title": "PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in transmission.",
+   "fix": "In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).\n\nRLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D."
+  },
+  {
+   "vuln_num": "V-261914",
+   "group_title": "SRG-APP-000328-DB-000301",
+   "rule_id": "SV-261914r1000747_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006700",
+   "rule_title": "PostgreSQL must enforce discretionary access control policies, as defined by the data owner, over defined subjects and objects.",
+   "fix": "Implement the organization's DAC policy in the security configuration of the database and PostgreSQL, and, if applicable, the security configuration of the application(s) using the database.\n\nTo GRANT privileges to roles, as the database administrator (shown here as \"postgres\"), run statements like the following examples:\n\n$ sudo su - postgres\n$ psql -c \"CREATE SCHEMA test\"\n$ psql -c \"GRANT CREATE ON SCHEMA test TO bob\"\n$ psql -c \"CREATE TABLE test.test_table(id INT)\"\n$ psql -c \"GRANT SELECT ON TABLE test.test_table TO bob\"\n\nTo REVOKE privileges to roles, as the database administrator (shown here as \"postgres\"), run statements like the following examples:\n\n$ psql -c \"REVOKE SELECT ON TABLE test.test_table FROM bob\"\n$ psql -c \"REVOKE CREATE ON SCHEMA test FROM bob\""
+  },
+  {
+   "vuln_num": "V-261915",
+   "group_title": "SRG-APP-000340-DB-000304",
+   "rule_id": "SV-261915r1000750_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006800",
+   "rule_title": "PostgreSQL must prevent nonprivileged users from executing privileged functions, to include disabling, circumventing, or altering implemented security safeguards/countermeasures.",
+   "fix": "Configure PostgreSQL security to protect all privileged functionality.\n\nIf pl/R and pl/Python are used, document their intended use, document users that have access to pl/R and pl/Python, as well as their business use case, such as data-analytics or data-mining. Because of the risks associated with using pl/R and pl/Python, their use must have AO risk acceptance.\n\nTo remove unwanted extensions, use:\n\nDROP EXTENSION <extension_name>\n\nTo remove unwanted privileges from a role, use the REVOKE command.\n\nRefer to the PostgreSQL documentation for more details: http://www.postgresql.org/docs/current/static/sql-revoke.html."
+  },
+  {
+   "vuln_num": "V-261916",
+   "group_title": "SRG-APP-000342-DB-000302",
+   "rule_id": "SV-261916r1000981_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-006900",
+   "rule_title": "Execution of software modules (to include stored procedures, functions, and triggers) with elevated privileges must be restricted to necessary cases only.",
+   "fix": "Determine where, when, how, and by what principals/subjects elevated privilege is needed.\n\nTo change a SECURITY DEFINER function to SECURITY INVOKER, as the database administrator (shown here as \"postgres\"), run the following SQL:\n\n$ sudo su - postgres\n$ psql -c \"ALTER FUNCTION <function_name> SECURITY INVOKER\""
+  },
+  {
+   "vuln_num": "V-261917",
+   "group_title": "SRG-APP-000356-DB-000314",
+   "rule_id": "SV-261917r1000962_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007000",
+   "rule_title": "PostgreSQL must use centralized management of the content captured in audit records generated by all components of PostgreSQL.",
+   "fix": "To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nWith logging enabled, as the database owner (shown here as \"postgres\"), configure the following parameters in postgresql.conf:\n\nNote: Consult the organization on how syslog facilities are defined in the syslog daemon configuration.\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_destination = 'syslog'\nsyslog_facility = 'LOCAL0'\nsyslog_ident = 'postgres'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261918",
+   "group_title": "SRG-APP-000357-DB-000316",
+   "rule_id": "SV-261918r1000759_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007200",
+   "rule_title": "PostgreSQL must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.",
+   "fix": "Allocate sufficient audit file/table space to support peak demand."
+  },
+  {
+   "vuln_num": "V-261919",
+   "group_title": "SRG-APP-000359-DB-000319",
+   "rule_id": "SV-261919r1000762_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007300",
+   "rule_title": "PostgreSQL must provide a warning to appropriate support staff when allocated audit record storage volume reaches 75 percent of maximum audit record storage capacity.",
+   "fix": "Configure the system to notify appropriate support staff immediately upon storage volume utilization reaching 75 percent.\n\nPostgreSQL does not monitor storage; however, it is possible to monitor storage with a script.\n\n##### Example Monitoring Script\n\n#!/bin/bash\n\nPGDATA=/var/lib/pgsql/${PGVER?}/data\nCURRENT=$(df ${PGDATA?} | grep / | awk '{ print $5}' | sed 's/%//g')\nTHRESHOLD=75\n\nif [ \"$CURRENT\" -gt \"$THRESHOLD\" ] ; then\nmail -s 'Disk Space Alert' mail@support.com << EOF\nThe data directory volume is almost full. Used: $CURRENT\nEOF\nfi\n\nSchedule this script in cron to run around the clock."
+  },
+  {
+   "vuln_num": "V-261920",
+   "group_title": "SRG-APP-000360-DB-000320",
+   "rule_id": "SV-261920r1000973_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007400",
+   "rule_title": "PostgreSQL must provide an immediate real-time alert to appropriate support staff of all audit log failures.",
+   "fix": "Configure the system to provide an immediate real-time alert to appropriate support staff when an audit log failure occurs.\n\nIt is possible to create scripts or implement third-party tools to enable real-time alerting for audit failures in PostgreSQL."
+  },
+  {
+   "vuln_num": "V-261921",
+   "group_title": "SRG-APP-000374-DB-000322",
+   "rule_id": "SV-261921r1000994_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007500",
+   "rule_title": "PostgreSQL must record time stamps in audit records and application data that can be mapped to Coordinated Universal Time (UTC), formerly Greenwich Mean Time (GMT).",
+   "fix": "To change log_timezone in postgresql.conf to use a different time zone for logs, as the database administrator (shown here as \"postgres\"), run the following:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_timezone='UTC'\n\nRestart the database:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261922",
+   "group_title": "SRG-APP-000375-DB-000323",
+   "rule_id": "SV-261922r1000771_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007600",
+   "rule_title": "PostgreSQL must generate time stamps for audit records and application data with a minimum granularity of one second.",
+   "fix": "PostgreSQL will not log anything if logging is not enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled, the following configurations must be made to log events with time stamps:\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd %m to log_line_prefix to enable time stamps with milliseconds:\n\nlog_line_prefix = '< %m >'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261923",
+   "group_title": "SRG-APP-000378-DB-000365",
+   "rule_id": "SV-261923r1000993_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007700",
+   "rule_title": "PostgreSQL must prohibit user installation of logic modules (stored procedures, functions, triggers, views, etc.) without explicit privileged status.",
+   "fix": "Document and obtain approval for any nonadministrative users who require the ability to create, alter, or replace logic modules.\n\nImplement the approved permissions. Revoke any unapproved permissions."
+  },
+  {
+   "vuln_num": "V-261924",
+   "group_title": "SRG-APP-000380-DB-000360",
+   "rule_id": "SV-261924r1000777_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007800",
+   "rule_title": "PostgreSQL must enforce access restrictions associated with changes to the configuration of the DBMS or database(s).",
+   "fix": "Configure PostgreSQL to enforce access restrictions associated with changes to the configuration of PostgreSQL or database(s).\n\nUse ALTER ROLE to remove accesses from roles:\n\n$ psql -c \"ALTER ROLE <role_name> NOSUPERUSER\"\n\nUse REVOKE to remove privileges from databases and schemas:\n\n$ psql -c \"REVOKE ALL PRIVILEGES ON <table> FROM <role_name>\""
+  },
+  {
+   "vuln_num": "V-261925",
+   "group_title": "SRG-APP-000381-DB-000361",
+   "rule_id": "SV-261925r1000780_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-007900",
+   "rule_title": "PostgreSQL must produce audit records of its enforcement of access restrictions associated with changes to the configuration of PostgreSQL or database(s).",
+   "fix": "Enable logging.\n\nAll denials are logged by default if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261926",
+   "group_title": "SRG-APP-000383-DB-000364",
+   "rule_id": "SV-261926r1000783_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008000",
+   "rule_title": "PostgreSQL must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accordance with the Ports, Protocols, and Services Management (PPSM) guidance.",
+   "fix": "To change the listening port of the database, as the database administrator, change the following setting in postgresql.conf:\n\n$ sudo su - postgres\n$ vi $PGDATA/postgresql.conf\n\nChange the port parameter to the desired port.\n\nRestart the database:\n\n$ sudo systemctl restart postgresql-${PGVER?}\n\nNote: psql uses the port 5432 by default. This can be changed by specifying the port with psql or by setting the PGPORT environment variable:\n\n$ psql -p 5432 -c \"SHOW port\"\n$ export PGPORT=5432"
+  },
+  {
+   "vuln_num": "V-261927",
+   "group_title": "SRG-APP-000389-DB-000372",
+   "rule_id": "SV-261927r1050788_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008100",
+   "rule_title": "PostgreSQL must require users to reauthenticate when organization-defined circumstances or situations require reauthentication.",
+   "fix": "Modify and/or configure PostgreSQL and related applications and tools so that users are always required to reauthenticate when changing role or escalating privileges.\n\nTo make a single user reauthenticate, the following must be present:\n\nSELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE user='<username>'\n\nTo make all users reauthenticate, the following must be present:\n\nSELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE user LIKE '%'"
+  },
+  {
+   "vuln_num": "V-261928",
+   "group_title": "SRG-APP-000416-DB-000380",
+   "rule_id": "SV-261928r1117186_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-008300",
+   "rule_title": "PostgreSQL must use NSA-approved cryptography to protect classified information in accordance with the data owner's requirements.",
+   "fix": "To configure PostgreSQL to use SSL as a database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameter:\n\nssl = on\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.\n\nDeploy NSA-approved encrypting devices to protect the server on the network."
+  },
+  {
+   "vuln_num": "V-261929",
+   "group_title": "SRG-APP-000427-DB-000385",
+   "rule_id": "SV-261929r1193220_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008400",
+   "rule_title": "PostgreSQL must only accept end entity certificates issued by DOD PKI or DOD-approved PKI Certification Authorities (CAs) for the establishment of all encrypted sessions.",
+   "fix": "Revoke trust in any certificates not issued by a DOD-approved certificate authority.\n\nConfigure PostgreSQL to accept only DOD and DOD-approved PKI end-entity certificates.\n\nTo configure PostgreSQL to accept approved CAs, refer to the official PostgreSQL documentation: http://www.postgresql.org/docs/current/static/ssl-tcp.html\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G."
+  },
+  {
+   "vuln_num": "V-261930",
+   "group_title": "SRG-APP-000428-DB-000386",
+   "rule_id": "SV-261930r1211024_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-008500",
+   "rule_title": "PostgreSQL must implement cryptographic mechanisms to prevent unauthorized modification of organization-defined information at rest (to include, at a minimum, PII and classified information) on organization-defined information system components.",
+   "fix": "Configure PostgreSQL, operating system/file system, and additional software as relevant, to provide the required level of cryptographic protection.\n\nThe pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.\n\nWith pgcrypto installed, it is possible to insert encrypted data into the database:\n\nINSERT INTO accounts(username, password) VALUES ('bob', crypt('mypass', gen_salt('bf', 4));"
+  },
+  {
+   "vuln_num": "V-261931",
+   "group_title": "SRG-APP-000429-DB-000387",
+   "rule_id": "SV-261931r1018553_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008600",
+   "rule_title": "PostgreSQL must implement cryptographic mechanisms preventing the unauthorized disclosure of organization-defined information at rest on organization-defined information system components.",
+   "fix": "Configure PostgreSQL, operating system/file system, and additional software as relevant, to provide the required level of cryptographic protection for information requiring cryptographic protection against disclosure.\n\nSecure the premises, equipment, and media to provide the required level of physical protection.\n\nThe pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.\n\nWith pgcrypto installed, it is possible to insert encrypted data into the database:\n\nINSERT INTO accounts(username, password) VALUES ('bob', crypt('mypass', gen_salt('bf', 4));"
+  },
+  {
+   "vuln_num": "V-261932",
+   "group_title": "SRG-APP-000441-DB-000378",
+   "rule_id": "SV-261932r1000801_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008800",
+   "rule_title": "PostgreSQL must maintain the confidentiality and integrity of information during preparation for transmission.",
+   "fix": "Implement protective measures against unauthorized disclosure and modification during preparation for transmission.\n\nTo configure PostgreSQL to use SSL, as a database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameter:\n\nssl = on\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G."
+  },
+  {
+   "vuln_num": "V-261933",
+   "group_title": "SRG-APP-000442-DB-000379",
+   "rule_id": "SV-261933r1000804_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-008900",
+   "rule_title": "PostgreSQL must maintain the confidentiality and integrity of information during reception.",
+   "fix": "Implement protective measures against unauthorized disclosure and modification during reception.\n\nTo configure PostgreSQL to use SSL, refer to supplementary content APPENDIX-G for instructions on enabling SSL."
+  },
+  {
+   "vuln_num": "V-261934",
+   "group_title": "SRG-APP-000447-DB-000393",
+   "rule_id": "SV-261934r1000807_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009000",
+   "rule_title": "When invalid inputs are received, PostgreSQL must behave in a predictable and documented manner that reflects organizational and system objectives.",
+   "fix": "Enable logging.\n\nTo ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nAll errors and denials are logged if logging is enabled."
+  },
+  {
+   "vuln_num": "V-261935",
+   "group_title": "SRG-APP-000454-DB-000389",
+   "rule_id": "SV-261935r1000810_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009100",
+   "rule_title": "When updates are applied to the PostgreSQL software, any software components that have been replaced or made unnecessary must be removed.",
+   "fix": "Use package managers (RPM or apt-get) for installing PostgreSQL. Unused software is removed when updated."
+  },
+  {
+   "vuln_num": "V-261936",
+   "group_title": "SRG-APP-000456-DB-000390",
+   "rule_id": "SV-261936r1137667_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009200",
+   "rule_title": "Security-relevant software updates to PostgreSQL must be installed within the time period directed by an authoritative source (e.g., IAVM, CTOs, DTMs, and STIGs).",
+   "fix": "Institute and adhere to policies and procedures to ensure that patches are consistently applied to PostgreSQL within the time allowed."
+  },
+  {
+   "vuln_num": "V-283674",
+   "group_title": "SRG-APP-001035-DB-000323",
+   "rule_id": "SV-283674r1193281_rule",
+   "severity": "high",
+   "rule_ver": "CD16-00-009300",
+   "rule_title": "PostgreSQL products must be a version supported by the vendor.",
+   "fix": "Upgrade or install a version of the product supported by the vendor."
+  },
+  {
+   "vuln_num": "V-261938",
+   "group_title": "SRG-APP-000492-DB-000332",
+   "rule_id": "SV-261938r1000819_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009400",
+   "rule_title": "PostgreSQL must be able to generate audit records when security objects are accessed.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit.. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261939",
+   "group_title": "SRG-APP-000492-DB-000333",
+   "rule_id": "SV-261939r1000822_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009500",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to access security objects occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to access security objects occur.\n\nAll denials are logged if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261940",
+   "group_title": "SRG-APP-000494-DB-000344",
+   "rule_id": "SV-261940r1000825_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009600",
+   "rule_title": "PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are accessed.",
+   "fix": "The DBMS (PostgreSQL) can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log = 'ddl, write, role'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql- ${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261941",
+   "group_title": "SRG-APP-000494-DB-000345",
+   "rule_id": "SV-261941r1000828_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009700",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to access categories of information (e.g., classification levels/security levels) occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to access categories of information occur.\n\nAll denials are logged if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log = 'ddl, write, role'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261942",
+   "group_title": "SRG-APP-000495-DB-000326",
+   "rule_id": "SV-261942r1000831_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009800",
+   "rule_title": "PostgreSQL must generate audit records when privileges/permissions are added.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit,. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log = 'role'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261943",
+   "group_title": "SRG-APP-000495-DB-000327",
+   "rule_id": "SV-261943r1000834_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-009900",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to add privileges/permissions occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to add privileges occur.\n\nAll denials are logged by default if logging is enabled. To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging."
+  },
+  {
+   "vuln_num": "V-261944",
+   "group_title": "SRG-APP-000495-DB-000328",
+   "rule_id": "SV-261944r1000837_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010000",
+   "rule_title": "PostgreSQL must generate audit records when privileges/permissions are modified.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='role'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261945",
+   "group_title": "SRG-APP-000495-DB-000329",
+   "rule_id": "SV-261945r1000840_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010100",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to modify privileges/permissions occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to modify privileges occur.\n\nAll denials are logged by default if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261946",
+   "group_title": "SRG-APP-000496-DB-000334",
+   "rule_id": "SV-261946r1000843_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010200",
+   "rule_title": "PostgreSQL must generate audit records when security objects are modified.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nPostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log_catalog = 'on'\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261947",
+   "group_title": "SRG-APP-000496-DB-000335",
+   "rule_id": "SV-261947r1000846_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010300",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to modify security objects occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to modify security objects occur.\n\nUnsuccessful attempts to modify security objects can be logged if logging is enabled. To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging."
+  },
+  {
+   "vuln_num": "V-261948",
+   "group_title": "SRG-APP-000498-DB-000346",
+   "rule_id": "SV-261948r1000849_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010400",
+   "rule_title": "PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are modified.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nPostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261949",
+   "group_title": "SRG-APP-000498-DB-000347",
+   "rule_id": "SV-261949r1000852_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010500",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to modify categories of information (e.g., classification levels/security levels) occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to modify categories of information occur.\n\nTo ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C. All denials are logged when logging is enabled.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261950",
+   "group_title": "SRG-APP-000499-DB-000330",
+   "rule_id": "SV-261950r1000855_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010600",
+   "rule_title": "PostgreSQL must generate audit records when privileges/permissions are deleted.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log = 'role'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261951",
+   "group_title": "SRG-APP-000499-DB-000331",
+   "rule_id": "SV-261951r1000858_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010700",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to delete privileges/permissions occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to delete privileges occur.\n\nAll denials are logged if logging is enabled. To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging."
+  },
+  {
+   "vuln_num": "V-261952",
+   "group_title": "SRG-APP-000501-DB-000336",
+   "rule_id": "SV-261952r1000861_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010800",
+   "rule_title": "PostgreSQL must generate audit records when security objects are deleted.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log = 'ddl'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261953",
+   "group_title": "SRG-APP-000501-DB-000337",
+   "rule_id": "SV-261953r1000864_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-010900",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to delete security objects occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to delete security objects occur.\n\nAll errors and denials are logged if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261954",
+   "group_title": "SRG-APP-000502-DB-000348",
+   "rule_id": "SV-261954r1000867_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011000",
+   "rule_title": "PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are deleted.",
+   "fix": "To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nPostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261955",
+   "group_title": "SRG-APP-000502-DB-000349",
+   "rule_id": "SV-261955r1000870_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011100",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to delete categories of information (e.g., classification levels/security levels) occur.",
+   "fix": "All errors and denials are logged if logging is enabled. To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nPostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261956",
+   "group_title": "SRG-APP-000503-DB-000350",
+   "rule_id": "SV-261956r1000975_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011200",
+   "rule_title": "PostgreSQL must generate audit records when successful logons or connections occur.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled the following configurations must be made to log connections, date/time, username, and session identifier.\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters as such:\n\nlog_connections = on\nlog_line_prefix = '< %m %u %d %c: >'\n\nWhere:\n* %m is the time and date\n* %u is the username\n* %d is the database\n* %c is the session ID for the connection\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261957",
+   "group_title": "SRG-APP-000503-DB-000351",
+   "rule_id": "SV-261957r1000876_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011300",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful logons or connection attempts occur.",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled the following configurations must be made to log unsuccessful connections, date/time, username, and session identifier.\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters:\n\nlog_connections = on\nlog_line_prefix = '< %m %u %c: >'\n\nWhere:\n* %m is the time and date\n* %u is the username\n* %c is the session ID for the connection\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261958",
+   "group_title": "SRG-APP-000504-DB-000354",
+   "rule_id": "SV-261958r1000879_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011400",
+   "rule_title": "PostgreSQL must generate audit records for all privileged activities or other system-level access.",
+   "fix": "PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed the following configurations can be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\nshared_preload_libraries = 'pgaudit'\npgaudit.log='ddl, role, read, write'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261959",
+   "group_title": "SRG-APP-000504-DB-000355",
+   "rule_id": "SV-261959r1000882_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011500",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful attempts to execute privileged activities or other system-level access occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to execute privileged SQL.\n\nAll denials are logged by default if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261960",
+   "group_title": "SRG-APP-000505-DB-000352",
+   "rule_id": "SV-261960r1000885_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011600",
+   "rule_title": "PostgreSQL must generate audit records showing starting and ending time for user access to the database(s).",
+   "fix": "To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.\n\nIf logging is enabled the following configurations must be made to log connections, date/time, username, and session identifier.\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf by running the following:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters:\n\nlog_connections = on\nlog_disconnections = on\nlog_line_prefix = '< %m %u %c: >'\n\nWhere:\n* %m is the time and date\n* %u is the username\n* %c is the session ID for the connection\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261961",
+   "group_title": "SRG-APP-000506-DB-000353",
+   "rule_id": "SV-261961r1000888_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011700",
+   "rule_title": "PostgreSQL must generate audit records when concurrent logons/connections by the same user from different workstations occur.",
+   "fix": "To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters as such:\n\nlog_connections = on\nlog_disconnections = on\nlog_line_prefix = '< %m %u %d %c: >'\n\nWhere:\n* %m is the time and date\n* %u is the username\n* %d is the database\n* %c is the session ID for the connection\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261962",
+   "group_title": "SRG-APP-000507-DB-000356",
+   "rule_id": "SV-261962r1000891_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011800",
+   "rule_title": "PostgreSQL must be able to generate audit records when successful accesses to objects occur.",
+   "fix": "If logging is enabled, the following configurations must be made to log unsuccessful connections, date/time, username, and session identifier.\n\nAs the database administrator (shown here as \"postgres\"), edit postgresql.conf:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nEdit the following parameters:\n\nlog_connections = on\nlog_line_prefix = '< %m %u %c: >'\npgaudit.log = 'read, write'\n\nWhere:\n* %m is the time and date\n* %u is the username\n* %c is the session ID for the connection\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261963",
+   "group_title": "SRG-APP-000507-DB-000357",
+   "rule_id": "SV-261963r1000894_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-011900",
+   "rule_title": "PostgreSQL must generate audit records when unsuccessful accesses to objects occur.",
+   "fix": "Configure PostgreSQL to produce audit records when unsuccessful attempts to access objects occur.\n\nAll errors and denials are logged if logging is enabled. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C."
+  },
+  {
+   "vuln_num": "V-261964",
+   "group_title": "SRG-APP-000508-DB-000358",
+   "rule_id": "SV-261964r1000897_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-012000",
+   "rule_title": "PostgreSQL must generate audit records for all direct access to the database(s).",
+   "fix": "To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nPostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.\n\nWith pgaudit installed, the following configurations should be made:\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\n\nAdd the following parameters (or edit existing parameters):\n\npgaudit.log='ddl, role, read, write'\nlog_connections='on'\nlog_disconnections='on'\n\nAs the system administrator, reload the server with the new configuration:\n\n$ sudo systemctl reload postgresql-${PGVER?}"
+  },
+  {
+   "vuln_num": "V-261965",
+   "group_title": "SRG-APP-000514-DB-000382",
+   "rule_id": "SV-261965r1137661_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-012200",
+   "rule_title": "PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to generate and validate cryptographic hashes.",
+   "fix": "Configure OpenSSL to be FIPS compliant.\n\nPostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, refer to the official RHEL Documentation: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies.\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G."
+  },
+  {
+   "vuln_num": "V-261966",
+   "group_title": "SRG-APP-000514-DB-000383",
+   "rule_id": "SV-261966r1137664_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-012300",
+   "rule_title": "PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owners' requirements.",
+   "fix": "Configure OpenSSL to be FIPS compliant.\n\nPostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, refer to the official RHEL Documentation: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies.\n\nFor more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G."
+  },
+  {
+   "vuln_num": "V-261967",
+   "group_title": "SRG-APP-000515-DB-000318",
+   "rule_id": "SV-261967r1000906_rule",
+   "severity": "medium",
+   "rule_ver": "CD16-00-012400",
+   "rule_title": "PostgreSQL must offload audit data to a separate log management facility; this must be continuous and in near real time for systems with a network connection to the storage facility and weekly or more often for standalone systems.",
+   "fix": "Configure PostgreSQL or deploy and configure software tools to transfer audit records to a centralized log management system, continuously and in near real time where a continuous network connection to the log management system exists, or at least weekly in the absence of such a connection.\n\nTo ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.\n\nWith logging enabled, as the database administrator (shown here as \"postgres\"), configure the following parameters in postgresql.conf (the example uses the default values - tailor for environment):\n\nNote: Consult the organization on how syslog facilities are defined in the syslog daemon configuration.\n\n$ sudo su - postgres\n$ vi ${PGDATA?}/postgresql.conf\nlog_destination = 'syslog'\nsyslog_facility = 'LOCAL0'\nsyslog_ident = 'postgres'\n[...] (see the STIG for the full fix text)"
+  }
+ ]
+}

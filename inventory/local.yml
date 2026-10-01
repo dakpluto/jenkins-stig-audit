@@ -1,6 +1,6 @@
 ---
 # Run an audit on the server itself, with no SSH and no separate Ansible
-# controller. Use with: ./run_local.sh [jenkins|gitlab|nexus]  (or -i inventory/local.yml).
+# controller. Use with: ./run_local.sh [jenkins|gitlab|nexus|postgres]  (or -i inventory/local.yml).
 # Modules run under the same Python as ansible-playbook, so the RHEL 8
 # platform-python 3.6 limitation of ansible-core 2.17+ does not apply here.
 # localhost is in every group; each playbook only targets its own group, and a
@@ -18,5 +18,8 @@ all:
       hosts:
         localhost:
     nexus:
+      hosts:
+        localhost:
+    postgres:
       hosts:
         localhost:

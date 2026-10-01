@@ -1,0 +1,174 @@
+---
+- name: Read instance settings, roles and pg_hba rules (read-only SQL)
+  ansible.builtin.command:
+    argv: "{{ psa_psql + ['-d', 'postgres', '-f', '-'] }}"
+    stdin: "{{ psa_instance_sql }}"
+  register: _psa_sql
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: postgres_stig_query_sql | bool and psa_running | bool
+
+- name: Warn when psql could not connect
+  ansible.builtin.debug:
+    msg: >-
+      psql failed ({{ _psa_sql.stderr | default('') | trim }}); settings will be read from postgresql.conf
+      and the role, pg_hba and extension checks that need SQL will be Not_Reviewed.
+  when: _psa_sql.rc is defined and _psa_sql.rc != 0
+
+- name: Keep the SQL result
+  ansible.builtin.set_fact:
+    psa_sql: "{{ _psa_sql.stdout | default('') if (_psa_sql.rc | default(1)) == 0 else '' }}"
+
+- name: Read extensions, languages, functions and schema privileges in each database (read-only SQL)
+  vars:
+    _dbs: >-
+      {{ ((psa_sql | from_json).databases | default([]) if psa_sql is string and psa_sql | length > 0
+          else (psa_sql.databases | default([]) if psa_sql is mapping else []))
+         | selectattr('connect') | map(attribute='name') | reject('eq', 'template0') | list }}
+  ansible.builtin.command:
+    argv: "{{ psa_psql + ['-d', item, '-f', '-'] }}"
+    stdin: "{{ psa_database_sql }}"
+  loop: "{{ _dbs }}"
+  register: _psa_dbsql
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Resolve configuration file locations
+  ansible.builtin.set_fact:
+    psa_paths: "{{ psa_sql | pg_paths(psa_pgdata) }}"
+
+- name: Read the PostgreSQL configuration files
+  ansible.builtin.slurp:
+    src: "{{ item.value }}"
+  loop:
+    - {key: postgresql.conf, value: "{{ psa_paths.config_file }}"}
+    - {key: postgresql.auto.conf, value: "{{ psa_paths.auto_file }}"}
+    - {key: pg_hba.conf, value: "{{ psa_paths.hba_file }}"}
+    - {key: pg_ident.conf, value: "{{ psa_paths.ident_file }}"}
+  loop_control:
+    label: "{{ item.value }}"
+  register: _psa_slurp
+  failed_when: false
+  check_mode: false
+  no_log: true   # may hold passwords (e.g. primary_conninfo); redacted below
+
+- name: Redact and decode the configuration files
+  ansible.builtin.set_fact:
+    psa_files: >-
+      {{ psa_files | default({}) | combine({item.item.key: item.content | b64decode | stig_redact(true)}) }}
+  loop: "{{ _psa_slurp.results | selectattr('content', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  no_log: true
+
+- name: Resolve log and SSL file locations
+  ansible.builtin.set_fact:
+    psa_paths: >-
+      {{ psa_sql | pg_paths(psa_pgdata, (psa_files | default({})).get('postgresql.conf', ''),
+                            (psa_files | default({})).get('postgresql.auto.conf', '')) }}
+
+- name: Record ownership and permissions of PGDATA (top level)
+  ansible.builtin.shell: >-
+    find {{ psa_pgdata | quote }} -maxdepth 1 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _psa_pgdata
+  changed_when: false
+  check_mode: false
+
+- name: Find files in PGDATA not owned by the database owner or open to group/other
+  ansible.builtin.shell: >-
+    find {{ psa_pgdata | quote }} -xdev \( ! -user {{ postgres_os_user | quote }} -o -perm /077 \) ! -type l
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null | head -n 500; true
+  register: _psa_pgdata_bad
+  changed_when: false
+  check_mode: false
+
+- name: Record ownership and permissions of configuration and SSL files
+  vars:
+    _files: >-
+      {{ [psa_paths.config_file, psa_paths.auto_file, psa_paths.hba_file, psa_paths.ident_file,
+          psa_paths.ssl_cert_file, psa_paths.ssl_key_file, psa_paths.ssl_ca_file, psa_paths.ssl_crl_file]
+         | select | list }}
+    _dirs: "{{ _files | map('dirname') | unique | list }}"
+  ansible.builtin.shell: >-
+    find {{ (_files + _dirs) | unique | map('quote') | join(' ') }} -maxdepth 0
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _psa_files
+  changed_when: false
+  check_mode: false
+
+- name: Record ownership and permissions of the log directory and files
+  ansible.builtin.shell: >-
+    find {{ psa_paths.log_dir | quote }} -maxdepth 1 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null
+    | head -n 1000; true
+  register: _psa_logs
+  changed_when: false
+  check_mode: false
+
+- name: Count audit-relevant entries in the newest log file
+  ansible.builtin.shell: |
+    f=$(ls -1t {{ psa_paths.log_dir | quote }} 2>/dev/null | head -n1)
+    [ -n "$f" ] || exit 0
+    echo "FILE=$f"
+    for p in 'AUDIT:' 'connection authorized' 'disconnection:' 'permission denied' 'FATAL:' 'syntax error'; do
+      echo "$p|$(grep -c -- "$p" {{ psa_paths.log_dir | quote }}/"$f")"
+    done
+  register: _psa_counts
+  changed_when: false
+  check_mode: false
+
+- name: Record ownership and permissions of the PostgreSQL software
+  ansible.builtin.shell: >-
+    find {{ postgres_install_dir | quote }} -maxdepth 1 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null;
+    find {{ postgres_install_dir | quote }}/share/extension {{ postgres_install_dir | quote }}/lib -maxdepth 1
+    -name 'pgaudit*' -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
+  register: _psa_install
+  changed_when: false
+  check_mode: false
+
+- name: Find PostgreSQL software not owned by root:root or writable by group/other
+  ansible.builtin.shell: >-
+    find {{ postgres_install_dir | quote }} -xdev \( ! -user root -o ! -group root -o -perm /022 \) ! -type l
+    -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null | head -n 300; true
+  register: _psa_install_bad
+  changed_when: false
+  check_mode: false
+
+- name: Identify the packages that own the files in the software directory
+  ansible.builtin.shell: >-
+    find {{ postgres_install_dir | quote }} -maxdepth 3 ! -type d -print0 2>/dev/null
+    | xargs -0 -r rpm -qf --qf '%{NAME}\n' 2>&1 | sort | uniq -c | sort -rn | head -n 100; true
+  register: _psa_owners
+  changed_when: false
+  check_mode: false
+
+- name: Read the server certificate and CA subjects
+  ansible.builtin.shell: |
+    {% if psa_paths.ssl_cert_file %}
+    openssl x509 -noout -subject -issuer -enddate -in {{ psa_paths.ssl_cert_file | quote }} 2>/dev/null
+    {% endif %}
+    {% if psa_paths.ssl_ca_file %}
+    openssl crl2pkcs7 -nocrl -certfile {{ psa_paths.ssl_ca_file | quote }} 2>/dev/null |
+      openssl pkcs7 -print_certs -noout 2>/dev/null | grep -E '^subject' | sed 's/^/ca /' | head -n 40
+    {% endif %}
+    true
+  register: _psa_cert
+  changed_when: false
+  check_mode: false
+
+- name: Read the OpenSSL version and providers
+  ansible.builtin.shell: "openssl version 2>/dev/null; openssl list -providers 2>/dev/null; true"
+  register: _psa_openssl
+  changed_when: false
+  check_mode: false
+
+- name: Collect host evidence
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: host.yml
+  vars:
+    sc_accounts: ["{{ postgres_os_user }}"]
+    sc_df_dirs: "{{ [psa_pgdata, psa_paths.log_dir] | select | unique | list }}"
+    sc_update_packages: >-
+      {{ ['postgresql' ~ postgres_version ~ '-server'] if postgres_stig_check_repo_updates | bool else [] }}

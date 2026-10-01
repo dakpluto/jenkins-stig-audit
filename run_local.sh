@@ -3,6 +3,7 @@
 #   ./run_local.sh                  # Jenkins (default)
 #   ./run_local.sh gitlab           # Omnibus GitLab
 #   ./run_local.sh nexus            # Sonatype Nexus Repository
+#   ./run_local.sh postgres         # Crunchy Data PostgreSQL 16 (product STIG)
 # Extra arguments go to ansible-playbook, e.g.
 #   ./run_local.sh gitlab -e gitlab_stig_xccdf=stig/U_Application_Server_SRG_V4R5_Manual.zip
 set -eu
@@ -10,7 +11,7 @@ cd "$(dirname "$0")"
 
 product=jenkins
 case "${1:-}" in
-  jenkins|gitlab|nexus) product=$1; shift ;;
+  jenkins|gitlab|nexus|postgres) product=$1; shift ;;
 esac
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then

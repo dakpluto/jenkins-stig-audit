@@ -1,0 +1,25 @@
+---
+# Site-specific values for the Crunchy Data Postgres 16 STIG audit. See
+# roles/postgres_stig_audit/defaults/main.yml for every option and its default.
+
+# DISA Crunchy Data Postgres 16 STIG XCCDF (.zip from cyber.mil or the extracted .xml).
+# When set, a STIG Viewer .ckl is written next to the other reports.
+postgres_stig_xccdf: ""   # "{{ playbook_dir }}/stig/U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG.zip"
+
+postgres_pgdata: ""       # blank = auto-detect (/var/lib/pgsql/16/data)
+
+# Values from the system security plan.
+postgres_stig_max_connections: ""
+postgres_stig_approved_superusers: [postgres]
+postgres_stig_approved_extensions: []     # e.g. [pgaudit, pgcrypto]
+postgres_stig_approved_ports: []          # e.g. [5432]
+postgres_stig_hba_exceptions: []          # e.g. ['^local all postgres\s+peer$']
+postgres_stig_classified: null            # false = unclassified
+postgres_stig_security_labeling_required: null
+postgres_stig_min_version: ""             # e.g. "16.6"
+
+# Documented mitigations / manual results, keyed by STIG ID.
+postgres_stig_overrides: {}
+#  CD16-00-005400:
+#    status: NotAFinding
+#    comment: "No production data is copied off this system (SSP 4.2)"

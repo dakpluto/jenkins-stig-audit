@@ -594,8 +594,9 @@ def _srg_base(rule):
 def stig_bind(results, xccdf, rule_map=None):
     """Bind check results to XCCDF rules. Returns {vuln_num: [result ids]} plus ambiguity info.
 
-    A check binds to a rule when (a) the rule map lists the rule's Vuln ID, full SRG ID
-    or Rule ID for that check, or (b) the check's base SRG ID matches exactly one rule.
+    A check binds to a rule when (a) the rule map, or the result's own vuln_ids (product STIG
+    checks), lists the rule's Vuln ID, full SRG ID or Rule ID, or (b) the check's base SRG ID
+    matches exactly one rule.
     When a base SRG ID matches several rules the evidence is attached as a comment only.
     """
     rule_map = rule_map or {}
@@ -604,7 +605,7 @@ def stig_bind(results, xccdf, rule_map=None):
         by_base.setdefault(_srg_base(r), []).append(r)
     bound, related, ambiguous, unmatched = {}, {}, {}, {}
     for res in results:
-        explicit = rule_map.get(res["id"]) or []
+        explicit = rule_map.get(res["id"]) or res.get("vuln_ids") or []
         if explicit:
             for r in xccdf["rules"]:
                 if any(x in (r["vuln_num"], r["rule_id"], r["group_title"], r["rule_ver"]) for x in explicit):

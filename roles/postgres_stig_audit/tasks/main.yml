@@ -1,0 +1,46 @@
+---
+# Read-only audit of a Crunchy Data PostgreSQL 16 server (RHEL) against the DISA
+# Crunchy Data Postgres 16 STIG. Nothing on the target is modified: SQL runs in a
+# read-only transaction, and every command task runs with check_mode: false /
+# changed_when: false so the role also works under --check.
+
+- name: Discover the PostgreSQL cluster
+  ansible.builtin.import_tasks: discover.yml
+
+- name: Collect settings, files and host evidence
+  ansible.builtin.import_tasks: collect.yml
+
+- name: Evaluate evidence against the STIG rules
+  ansible.builtin.import_tasks: evaluate.yml
+
+- name: Locate the bundled STIG index
+  ansible.builtin.set_fact:
+    psa_index_path: "{{ role_path }}/files/crunchy_pg16_stig_index.json"
+
+- name: Write reports on the controller
+  ansible.builtin.include_role:
+    name: stig_common
+    tasks_from: report.yml
+  vars:
+    sc_product:
+      key: postgres
+      name: PostgreSQL
+      title: Crunchy Data Postgres {{ postgres_version }} STIG Audit
+      short: STIG
+      suffix: pg{{ postgres_version }}_stig
+      tool: postgres_stig_audit
+      prefix: postgres_stig
+    sc_index_path: "{{ psa_index_path }}"
+    sc_results: "{{ psa_results }}"
+    sc_evidence: "{{ psa_evidence }}"
+    sc_product_info:
+      version: "{{ psa_version }}"
+      PGDATA: "{{ psa_pgdata }}"
+      port: "{{ psa_port }}"
+      running: "{{ psa_running }}"
+    sc_xccdf_path: "{{ postgres_stig_xccdf }}"
+    sc_rule_map: "{{ postgres_stig_rule_map }}"
+    sc_asset: "{{ postgres_stig_asset }}"
+    sc_report_dir: "{{ postgres_stig_report_dir }}"
+    sc_save_raw_evidence: "{{ postgres_stig_save_raw_evidence }}"
+    sc_fail_on: "{{ postgres_stig_fail_on }}"

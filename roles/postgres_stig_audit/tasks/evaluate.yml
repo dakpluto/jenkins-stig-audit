@@ -1,0 +1,40 @@
+---
+- name: Assemble evidence
+  ansible.builtin.set_fact:
+    psa_evidence:
+      collected_at: "{{ ansible_date_time.iso8601 }}"
+      host:
+        inventory_hostname: "{{ inventory_hostname }}"
+        hostname: "{{ ansible_hostname }}"
+        fqdn: "{{ ansible_fqdn }}"
+        ip: "{{ ansible_default_ipv4.address | default('') }}"
+        mac: "{{ ansible_default_ipv4.macaddress | default('') }}"
+        os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      version: "{{ psa_version }}"
+      running: "{{ psa_running | bool }}"
+      pid: "{{ psa_pid }}"
+      pgdata: "{{ psa_pgdata }}"
+      port: "{{ psa_port }}"
+      install_dir: "{{ postgres_install_dir }}"
+      packages: "{{ _psa_rpm.stdout | default('') }}"
+      paths: "{{ psa_paths }}"
+      sql: "{{ psa_sql }}"
+      dbs: "{{ _psa_dbsql.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
+               | map(attribute='stdout') | list }}"
+      files: "{{ psa_files | default({}) }}"
+      pgdata_stats: "{{ _psa_pgdata.stdout_lines }}"
+      pgdata_violations: "{{ _psa_pgdata_bad.stdout_lines }}"
+      file_stats: "{{ _psa_files.stdout_lines }}"
+      log_stats: "{{ _psa_logs.stdout_lines }}"
+      latest_log: "{{ _psa_counts.stdout_lines | select('match', '^FILE=') | first | default('') | replace('FILE=', '') }}"
+      log_counts: "{{ _psa_counts.stdout_lines | reject('match', '^FILE=') | list }}"
+      install_stats: "{{ _psa_install.stdout_lines }}"
+      install_violations: "{{ _psa_install_bad.stdout_lines }}"
+      install_owners: "{{ _psa_owners.stdout_lines }}"
+      cert_info: "{{ _psa_cert.stdout | default('') }}"
+      openssl: "{{ _psa_openssl.stdout | default('') }}"
+      system: "{{ sc_host }}"
+
+- name: Evaluate checks
+  ansible.builtin.set_fact:
+    psa_results: "{{ psa_evidence | postgres_stig_evaluate(psa_settings) }}"

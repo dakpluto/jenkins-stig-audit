@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ sc_product.name | e }} SRG Audit - {{ sc_host_label | e }}</title>
+<title>{{ sc_product.name | e }} {{ sc_product.short | default('SRG') }} Audit - {{ sc_host_label | e }}</title>
 <style>
 :root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc;
         --open:#b3261e; --nf:#2e7d32; --nr:#8a6d00; --na:#5f6368; }
@@ -25,7 +25,7 @@ h1 { font-size:22px; margin:0 0 4px; }
 .filters button { background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; font:inherit; }
 .filters button.on { border-color:var(--ink); }
 details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
-summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:90px 118px 60px 1fr; gap:10px; align-items:baseline; }
+summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:128px 118px 60px 1fr; gap:10px; align-items:baseline; }
 summary::-webkit-details-marker { display:none; }
 .id { font-family:ui-monospace,Consolas,monospace; color:var(--muted); }
 .id small { display:block; font-size:11px; }
@@ -41,7 +41,7 @@ pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-m
 </head>
 <body>
 <main>
-  <h1>{{ sc_product.name | e }} Application Server SRG Audit</h1>
+  <h1>{{ sc_product.title | default(sc_product.name ~ ' Application Server SRG Audit') | e }}</h1>
   <div class="meta">
     {{ sc_host_label | e }} ({{ sc_evidence.host.fqdn | e }}, {{ sc_evidence.host.ip | e }}) &middot;
     {{ sc_evidence.host.os | e }} &middot; {{ sc_product.name | e }} {{ sc_product_info.version | default('unknown', true) | e }}
@@ -101,7 +101,7 @@ pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-m
   </details>
 {% endfor %}
   <p class="meta">* status set by {{ sc_product.prefix }}_overrides. Automated results support, but do not replace, assessor review
-  of the full Application Server SRG.</p>
+  of the full {{ sc_srg_index.info.title | e }}.</p>
 </main>
 <script>
 document.getElementById('filters').addEventListener('click', function (e) {

@@ -4,7 +4,8 @@
 #   sc_results           evaluated check results
 #   sc_evidence          evidence dict (needs host.* and collected_at)
 #   sc_product_info      product details for the JSON report and HTML header
-#   sc_xccdf_path        Application Server SRG XCCDF on the controller ('' = bundled index, no .ckl)
+#   sc_xccdf_path        SRG/STIG XCCDF on the controller ('' = bundled index, no .ckl)
+#   sc_index_path        bundled V-ID index (default: the Application Server SRG index in this role)
 #   sc_rule_map, sc_asset, sc_report_dir, sc_save_raw_evidence, sc_fail_on
 
 - name: Summarize results
@@ -20,7 +21,7 @@
   ansible.builtin.set_fact:
     sc_host_label: "{{ _label }}"
     sc_report_path: "{{ sc_report_dir }}/{{ _label }}"
-    sc_report_base: "{{ _label }}_{{ sc_product.key }}_appsrv_srg_{{ ansible_date_time.date }}"
+    sc_report_base: "{{ _label }}_{{ sc_product.key }}_{{ sc_product.suffix | default('appsrv_srg') }}_{{ ansible_date_time.date }}"
 
 - name: Parse the Application Server SRG XCCDF
   ansible.builtin.set_fact:
@@ -31,7 +32,7 @@
 # shows Vuln IDs. The .ckl needs the full XCCDF.
 - name: Map checks to SRG Vuln IDs
   vars:
-    _index: "{{ sc_xccdf if sc_xccdf is defined else (lookup('ansible.builtin.file', role_path ~ '/files/app_server_srg_index.json') | from_json) }}"
+    _index: "{{ sc_xccdf if sc_xccdf is defined else (lookup('ansible.builtin.file', sc_index_path | default(role_path ~ '/files/app_server_srg_index.json', true)) | from_json) }}"
   ansible.builtin.set_fact:
     sc_srg_index: "{{ _index }}"
     sc_vuln_map: "{{ sc_results | stig_vuln_map(_index, sc_rule_map) }}"
