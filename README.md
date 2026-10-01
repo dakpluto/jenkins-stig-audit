@@ -280,7 +280,9 @@ security labels) are `Not_Reviewed` with the relevant evidence attached; record 
 outcome with `postgres_stig_overrides` (keyed by STIG ID). Organization-defined values,
 such as approved superusers, extensions, ports, `pg_hba.conf` exceptions, `max_connections`,
 the minimum version, and whether the system is classified, are in
-`roles/postgres_stig_audit/defaults/main.yml`.
+`roles/postgres_stig_audit/defaults/main.yml`. Until `postgres_stig_classified` is set,
+CD16-00-008300 is `Not_Reviewed`. `SECURITY DEFINER` functions installed by an approved
+extension (such as pgaudit's event-trigger functions) pass CD16-00-006900.
 
 ## Mapping to Vuln IDs (.ckl)
 

@@ -479,6 +479,10 @@ def h_client_min(c):
 def h_ssl(c, classified=False):
     if classified and c.s.get("classified") is False:
         return NA, "PostgreSQL is deployed in an unclassified environment (postgres_stig_classified: false).", []
+    if classified and c.s.get("classified") is None:
+        return NR, ("Whether this server processes classified data is not documented. Set postgres_stig_classified "
+                    "(false = Not_Applicable); if classified, ssl must be on with NSA-approved cryptography."), \
+            c.setting_ev("ssl", "ssl_min_protocol_version")
     issues = [] if c.ssl() else ["ssl is off."]
     comments = "Also confirm the server is protected by NSA-approved encrypting devices." if classified else ""
     if classified and not issues:
@@ -816,14 +820,24 @@ def h_secdef(c):
     if not c.dbs:
         return NR, "Functions could not be read (no SQL access).", []
     fns = ["%s: %s" % (d.get("db"), f) for d in c.dbs for f in d.get("secdef") or []]
-    approved = c.s.get("approved_security_definer") or []
     if not fns:
         return NF, "No SECURITY DEFINER functions exist outside the system schemas.", []
-    extra = [f for f in fns if not any(re.search(p, f) for p in approved)]
-    if approved and not extra:
-        return NF, "All SECURITY DEFINER functions are approved.", fns
+    approved = c.s.get("approved_security_definer") or []
+    exts = set(c.s.get("approved_extensions") or [])
+
+    def ext(f):
+        m = re.search(r", extension ([^,)]+)\)$", f)
+        return m.group(1) if m else None
+
+    # Functions installed by an approved extension are covered by its approval (CD16-00-003200).
+    extra = [f for f in fns if ext(f) not in exts and not any(re.search(p, f) for p in approved)]
+    if not extra:
+        return NF, "All SECURITY DEFINER functions are approved or belong to approved extensions.", fns
+    from_ext = sorted(set(ext(f) for f in extra if ext(f)))
+    hint = (" %d belong to extension(s) %s; add those to postgres_stig_approved_extensions once approved."
+            % (len([f for f in extra if ext(f)]), ", ".join(from_ext))) if from_ext else ""
     return NR, "%d SECURITY DEFINER function(s) found; verify each is documented and approved (or list them in "\
-               "postgres_stig_approved_security_definer)." % len(extra), fns[:60]
+               "postgres_stig_approved_security_definer).%s" % (len(extra), hint), fns[:60]
 
 
 def h_public_create(c, superusers=False):

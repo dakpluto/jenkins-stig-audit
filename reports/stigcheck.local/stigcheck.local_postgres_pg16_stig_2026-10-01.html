@@ -1,0 +1,3256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PostgreSQL STIG Audit - stigcheck.local</title>
+<style>
+:root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc;
+        --open:#b3261e; --nf:#2e7d32; --nr:#8a6d00; --na:#5f6368; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#161615; --panel:#1f1f1d; --ink:#ecebe6; --muted:#a3a29c; --line:#34332f;
+          --open:#f28b82; --nf:#81c995; --nr:#fdd663; --na:#bdc1c6; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.meta { color:var(--muted); margin-bottom:20px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+.tile { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+.tile b { display:block; font-size:24px; font-variant-numeric:tabular-nums; }
+.tile span { color:var(--muted); font-size:12px; }
+.filters { margin:0 0 12px; display:flex; gap:6px; flex-wrap:wrap; }
+.filters button { background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; font:inherit; }
+.filters button.on { border-color:var(--ink); }
+details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
+summary { list-style:none; cursor:pointer; padding:10px 14px; display:grid; grid-template-columns:128px 118px 60px 1fr; gap:10px; align-items:baseline; }
+summary::-webkit-details-marker { display:none; }
+.id { font-family:ui-monospace,Consolas,monospace; color:var(--muted); }
+.id small { display:block; font-size:11px; }
+.st { font-weight:600; }
+.Open .st { color:var(--open); } .NotAFinding .st { color:var(--nf); }
+.Not_Reviewed .st { color:var(--nr); } .Not_Applicable .st { color:var(--na); }
+.body { padding:0 14px 14px; border-top:1px solid var(--line); }
+.body h4 { margin:12px 0 4px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+pre { white-space:pre-wrap; word-break:break-word; margin:0; font:12px/1.45 ui-monospace,Consolas,monospace; background:var(--bg); padding:8px; border-radius:6px; }
+.srg { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+@media (max-width:640px) { summary { grid-template-columns:1fr 1fr; } summary .title { grid-column:1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Crunchy Data Postgres 16 STIG Audit</h1>
+  <div class="meta">
+    stigcheck.local (stigcheck.local, 192.168.85.129) &middot;
+    Rocky 8.10 &middot; PostgreSQL 16.15
+    &middot; PGDATA /var/lib/pgsql/16/data
+    &middot; port 5432
+    &middot; collected 2026-10-01T12:56:55Z
+    <br>Benchmark: Crunchy Data Postgres 16 Security Technical Implementation Guide V1 Release: 3 Benchmark Date: 2026-06-08 (bundled V-ID index; set postgres_stig_xccdf for the .ckl)  </div>
+
+  <div class="tiles">
+    <div class="tile"><b style="color:var(--open)">28</b><span>Open</span></div>
+    <div class="tile"><b>3 / 25 / 0</b><span>Open CAT I / II / III</span></div>
+    <div class="tile"><b style="color:var(--nf)">44</b><span>Not a Finding</span></div>
+    <div class="tile"><b style="color:var(--nr)">37</b><span>Needs manual review</span></div>
+    <div class="tile"><b style="color:var(--na)">2</b><span>Not Applicable</span></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="on" data-f="all">All</button>
+    <button data-f="Open">Open</button>
+    <button data-f="Not_Reviewed">Not Reviewed</button>
+    <button data-f="NotAFinding">Not a Finding</button>
+    <button data-f="Not_Applicable">Not Applicable</button>
+  </div>
+
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-000100<small>V-261857</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must limit the number of concurrent sessions to an organization-defined number per user for all accounts and/or account types.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000001-DB-000031</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261857 &middot; CD16-00-000100<br>PostgreSQL must limit the number of concurrent sessions to an organization-defined number per user for all accounts and/or account types.</div>
+      <h4>Result</h4>
+      <pre>Login roles with unlimited connections (rolconnlimit = -1): postgres</pre>
+      <h4>Evidence</h4>
+      <pre>max_connections = 100
+(settings source: live)
+postgres connlimit=-1</pre>
+      <h4>Remediation</h4>
+      <pre>To configure the maximum amount of connections allowed to the database, as the database administrator (shown here as &#34;postgres&#34;) change the following in postgresql.conf (the value 10 is an example; set the value to suit local conditions):
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+max_connections = 10
+
+Restart the database:
+
+$ sudo systemctl restart postgresql-${PGVER?}
+
+To limit the amount of connections allowed by a specific role, as the database administrator, run the following SQL:
+
+$ psql -c &#34;ALTER ROLE &lt;rolname&gt; CONNECTION LIMIT 1&#34;;</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-000200<small>V-261858</small></span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must integrate with an organization-level authentication/access mechanism providing account management and automation for all users, groups, roles, and any other principals.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000023-DB-000001</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261858 &middot; CD16-00-000200<br>PostgreSQL must integrate with an organization-level authentication/access mechanism providing account management and automation for all users, groups, roles, and any other principals.</div>
+      <h4>Result</h4>
+      <pre>pg_hba.conf line 113 uses &#39;peer&#39; (local all all), not gss/sspi/ldap/cert.
+pg_hba.conf line 115 uses &#39;scram-sha-256&#39; (host all all), not gss/sspi/ldap/cert.
+pg_hba.conf line 117 uses &#39;scram-sha-256&#39; (host all all), not gss/sspi/ldap/cert.
+pg_hba.conf line 120 uses &#39;peer&#39; (local replication all), not gss/sspi/ldap/cert.
+pg_hba.conf line 121 uses &#39;scram-sha-256&#39; (host replication all), not gss/sspi/ldap/cert.
+pg_hba.conf line 122 uses &#39;scram-sha-256&#39; (host replication all), not gss/sspi/ldap/cert.</pre>
+      <h4>Evidence</h4>
+      <pre>pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+      <h4>Comments</h4>
+      <pre>Document approved exceptions (e.g. local peer for the postgres account) with postgres_stig_hba_exceptions.</pre>
+      <h4>Remediation</h4>
+      <pre>Integrate PostgreSQL security with an organization-level authentication/access mechanism providing account management for all users, groups, roles, and any other principals.
+
+As the database administrator (shown here as &#34;postgres&#34;), edit pg_hba.conf authentication file:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/pg_hba.conf
+
+For each PostgreSQL-managed account that is not documented and approved, either transfer it to management by the external mechanism, or document the need for it and obtain approval, as appropriate.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-000300<small>V-261859</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000033-DB-000084</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261859 &middot; CD16-00-000300<br>PostgreSQL must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.</div>
+      <h4>Result</h4>
+      <pre>Compare role privileges (\du, \dp) and pg_hba.conf entries with the documented permissions for each group role.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1
+pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+      <h4>Remediation</h4>
+      <pre>Create and/or maintain documentation of each group role&#39;s appropriate permissions on database objects.
+
+Implement these permissions in the database and remove any permissions that exceed those documented.
+
+The following are examples of how to use role privileges in PostgreSQL to enforce access controls. For a complete list of privileges, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html.
+
+#### Roles Example 1
+
+The following example demonstrates how to create an admin role with CREATEDB and CREATEROLE privileges.
+
+As the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+
+$ psql -c &#34;CREATE ROLE admin WITH CREATEDB CREATEROLE&#34;
+
+#### Roles Example 2
+
+The following example demonstrates how to create a role with a password that expires and makes the role a member of the &#34;admin&#34; group.
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-000400<small>V-261860</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must protect against a user falsely repudiating having performed organization-defined actions.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000080-DB-000063</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261860 &middot; CD16-00-000400<br>PostgreSQL must protect against a user falsely repudiating having performed organization-defined actions.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix &#39;%m [%p] %u@%d %r&#39; does not contain %a.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = &#39;%m [%p] %u@%d %r&#39;
+shared_preload_libraries = pgaudit
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Configure the database to supply additional auditing information to protect against a user falsely repudiating having performed organization-defined actions.
+
+Using &#34;pgaudit&#34;, PostgreSQL can be configured to audit these requests. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.
+
+To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.
+
+Modify the configuration of audit logs to include details identifying the individual user:
+
+As the database administrator (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Extra parameters can be added to the setting log_line_prefix to identify the user:
+
+log_line_prefix = &#39;&lt; %m %a %u %d %r %p &gt;&#39;
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-000500<small>V-261861</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must provide audit record generation capability for DOD-defined auditable events within all DBMS/database components.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000089-DB-000064</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261861 &middot; CD16-00-000500<br>PostgreSQL must provide audit record generation capability for DOD-defined auditable events within all DBMS/database components.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs read, write, ddl, role, misc.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-000600<small>V-261862</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must allow only the information system security manager (ISSM), or individuals or roles appointed by the ISSM, to select which events are to be audited.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000090-DB-000065</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261862 &middot; CD16-00-000600<br>PostgreSQL must allow only the information system security manager (ISSM), or individuals or roles appointed by the ISSM, to select which events are to be audited.</div>
+      <h4>Result</h4>
+      <pre>/var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit is owned by root.</pre>
+      <h4>Evidence</h4>
+      <pre>0700 postgres:postgres /var/lib/pgsql/16/data
+0600 postgres:postgres /var/lib/pgsql/16/data/PG_VERSION
+0700 postgres:postgres /var/lib/pgsql/16/data/base
+0600 postgres:postgres /var/lib/pgsql/16/data/current_logfiles
+0700 postgres:postgres /var/lib/pgsql/16/data/global
+0700 postgres:postgres /var/lib/pgsql/16/data/log
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_commit_ts
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_dynshmem
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_hba.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_ident.conf
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_logical
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_multixact
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_notify
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_replslot
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_serial
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_snapshots
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat_tmp
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_subtrans
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_tblspc
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_twophase
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_wal
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_xact
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.auto.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+0600 root:root /var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.opts
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.pid
+superusers: postgres</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL&#39;s settings to allow designated personnel to select which auditable events are audited.
+
+Using pgaudit allows administrators the flexibility to choose what they log. For an overview of the capabilities of pgaudit, refer to https://github.com/pgaudit/pgaudit.
+
+Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.
+
+Refer to supplementary content APPENDIX-C for instructions on enabling logging. Only administrators/superuser can change PostgreSQL configurations. Access to the database administrator must be limited to designated personnel only.
+
+To ensure that postgresql.conf is owned by the database owner:
+
+$ chown postgres:postgres ${PGDATA?}/postgresql.conf
+$ chmod 600 ${PGDATA?}/postgresql.conf</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-000700<small>V-261863</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must be able to generate audit records when privileges/permissions are retrieved.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000091-DB-000066</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261863 &middot; CD16-00-000700<br>PostgreSQL must be able to generate audit records when privileges/permissions are retrieved.</div>
+      <h4>Result</h4>
+      <pre>pgaudit.log_catalog is off.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+      <h4>Remediation</h4>
+      <pre>PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.
+
+With pgaudit installed the following configurations can be made:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Add the following parameters (or edit existing parameters):
+
+pgaudit.log_catalog = &#39;on&#39;
+pgaudit.log = &#39;read&#39;
+
+Note: For this requirement the pgaudit.log must contain &#39;read&#39; however APPENDIX-C suggests setting pgaudit.log=&#39;ddl, role, read, write&#39; to fulfill all requirements.
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-000800<small>V-261864</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to retrieve privileges/permissions occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000091-DB-000325</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261864 &middot; CD16-00-000800<br>PostgreSQL must generate audit records when unsuccessful attempts to retrieve privileges/permissions occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-000900<small>V-261865</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must initiate session auditing upon startup.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000092-DB-000208</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261865 &middot; CD16-00-000900<br>PostgreSQL must initiate session auditing upon startup.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is preloaded and logs go to stderr.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+log_destination = stderr
+(settings source: live)</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-001000<small>V-261866</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing sufficient information to establish what type of events occurred.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000095-DB-000039</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261866 &middot; CD16-00-001000<br>PostgreSQL must produce audit records containing sufficient information to establish what type of events occurred.</div>
+      <h4>Result</h4>
+      <pre>Connections and disconnections are logged.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-001100<small>V-261867</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing time stamps to establish when the events occurred.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000096-DB-000040</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261867 &middot; CD16-00-001100<br>PostgreSQL must produce audit records containing time stamps to establish when the events occurred.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix contains %m.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = &#39;%m [%p] %u@%d %r&#39;</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-001200<small>V-261868</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing sufficient information to establish where the events occurred.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000097-DB-000041</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261868 &middot; CD16-00-001200<br>PostgreSQL must produce audit records containing sufficient information to establish where the events occurred.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix &#39;%m [%p] %u@%d %r&#39; does not contain %s.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = &#39;%m [%p] %u@%d %r&#39;</pre>
+      <h4>Remediation</h4>
+      <pre>$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Extra parameters can be added to the setting log_line_prefix to log application related information:
+
+# %a = application name
+# %u = user name
+# %d = database name
+# %r = remote host and port
+# %p = process ID
+# %m = timestamp with milliseconds
+# %i = command tag
+# %s = session startup
+# %e = SQL state
+
+For example:
+
+log_line_prefix = &#39;&lt; %m %a %u %d %r %p %i %e %s&gt;&#39;
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-001300<small>V-261869</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing sufficient information to establish the sources (origins) of the events.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000098-DB-000042</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261869 &middot; CD16-00-001300<br>PostgreSQL must produce audit records containing sufficient information to establish the sources (origins) of the events.</div>
+      <h4>Result</h4>
+      <pre>The client host and port are recorded with each event.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = %m [%p] %u@%d %r
+log_hostname = off
+(settings source: live)</pre>
+      <h4>Comments</h4>
+      <pre>Confirm the recorded source information meets the organization&#39;s needs.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-001400<small>V-261870</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing sufficient information to establish the outcome (success or failure) of the events.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000099-DB-000043</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261870 &middot; CD16-00-001400<br>PostgreSQL must produce audit records containing sufficient information to establish the outcome (success or failure) of the events.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-001500<small>V-261871</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records containing sufficient information to establish the identity of any user/subject or process associated with the event.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000100-DB-000201</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261871 &middot; CD16-00-001500<br>PostgreSQL must produce audit records containing sufficient information to establish the identity of any user/subject or process associated with the event.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix &#39;%m [%p] %u@%d %r&#39; does not contain %a.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = &#39;%m [%p] %u@%d %r&#39;</pre>
+      <h4>Remediation</h4>
+      <pre>Logging must be enabled to capture the identity of any user/subject or process associated with an event. To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.
+
+To enable username, database name, process ID, remote host/port and application name in logging, as the database administrator (shown here as &#34;postgres&#34;), edit the following in postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+log_line_prefix = &#39;&lt; %m %u %d %p %r %a &gt;&#39;
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-001600<small>V-261872</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must include additional, more detailed, organization-defined information in the audit records for audit events identified by type, location, or subject.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000101-DB-000044</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261872 &middot; CD16-00-001600<br>PostgreSQL must include additional, more detailed, organization-defined information in the audit records for audit events identified by type, location, or subject.</div>
+      <h4>Result</h4>
+      <pre>Verify the organization-defined additional audit information is configured and present in the audit records.</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL audit settings to include all organization-defined detailed information in the audit records for audit events identified by type, location, or subject.
+
+Using pgaudit, PostgreSQL can be configured to audit these requests. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.
+
+To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-001700<small>V-261873</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must, by default, shut down upon audit failure, to include the unavailability of space for more audit log records; or must be configurable to shut down upon audit failure.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000109-DB-000049</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261873 &middot; CD16-00-001700<br>PostgreSQL must, by default, shut down upon audit failure, to include the unavailability of space for more audit log records; or must be configurable to shut down upon audit failure.</div>
+      <h4>Result</h4>
+      <pre>Verify procedures exist and are followed for monitoring audit space and off-loading audit records (Not_Applicable if availability takes precedence).</pre>
+      <h4>Evidence</h4>
+      <pre>Filesystem                        Size  Used Avail Use% Mounted on
+/dev/mapper/rl_stigcheck-var      5.6G  581M  5.1G  11% /var
+/dev/mapper/rl_stigcheck-var_log  4.7G   75M  4.6G   2% /var/log</pre>
+      <h4>Remediation</h4>
+      <pre>Modify PostgreSQL, OS, or third-party logging application settings to alert appropriate personnel when a specific percentage of log storage capacity is reached.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-001800<small>V-261874</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must be configurable to overwrite audit log records, oldest first (first-in-first-out [FIFO]), in the event of unavailability of space for more audit log records.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000109-DB-000321</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261874 &middot; CD16-00-001800<br>PostgreSQL must be configurable to overwrite audit log records, oldest first (first-in-first-out [FIFO]), in the event of unavailability of space for more audit log records.</div>
+      <h4>Result</h4>
+      <pre>Verify the log volume is monitored and rotation removes or overwrites the oldest logs (Not_Applicable if availability takes precedence).</pre>
+      <h4>Evidence</h4>
+      <pre>Filesystem                        Size  Used Avail Use% Mounted on
+/dev/mapper/rl_stigcheck-var      5.6G  581M  5.1G  11% /var
+/dev/mapper/rl_stigcheck-var_log  4.7G   75M  4.6G   2% /var/log
+log_rotation_age = 1440
+log_rotation_size = 0
+log_truncate_on_rotation = on
+log_filename = postgresql-%Y-%m-%d_%H%M%S.log
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Establish a process with accompanying tools for monitoring available disk space and ensuring that sufficient disk space is maintained to continue generating audit logs, overwriting the oldest existing records if necessary.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-002000<small>V-261875</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">The audit information produced by PostgreSQL must be protected from unauthorized read access.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000118-DB-000059</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261875 &middot; CD16-00-002000<br>The audit information produced by PostgreSQL must be protected from unauthorized read access.</div>
+      <h4>Result</h4>
+      <pre>Log files are owned by postgres with mode 0600.</pre>
+      <h4>Evidence</h4>
+      <pre>log_file_mode = 0600
+log directory: /var/log/postgresql
+0600 postgres:postgres /var/log/postgresql/postgresql-2026-10-01_074813.log</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-002100<small>V-261876</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">The audit information produced by PostgreSQL must be protected from unauthorized modification.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000119-DB-000060</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261876 &middot; CD16-00-002100<br>The audit information produced by PostgreSQL must be protected from unauthorized modification.</div>
+      <h4>Result</h4>
+      <pre>Log files are owned by postgres with mode 0600.</pre>
+      <h4>Evidence</h4>
+      <pre>log_file_mode = 0600
+log directory: /var/log/postgresql
+0600 postgres:postgres /var/log/postgresql/postgresql-2026-10-01_074813.log</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-002200<small>V-261877</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">The audit information produced by PostgreSQL must be protected from unauthorized deletion.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000120-DB-000061</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261877 &middot; CD16-00-002200<br>The audit information produced by PostgreSQL must be protected from unauthorized deletion.</div>
+      <h4>Result</h4>
+      <pre>Log files are owned by postgres with mode 0600.</pre>
+      <h4>Evidence</h4>
+      <pre>log_file_mode = 0600
+log directory: /var/log/postgresql
+0600 postgres:postgres /var/log/postgresql/postgresql-2026-10-01_074813.log</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-002300<small>V-261878</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must protect its audit features from unauthorized access.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000121-DB-000202</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261878 &middot; CD16-00-002300<br>PostgreSQL must protect its audit features from unauthorized access.</div>
+      <h4>Result</h4>
+      <pre>/var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit is owned by root.</pre>
+      <h4>Evidence</h4>
+      <pre>0700 postgres:postgres /var/lib/pgsql/16/data
+0600 postgres:postgres /var/lib/pgsql/16/data/PG_VERSION
+0700 postgres:postgres /var/lib/pgsql/16/data/base
+0600 postgres:postgres /var/lib/pgsql/16/data/current_logfiles
+0700 postgres:postgres /var/lib/pgsql/16/data/global
+0700 postgres:postgres /var/lib/pgsql/16/data/log
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_commit_ts
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_dynshmem
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_hba.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_ident.conf
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_logical
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_multixact
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_notify
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_replslot
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_serial
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_snapshots
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat_tmp
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_subtrans
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_tblspc
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_twophase
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_wal
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_xact
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.auto.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+0600 root:root /var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.opts
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.pid
+0750 postgres:postgres /var/log/postgresql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.0--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit.control
+0755 root:root /usr/pgsql-16/lib/pgaudit.so
+superusers: postgres</pre>
+      <h4>Remediation</h4>
+      <pre>If PGLOG or PGDATA are not owned by postgres user and group, configure them as follows:
+
+$ sudo chown -R postgres:postgres ${PGDATA?}
+$ sudo chown -R postgres:postgres ${PGLOG?}
+
+If the pgaudit installation is not owned by root user and group, configure it as follows:
+
+$ sudo chown -R root:root /usr/pgsql-${PGVER?}/share/extension/pgaudit*
+
+To remove superuser from a role, as the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;ALTER ROLE &lt;role-name&gt; WITH NOSUPERUSER&#34;</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-002400<small>V-261879</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must protect its audit configuration from unauthorized modification.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000122-DB-000203</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261879 &middot; CD16-00-002400<br>PostgreSQL must protect its audit configuration from unauthorized modification.</div>
+      <h4>Result</h4>
+      <pre>postgresql.conf is owned by postgres with mode 0600 and logs are created 0600.</pre>
+      <h4>Evidence</h4>
+      <pre>0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+log_file_mode = 0600
+(settings source: live)</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-002500<small>V-261880</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must protect its audit features from unauthorized removal.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000123-DB-000204</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261880 &middot; CD16-00-002500<br>PostgreSQL must protect its audit features from unauthorized removal.</div>
+      <h4>Result</h4>
+      <pre>/var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit is owned by root.</pre>
+      <h4>Evidence</h4>
+      <pre>0700 postgres:postgres /var/lib/pgsql/16/data
+0600 postgres:postgres /var/lib/pgsql/16/data/PG_VERSION
+0700 postgres:postgres /var/lib/pgsql/16/data/base
+0600 postgres:postgres /var/lib/pgsql/16/data/current_logfiles
+0700 postgres:postgres /var/lib/pgsql/16/data/global
+0700 postgres:postgres /var/lib/pgsql/16/data/log
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_commit_ts
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_dynshmem
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_hba.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_ident.conf
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_logical
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_multixact
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_notify
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_replslot
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_serial
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_snapshots
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat_tmp
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_subtrans
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_tblspc
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_twophase
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_wal
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_xact
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.auto.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+0600 root:root /var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.opts
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.pid
+0755 root:root /usr/pgsql-16
+0755 root:root /usr/pgsql-16/bin
+0755 root:root /usr/pgsql-16/doc
+0755 root:root /usr/pgsql-16/lib
+0755 root:root /usr/pgsql-16/lib/pgaudit.so
+0755 root:root /usr/pgsql-16/share
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.0--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit.control</pre>
+      <h4>Remediation</h4>
+      <pre>As the system administrator, change the permissions of PGDATA:
+
+$ sudo chown -R postgres:postgres ${PGDATA?}
+$ sudo chmod 700 ${PGDATA?}
+
+As the system administrator, change the permissions of pgsql:
+
+$ sudo chown -R root:root /usr/pgsql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-002600<small>V-261881</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must limit privileges to change software modules, to include stored procedures, functions and triggers, and links to software external to PostgreSQL.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133-DB-000179</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261881 &middot; CD16-00-002600<br>PostgreSQL must limit privileges to change software modules, to include stored procedures, functions and triggers, and links to software external to PostgreSQL.</div>
+      <h4>Result</h4>
+      <pre>/var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit is owned by root.</pre>
+      <h4>Evidence</h4>
+      <pre>0755 root:root /usr/pgsql-16
+0755 root:root /usr/pgsql-16/bin
+0755 root:root /usr/pgsql-16/doc
+0755 root:root /usr/pgsql-16/lib
+0755 root:root /usr/pgsql-16/lib/pgaudit.so
+0755 root:root /usr/pgsql-16/share
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.0--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit--16.1.sql
+0644 root:root /usr/pgsql-16/share/extension/pgaudit.control</pre>
+      <h4>Remediation</h4>
+      <pre>As the database administrator (shown here as &#34;postgres&#34;), change the ownership and permissions of configuration files in PGDATA:
+
+$ sudo su - postgres
+$ chown postgres:postgres ${PGDATA?}/postgresql.conf
+$ chmod 0600 ${PGDATA?}/postgresql.conf
+
+As the server administrator, change the ownership and permissions of shared objects in /usr/pgsql-${PGVER?}/*.so
+
+$ sudo chown root:root /usr/pgsql-${PGVER?}/lib/*.so
+$ sudo chmod 0755 /usr/pgsql-${PGVER?}/lib/*.so
+
+As the service administrator, change the ownership and permissions of executables in /usr/pgsql-${PGVER?}/bin:
+
+$ sudo chown root:root /usr/pgsql-${PGVER?}/bin/*
+$ sudo chmod 0755 /usr/pgsql-${PGVER?}/bin/*</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-002700<small>V-261882</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT I</span>
+      <span class="title">The PostgreSQL software installation account must be restricted to authorized users.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133-DB-000198</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261882 &middot; CD16-00-002700<br>The PostgreSQL software installation account must be restricted to authorized users.</div>
+      <h4>Result</h4>
+      <pre>Verify access to the PostgreSQL installation account is restricted to the minimum personnel and its use is tracked.</pre>
+      <h4>Evidence</h4>
+      <pre>passwd: postgres:x:26:26:PostgreSQL Server:/var/lib/pgsql:/bin/bash
+id: uid=26(postgres) gid=26(postgres) groups=26(postgres)
+sudo: User postgres is not allowed to run sudo on stigcheck.</pre>
+      <h4>Remediation</h4>
+      <pre>Develop, document, and implement procedures to restrict and track use of the PostgreSQL software installation account(s).</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-002800<small>V-261883</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">Database software, including PostgreSQL configuration files, must be stored in dedicated directories, or DASD pools, separate from the host OS and other applications.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133-DB-000199</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261883 &middot; CD16-00-002800<br>Database software, including PostgreSQL configuration files, must be stored in dedicated directories, or DASD pools, separate from the host OS and other applications.</div>
+      <h4>Result</h4>
+      <pre>/usr/pgsql-16 holds only files from PostgreSQL packages.</pre>
+      <h4>Evidence</h4>
+      <pre>    274 postgresql16-contrib
+     97 postgresql16-server
+     18 postgresql16
+     11 postgresql16-libs
+      5 pgaudit_16</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-002900<small>V-261884</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Database objects (including but not limited to tables, indexes, storage, stored procedures, functions, triggers, links to software external to the DBMS, etc.) must be owned by database/PostgreSQL principals authorized for ownership.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133-DB-000200</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261884 &middot; CD16-00-002900<br>Database objects (including but not limited to tables, indexes, storage, stored procedures, functions, triggers, links to software external to the DBMS, etc.) must be owned by database/PostgreSQL principals authorized for ownership.</div>
+      <h4>Result</h4>
+      <pre>Compare the object owners with the roles authorized to own objects (or set postgres_stig_approved_owners).</pre>
+      <h4>Evidence</h4>
+      <pre>object owners: postgres
+postgres schemas: public(pg_database_owner)
+pgaudit_test schemas: public(pg_database_owner)
+template1 schemas: public(pg_database_owner)</pre>
+      <h4>Remediation</h4>
+      <pre>Assign ownership of authorized objects to authorized object owner accounts.
+
+#### Schema Owner
+
+To create a schema owned by the user &#34;bob&#34;, run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;CREATE SCHEMA test AUTHORIZATION bob&#34;
+
+To alter the ownership of an existing object to be owned by the user &#34;bob&#34;, run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;ALTER SCHEMA test OWNER TO bob&#34;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003000<small>V-261885</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">The role(s)/group(s) used to modify database structure (including but not necessarily limited to tables, indexes, storage, etc.) and logic modules (stored procedures, functions, triggers, links to software external to PostgreSQL, etc.) must be restricted to authorized users.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000133-DB-000362</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261885 &middot; CD16-00-003000<br>The role(s)/group(s) used to modify database structure (including but not necessarily limited to tables, indexes, storage, etc.) and logic modules (stored procedures, functions, triggers, links to software external to PostgreSQL, etc.) must be restricted to authorized users.</div>
+      <h4>Result</h4>
+      <pre>Verify object privileges (\dp *.*) match the documentation; PGDATA permissions are evaluated in CD16-00-005600.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1</pre>
+      <h4>Remediation</h4>
+      <pre>As the database administrator, revoke any permissions from a role that are deemed unnecessary by running the following SQL:
+
+ALTER ROLE bob NOCREATEDB;
+ALTER ROLE bob NOCREATEROLE;
+ALTER ROLE bob NOSUPERUSER;
+ALTER ROLE bob NOINHERIT;
+REVOKE SELECT ON some_function FROM bob;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003200<small>V-261886</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Unused database components, PostgreSQL software, and database objects must be removed.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000141-DB-000091</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261886 &middot; CD16-00-003200<br>Unused database components, PostgreSQL software, and database objects must be removed.</div>
+      <h4>Result</h4>
+      <pre>Compare the installed extensions with the approved list (or set postgres_stig_approved_extensions).</pre>
+      <h4>Evidence</h4>
+      <pre>pgaudit (postgres)</pre>
+      <h4>Remediation</h4>
+      <pre>To remove extensions, use the following commands:
+
+$ sudo su - postgres
+$ psql -c &#34;DROP EXTENSION &lt;extension_name&gt;&#34;
+
+Note: Removal of plpgsql is not recommended.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003300<small>V-261887</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Unused database components that are integrated in PostgreSQL and cannot be uninstalled must be disabled.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000141-DB-000092</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261887 &middot; CD16-00-003300<br>Unused database components that are integrated in PostgreSQL and cannot be uninstalled must be disabled.</div>
+      <h4>Result</h4>
+      <pre>Review the installed PostgreSQL packages for need (or set postgres_stig_approved_packages).</pre>
+      <h4>Evidence</h4>
+      <pre>pgaudit_16|16.1-1PGDG.rhel8|PostgreSQL Global Development Group
+postgresql16|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-contrib|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-libs|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-server|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group</pre>
+      <h4>Remediation</h4>
+      <pre>To remove any unneeded executables, as the system administrator, run the following:
+
+# RHEL/CENT Systems
+$ sudo yum erase &lt;package_name&gt;
+
+# Debian Systems
+$ sudo apt-get remove &lt;package_name&gt;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003400<small>V-261888</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Access to external executables must be disabled or restricted.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000141-DB-000093</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261888 &middot; CD16-00-003400<br>Access to external executables must be disabled or restricted.</div>
+      <h4>Result</h4>
+      <pre>Compare the installed extensions with the approved list (or set postgres_stig_approved_extensions).</pre>
+      <h4>Evidence</h4>
+      <pre>pgaudit (postgres)
+superusers: postgres</pre>
+      <h4>Remediation</h4>
+      <pre>To remove superuser from a role, as the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;ALTER ROLE &lt;role-name&gt; WITH NOSUPERUSER&#34;
+
+To remove extensions from PostgreSQL, as the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;DROP EXTENSION extension_name&#34;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003500<small>V-261889</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000142-DB-000094</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261889 &middot; CD16-00-003500<br>PostgreSQL must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments.</div>
+      <h4>Result</h4>
+      <pre>Compare port 5432 and listen_addresses &#39;localhost&#39; with the PPSM CAL (or set postgres_stig_approved_ports).</pre>
+      <h4>Evidence</h4>
+      <pre>port = 5432
+listen_addresses = localhost
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>To change the listening port of the database, as the database administrator, change the following setting in postgresql.conf:
+
+$ sudo su - postgres
+$ vi $PGDATA/postgresql.conf
+
+Change the port parameter to the desired port.
+
+To change the listening address of the database, as the database administrator, change the following setting in postgresql.conf:
+listen_addresses = &#39;10.0.0.1, 127.0.0.1&#39;
+
+Restart the database:
+
+# SYSTEMD SERVER ONLY
+$ sudo systemctl restart postgresql-${PGVER?}
+
+Note: psql uses the port 5432 by default. This can be changed by specifying the port with psql or by setting the PGPORT environment variable:
+
+$ psql -p 5432 -c &#34;SHOW port&#34;
+$ export PGPORT=5432</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-003600<small>V-261890</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must uniquely identify and authenticate organizational users (or processes acting on behalf of organizational users).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000148-DB-000103</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261890 &middot; CD16-00-003600<br>PostgreSQL must uniquely identify and authenticate organizational users (or processes acting on behalf of organizational users).</div>
+      <h4>Result</h4>
+      <pre>No entry uses &#39;trust&#39;. Verify every role belongs to one individual or service and that shared accounts are reached only after individual authentication.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1
+pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL settings to uniquely identify and authenticate all organizational users who log on/connect to the system.
+
+To create roles, use the following SQL:
+
+CREATE ROLE &lt;role_name&gt; [OPTIONS]
+
+For more information on CREATE ROLE, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html.
+
+For each role created, the database administrator can specify database authentication by editing pg_hba.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/pg_hba.conf
+
+An example pg_hba entry looks like this:
+
+# TYPE DATABASE USER ADDRESS METHOD
+host test_db bob 192.168.0.0/16 scram-sha-256
+
+For more information on pg_hba.conf, refer to the official documentation: https://www.postgresql.org/docs/current/static/auth-pg-hba-conf.html.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-003800<small>V-261891</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT I</span>
+      <span class="title">If passwords are used for authentication, PostgreSQL must store only hashed, salted representations of passwords.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000171-DB-000074</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261891 &middot; CD16-00-003800<br>If passwords are used for authentication, PostgreSQL must store only hashed, salted representations of passwords.</div>
+      <h4>Result</h4>
+      <pre>Passwords are stored as salted SCRAM-SHA-256 hashes.</pre>
+      <h4>Evidence</h4>
+      <pre>password_encryption = scram-sha-256
+(settings source: live)
+postgres: none</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-003900<small>V-261892</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT I</span>
+      <span class="title">If passwords are used for authentication, PostgreSQL must transmit only encrypted representations of passwords.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000172-DB-000075</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261892 &middot; CD16-00-003900<br>If passwords are used for authentication, PostgreSQL must transmit only encrypted representations of passwords.</div>
+      <h4>Result</h4>
+      <pre>No pg_hba.conf entry uses password or md5.</pre>
+      <h4>Evidence</h4>
+      <pre>pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-004000<small>V-261893</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL, when using PKI-based authentication, must validate certificates by performing RFC 5280-compliant certification path validation.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000175-DB-000067</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261893 &middot; CD16-00-004000<br>PostgreSQL, when using PKI-based authentication, must validate certificates by performing RFC 5280-compliant certification path validation.</div>
+      <h4>Result</h4>
+      <pre>ssl_crl_file is not set.
+No hostssl entry uses cert authentication with clientcert=verify-ca.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+ssl_crl_file = &#39;&#39;
+(settings source: live)
+pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+      <h4>Remediation</h4>
+      <pre>To configure PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.
+
+To generate a Certificate Revocation List, refer to the official Red Hat Documentation: https://access.redhat.com/documentation/en-US/Red_Hat_Update_Infrastructure/2.1/html/Administration_Guide/chap-Red_Hat_Update_Infrastructure-Administration_Guide-Certification_Revocation_List_CRL.html.
+
+As the database administrator (shown here as &#34;postgres&#34;), copy the CRL file into the data directory:
+
+As the system administrator, copy the CRL file into the PostgreSQL Data Directory:
+
+$ sudo cp root.crl ${PGDATA?}/root.crl
+
+As the database administrator (shown here as &#34;postgres&#34;), set the ssl_crl_file parameter to the filename of the CRL:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+ssl_crl_file = &#39;root.crl&#39;
+
+In pg_hba.conf, require ssl authentication:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/pg_hba.conf
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <details class="Not_Applicable" data-status="Not_Applicable">
+    <summary>
+      <span class="id">CD16-00-004100<small>V-261894</small></span>
+      <span class="st">Not Applicable</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must enforce authorized access to all PKI private keys stored/used by PostgreSQL.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000176-DB-000068</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261894 &middot; CD16-00-004100<br>PostgreSQL must enforce authorized access to all PKI private keys stored/used by PostgreSQL.</div>
+      <h4>Result</h4>
+      <pre>SSL is off; no private key is in use (see CD16-00-004900).</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+(settings source: live)</pre>
+    </div>
+  </details>
+  <details class="Not_Applicable" data-status="Not_Applicable">
+    <summary>
+      <span class="id">CD16-00-004200<small>V-261895</small></span>
+      <span class="st">Not Applicable</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must map the PKI-authenticated identity to an associated user account.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000177-DB-000069</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261895 &middot; CD16-00-004200<br>PostgreSQL must map the PKI-authenticated identity to an associated user account.</div>
+      <h4>Result</h4>
+      <pre>PKI (certificate) authentication is not used.</pre>
+      <h4>Evidence</h4>
+      <pre>pg_hba_file_rules line 113: local all all  peer 
+pg_hba_file_rules line 115: host all all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 117: host all all ::1 scram-sha-256 
+pg_hba_file_rules line 120: local replication all  peer 
+pg_hba_file_rules line 121: host replication all 127.0.0.1 scram-sha-256 
+pg_hba_file_rules line 122: host replication all ::1 scram-sha-256 </pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-004400<small>V-261896</small></span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must use NIST FIPS 140-2/140-3 validated cryptographic modules for cryptographic operations.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000179-DB-000114</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261896 &middot; CD16-00-004400<br>PostgreSQL must use NIST FIPS 140-2/140-3 validated cryptographic modules for cryptographic operations.</div>
+      <h4>Result</h4>
+      <pre>Kernel FIPS mode is not enabled (fips_enabled=0).</pre>
+      <h4>Evidence</h4>
+      <pre>fips_enabled=0
+crypto-policy=FIPS:STIG
+openssl: OpenSSL 1.1.1k  FIPS 25 Mar 2021</pre>
+      <h4>Remediation</h4>
+      <pre>If crypto.fips_enabled = 0 for Red Hat Linux, configure the operating system to implement DOD-approved encryption.
+
+To enable strict FIPS compliance, the fips=1 kernel option must be added to the kernel command line during system installation so key generation is done with FIPS-approved algorithms and continuous monitoring tests in place.
+
+Enable FIPS mode with the following command:
+
+# sudo fips-mode-setup --enable
+
+Modify the kernel command line of the current kernel in the &#34;grub.cfg&#34; file by adding the following option to the GRUB_CMDLINE_LINUX key in the &#34;/etc/default/grub&#34; file and then rebuilding the &#34;grub.cfg&#34; file:
+
+fips=1
+
+Changes to &#34;/etc/default/grub&#34; require rebuilding the &#34;grub.cfg&#34; file.
+
+On BIOS-based machines, use the following command:
+
+# sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+On UEFI-based machines, use the following command:
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-004500<small>V-261897</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must uniquely identify and authenticate nonorganizational users (or processes acting on behalf of nonorganizational users).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000180-DB-000115</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261897 &middot; CD16-00-004500<br>PostgreSQL must uniquely identify and authenticate nonorganizational users (or processes acting on behalf of nonorganizational users).</div>
+      <h4>Result</h4>
+      <pre>Verify non-organizational users are uniquely identified by their roles per the documentation.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1</pre>
+      <h4>Remediation</h4>
+      <pre>To drop a role, as the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;DROP ROLE &lt;role_to_drop&gt;&#34;
+
+To create a role, as the database administrator, run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;CREATE ROLE &lt;role name&gt; LOGIN&#34;
+
+For the complete list of permissions allowed by roles, refer to the official documentation: https://www.postgresql.org/docs/current/static/sql-createrole.html.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-004600<small>V-261898</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must separate user functionality (including user interface services) from database management functionality.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000211-DB-000122</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261898 &middot; CD16-00-004600<br>PostgreSQL must separate user functionality (including user interface services) from database management functionality.</div>
+      <h4>Result</h4>
+      <pre>Only approved administrative roles (postgres) have administrative attributes.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-004700<small>V-261899</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must invalidate session identifiers upon user logout or other session termination.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000220-DB-000149</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261899 &middot; CD16-00-004700<br>PostgreSQL must invalidate session identifiers upon user logout or other session termination.</div>
+      <h4>Result</h4>
+      <pre>statement_timeout is 0 (not set).
+tcp_keepalives_count is 0 (not set).
+tcp_keepalives_idle is 0 (not set).
+tcp_keepalives_interval is 0 (not set).</pre>
+      <h4>Evidence</h4>
+      <pre>statement_timeout = 0
+tcp_keepalives_count = 0
+tcp_keepalives_idle = 0
+tcp_keepalives_interval = 0
+(tcp_keepalives_* read from the configuration files, because a Unix-socket session always shows 0)</pre>
+      <h4>Remediation</h4>
+      <pre>As the database administrator (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi $PGDATA/postgresql.conf
+
+Set the following parameters to organizational requirements:
+
+statement_timeout = 10000 #milliseconds
+tcp_keepalives_idle = 10 # seconds
+tcp_keepalives_interval = 10 # seconds
+tcp_keepalives_count = 10
+
+As the system administrator, restart the server with the new configuration:
+
+$ sudo systemctl restart postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-004900<small>V-261900</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000224-DB-000384</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261900 &middot; CD16-00-004900<br>PostgreSQL must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values.</div>
+      <h4>Result</h4>
+      <pre>ssl is off.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+ssl_min_protocol_version = TLSv1.2
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>To configure PostgreSQL to use SSL, as a database owner (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Add the following parameter:
+
+ssl = on
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.
+
+For further SSL configurations, refer to the official documentation: https://www.postgresql.org/docs/current/static/ssl-tcp.html.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005200<small>V-261901</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must protect the confidentiality and integrity of all information at rest.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000231-DB-000154</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261901 &middot; CD16-00-005200<br>PostgreSQL must protect the confidentiality and integrity of all information at rest.</div>
+      <h4>Result</h4>
+      <pre>Verify data at rest is encrypted where the AO requires it (pgcrypto or disk/filesystem encryption).</pre>
+      <h4>Evidence</h4>
+      <pre>pgcrypto available: True</pre>
+      <h4>Remediation</h4>
+      <pre>Apply appropriate controls to protect the confidentiality and integrity of data at rest in the database.
+
+The pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.
+
+With pgcrypto installed, it is possible to insert encrypted data into the database:
+
+INSERT INTO accounts(username, password) VALUES (&#39;bob&#39;, crypt(&#39;a_secure_password&#39;, gen_salt(&#39;xdes&#39;)));</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005300<small>V-261902</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must isolate security functions from nonsecurity functions.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000233-DB-000124</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261902 &middot; CD16-00-005300<br>PostgreSQL must isolate security functions from nonsecurity functions.</div>
+      <h4>Result</h4>
+      <pre>Verify security objects are kept in separate schemas and only DBAs have undocumented access to pg_catalog/information_schema.</pre>
+      <h4>Remediation</h4>
+      <pre>Do not locate security-related database objects with application tables or schema.
+
+Review any site-specific applications security modules built into the database: determine what schema they are located in and take appropriate action.
+
+Do not grant access to pg_catalog or information_schema to anyone but the database administrator(s). Access to the database administrator account(s) must not be granted to anyone without official approval.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005400<small>V-261903</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Database contents must be protected from unauthorized and unintended information transfer by enforcement of a data-transfer policy.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000243-DB-000128</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261903 &middot; CD16-00-005400<br>Database contents must be protected from unauthorized and unintended information transfer by enforcement of a data-transfer policy.</div>
+      <h4>Result</h4>
+      <pre>Review the procedures and scripts that move production data and confirm they follow the data-transfer policy.</pre>
+      <h4>Remediation</h4>
+      <pre>Modify any code used for moving data from production to development/test systems to comply with the organization-defined data transfer policy, and to ensure copies of production data are not left in unsecured locations.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-005600<small>V-261904</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">Access to database files must be limited to relevant processes and to authorized, administrative users.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000243-DB-000374</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261904 &middot; CD16-00-005600<br>Access to database files must be limited to relevant processes and to authorized, administrative users.</div>
+      <h4>Result</h4>
+      <pre>/var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit is owned by root.</pre>
+      <h4>Evidence</h4>
+      <pre>0700 postgres:postgres /var/lib/pgsql/16/data
+0600 postgres:postgres /var/lib/pgsql/16/data/PG_VERSION
+0700 postgres:postgres /var/lib/pgsql/16/data/base
+0600 postgres:postgres /var/lib/pgsql/16/data/current_logfiles
+0700 postgres:postgres /var/lib/pgsql/16/data/global
+0700 postgres:postgres /var/lib/pgsql/16/data/log
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_commit_ts
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_dynshmem
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_hba.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/pg_ident.conf
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_logical
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_multixact
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_notify
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_replslot
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_serial
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_snapshots
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_stat_tmp
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_subtrans
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_tblspc
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_twophase
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_wal
+0700 postgres:postgres /var/lib/pgsql/16/data/pg_xact
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.auto.conf
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+0600 root:root /var/lib/pgsql/16/data/postgresql.conf.pre-pgaudit
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.opts
+0600 postgres:postgres /var/lib/pgsql/16/data/postmaster.pid</pre>
+      <h4>Remediation</h4>
+      <pre>Configure the permissions granted by the operating system/file system on the database files, database log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files.
+
+Any files (for example: extra configuration files) created in ${PGDATA?} must be owned by the database administrator, with only owner permissions to read, write, and execute.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005700<small>V-261905</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must check the validity of all data inputs except those specifically identified by the organization.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000251-DB-000160</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261905 &middot; CD16-00-005700<br>PostgreSQL must check the validity of all data inputs except those specifically identified by the organization.</div>
+      <h4>Result</h4>
+      <pre>Review database code, constraints and application use of prepared statements for input validation.</pre>
+      <h4>Remediation</h4>
+      <pre>Modify database code to properly validate data before it is put into the database or acted upon by the database.
+
+Modify the database to contain constraints and validity checking on database columns and tables that require them for data integrity.
+
+Use prepared statements when taking user input.
+
+Do not allow general users direct console access to PostgreSQL.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005800<small>V-261906</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL and associated applications must reserve the use of dynamic code execution for situations that require it.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000251-DB-000391</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261906 &middot; CD16-00-005800<br>PostgreSQL and associated applications must reserve the use of dynamic code execution for situations that require it.</div>
+      <h4>Result</h4>
+      <pre>Review database and application code for unnecessary dynamic code execution.</pre>
+      <h4>Remediation</h4>
+      <pre>Where dynamic code execution is employed in circumstances where the objective could practically be satisfied by static execution with strongly typed parameters, modify the code to do so.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-005900<small>V-261907</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL and associated applications, when making use of dynamic code execution, must scan input data for invalid values that may indicate a code injection attack.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000251-DB-000392</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261907 &middot; CD16-00-005900<br>PostgreSQL and associated applications, when making use of dynamic code execution, must scan input data for invalid values that may indicate a code injection attack.</div>
+      <h4>Result</h4>
+      <pre>Review dynamic code execution for code-injection protections.</pre>
+      <h4>Remediation</h4>
+      <pre>Where dynamic code execution is used, modify the code to implement protections against code injection (i.e., prepared statements).</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-006000<small>V-261908</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must provide nonprivileged users with error messages that provide information necessary for corrective actions without revealing information that could be exploited by adversaries.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000266-DB-000162</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261908 &middot; CD16-00-006000<br>PostgreSQL must provide nonprivileged users with error messages that provide information necessary for corrective actions without revealing information that could be exploited by adversaries.</div>
+      <h4>Result</h4>
+      <pre>client_min_messages is notice, not error.</pre>
+      <h4>Evidence</h4>
+      <pre>client_min_messages = notice
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>As the database administrator, edit &#34;postgresql.conf&#34;:
+
+$ sudo su - postgres
+$ vi $PGDATA/postgresql.conf
+
+Change the client_min_messages parameter to be &#34;error&#34;:
+
+client_min_messages = error
+
+Reload the server with the new configuration (this just reloads settings currently in memory; it will not cause an interruption):
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-006100<small>V-261909</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must reveal detailed error messages only to the information system security officer (ISSO), information system security manager (ISSM), system administrator (SA), and database administrator (DBA).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000267-DB-000163</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261909 &middot; CD16-00-006100<br>PostgreSQL must reveal detailed error messages only to the information system security officer (ISSO), information system security manager (ISSM), system administrator (SA), and database administrator (DBA).</div>
+      <h4>Result</h4>
+      <pre>client_min_messages is notice, not error.</pre>
+      <h4>Evidence</h4>
+      <pre>log_file_mode = 0600
+log directory: /var/log/postgresql
+0600 postgres:postgres /var/log/postgresql/postgresql-2026-10-01_074813.log</pre>
+      <h4>Remediation</h4>
+      <pre>To set the level of detail for error messages exposed to clients, as the DBA (shown here as &#34;postgres&#34;), run the following commands:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+client_min_messages = error</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006200<small>V-261910</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must automatically terminate a user session after organization-defined conditions or trigger events requiring session disconnect.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000295-DB-000305</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261910 &middot; CD16-00-006200<br>PostgreSQL must automatically terminate a user session after organization-defined conditions or trigger events requiring session disconnect.</div>
+      <h4>Result</h4>
+      <pre>Verify PostgreSQL terminates sessions under the organization-defined conditions (or that the documentation says none are required).</pre>
+      <h4>Evidence</h4>
+      <pre>idle_session_timeout = 0
+idle_in_transaction_session_timeout = 0
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL to automatically terminate a user session after organization-defined conditions or trigger events requiring session termination.
+
+Examples follow.
+
+### Change a role to nologin and disconnect the user
+
+ALTER ROLE &#39;&lt;username&gt;&#39; NOLOGIN;
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename=&#39;&lt;usename&gt;&#39;;
+
+### Disconnecting users during a specific time range
+Refer to supplementary content APPENDIX-A for a bash script for this example.
+
+The script found in APPENDIX-A using the -l command can disable all users with rolcanlogin=t from logging in. The script keeps track of who it disables in a .restore_login file. After the specified time is over, the same script can be run with the -r command to restore all login connections.
+
+This script would be added to a cron job:
+
+# lock at 5 am every day of the week, month, year at the 0 minute mark.
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006400<small>V-261911</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in storage.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000311-DB-000308</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261911 &middot; CD16-00-006400<br>PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in storage.</div>
+      <h4>Result</h4>
+      <pre>Verify the required security labels are enforced with row-level security policies as documented.</pre>
+      <h4>Evidence</h4>
+      <pre>postgres: 0 table(s) with row-level security
+pgaudit_test: 0 table(s) with row-level security
+template1: 0 table(s) with row-level security</pre>
+      <h4>Remediation</h4>
+      <pre>In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).
+
+RLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006500<small>V-261912</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in process.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000313-DB-000309</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261912 &middot; CD16-00-006500<br>PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in process.</div>
+      <h4>Result</h4>
+      <pre>Verify the required security labels are enforced with row-level security policies as documented.</pre>
+      <h4>Evidence</h4>
+      <pre>postgres: 0 table(s) with row-level security
+pgaudit_test: 0 table(s) with row-level security
+template1: 0 table(s) with row-level security</pre>
+      <h4>Remediation</h4>
+      <pre>In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).
+
+RLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006600<small>V-261913</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in transmission.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000314-DB-000310</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261913 &middot; CD16-00-006600<br>PostgreSQL must associate organization-defined types of security labels having organization-defined security label values with information in transmission.</div>
+      <h4>Result</h4>
+      <pre>Verify the required security labels are enforced with row-level security policies as documented.</pre>
+      <h4>Evidence</h4>
+      <pre>postgres: 0 table(s) with row-level security
+pgaudit_test: 0 table(s) with row-level security
+template1: 0 table(s) with row-level security</pre>
+      <h4>Remediation</h4>
+      <pre>In addition to the SQL-standard privilege system available through GRANT, tables can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security (RLS).
+
+RLS policies can be very different depending on their use case. For one example of using RLS for Security Labels, refer to supplementary content APPENDIX-D.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006700<small>V-261914</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must enforce discretionary access control policies, as defined by the data owner, over defined subjects and objects.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000328-DB-000301</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261914 &middot; CD16-00-006700<br>PostgreSQL must enforce discretionary access control policies, as defined by the data owner, over defined subjects and objects.</div>
+      <h4>Result</h4>
+      <pre>Verify the documented discretionary access control is implemented; object owners are evaluated in CD16-00-002900.</pre>
+      <h4>Evidence</h4>
+      <pre>role postgres: Superuser, Create role, Create DB, Replication, Bypass RLS connlimit=-1</pre>
+      <h4>Remediation</h4>
+      <pre>Implement the organization&#39;s DAC policy in the security configuration of the database and PostgreSQL, and, if applicable, the security configuration of the application(s) using the database.
+
+To GRANT privileges to roles, as the database administrator (shown here as &#34;postgres&#34;), run statements like the following examples:
+
+$ sudo su - postgres
+$ psql -c &#34;CREATE SCHEMA test&#34;
+$ psql -c &#34;GRANT CREATE ON SCHEMA test TO bob&#34;
+$ psql -c &#34;CREATE TABLE test.test_table(id INT)&#34;
+$ psql -c &#34;GRANT SELECT ON TABLE test.test_table TO bob&#34;
+
+To REVOKE privileges to roles, as the database administrator (shown here as &#34;postgres&#34;), run statements like the following examples:
+
+$ psql -c &#34;REVOKE SELECT ON TABLE test.test_table FROM bob&#34;
+$ psql -c &#34;REVOKE CREATE ON SCHEMA test FROM bob&#34;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006800<small>V-261915</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must prevent nonprivileged users from executing privileged functions, to include disabling, circumventing, or altering implemented security safeguards/countermeasures.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000340-DB-000304</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261915 &middot; CD16-00-006800<br>PostgreSQL must prevent nonprivileged users from executing privileged functions, to include disabling, circumventing, or altering implemented security safeguards/countermeasures.</div>
+      <h4>Result</h4>
+      <pre>No unapproved untrusted procedural language is installed. Verify privileged functionality is protected as documented.</pre>
+      <h4>Evidence</h4>
+      <pre>no untrusted procedural languages</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL security to protect all privileged functionality.
+
+If pl/R and pl/Python are used, document their intended use, document users that have access to pl/R and pl/Python, as well as their business use case, such as data-analytics or data-mining. Because of the risks associated with using pl/R and pl/Python, their use must have AO risk acceptance.
+
+To remove unwanted extensions, use:
+
+DROP EXTENSION &lt;extension_name&gt;
+
+To remove unwanted privileges from a role, use the REVOKE command.
+
+Refer to the PostgreSQL documentation for more details: http://www.postgresql.org/docs/current/static/sql-revoke.html.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-006900<small>V-261916</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Execution of software modules (to include stored procedures, functions, and triggers) with elevated privileges must be restricted to necessary cases only.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000342-DB-000302</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261916 &middot; CD16-00-006900<br>Execution of software modules (to include stored procedures, functions, and triggers) with elevated privileges must be restricted to necessary cases only.</div>
+      <h4>Result</h4>
+      <pre>2 SECURITY DEFINER function(s) found; verify each is documented and approved (or list them in postgres_stig_approved_security_definer).</pre>
+      <h4>Evidence</h4>
+      <pre>postgres: public.pgaudit_ddl_command_end (owner postgres)
+postgres: public.pgaudit_sql_drop (owner postgres)</pre>
+      <h4>Remediation</h4>
+      <pre>Determine where, when, how, and by what principals/subjects elevated privilege is needed.
+
+To change a SECURITY DEFINER function to SECURITY INVOKER, as the database administrator (shown here as &#34;postgres&#34;), run the following SQL:
+
+$ sudo su - postgres
+$ psql -c &#34;ALTER FUNCTION &lt;function_name&gt; SECURITY INVOKER&#34;</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-007000<small>V-261917</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must use centralized management of the content captured in audit records generated by all components of PostgreSQL.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000356-DB-000314</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261917 &middot; CD16-00-007000<br>PostgreSQL must use centralized management of the content captured in audit records generated by all components of PostgreSQL.</div>
+      <h4>Result</h4>
+      <pre>log_destination (stderr) does not include syslog.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+syslog_facility = local0
+syslog_ident = postgres
+(settings source: live)
+rsyslog forwarding: *.* @@logcollector</pre>
+      <h4>Remediation</h4>
+      <pre>To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.
+
+With logging enabled, as the database owner (shown here as &#34;postgres&#34;), configure the following parameters in postgresql.conf:
+
+Note: Consult the organization on how syslog facilities are defined in the syslog daemon configuration.
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+log_destination = &#39;syslog&#39;
+syslog_facility = &#39;LOCAL0&#39;
+syslog_ident = &#39;postgres&#39;
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-007200<small>V-261918</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000357-DB-000316</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261918 &middot; CD16-00-007200<br>PostgreSQL must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.</div>
+      <h4>Result</h4>
+      <pre>Verify PostgreSQL has not run out of audit log space since storage was last allocated.</pre>
+      <h4>Evidence</h4>
+      <pre>Filesystem                        Size  Used Avail Use% Mounted on
+/dev/mapper/rl_stigcheck-var      5.6G  581M  5.1G  11% /var
+/dev/mapper/rl_stigcheck-var_log  4.7G   75M  4.6G   2% /var/log</pre>
+      <h4>Remediation</h4>
+      <pre>Allocate sufficient audit file/table space to support peak demand.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-007300<small>V-261919</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must provide a warning to appropriate support staff when allocated audit record storage volume reaches 75 percent of maximum audit record storage capacity.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000359-DB-000319</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261919 &middot; CD16-00-007300<br>PostgreSQL must provide a warning to appropriate support staff when allocated audit record storage volume reaches 75 percent of maximum audit record storage capacity.</div>
+      <h4>Result</h4>
+      <pre>Verify a tool alerts support staff when the log volume reaches 75%.</pre>
+      <h4>Evidence</h4>
+      <pre>Filesystem                        Size  Used Avail Use% Mounted on
+/dev/mapper/rl_stigcheck-var      5.6G  581M  5.1G  11% /var
+/dev/mapper/rl_stigcheck-var_log  4.7G   75M  4.6G   2% /var/log</pre>
+      <h4>Remediation</h4>
+      <pre>Configure the system to notify appropriate support staff immediately upon storage volume utilization reaching 75 percent.
+
+PostgreSQL does not monitor storage; however, it is possible to monitor storage with a script.
+
+##### Example Monitoring Script
+
+#!/bin/bash
+
+PGDATA=/var/lib/pgsql/${PGVER?}/data
+CURRENT=$(df ${PGDATA?} | grep / | awk &#39;{ print $5}&#39; | sed &#39;s/%//g&#39;)
+THRESHOLD=75
+
+if [ &#34;$CURRENT&#34; -gt &#34;$THRESHOLD&#34; ] ; then
+mail -s &#39;Disk Space Alert&#39; mail@support.com &lt;&lt; EOF
+The data directory volume is almost full. Used: $CURRENT
+EOF
+fi
+
+Schedule this script in cron to run around the clock.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-007400<small>V-261920</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must provide an immediate real-time alert to appropriate support staff of all audit log failures.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000360-DB-000320</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261920 &middot; CD16-00-007400<br>PostgreSQL must provide an immediate real-time alert to appropriate support staff of all audit log failures.</div>
+      <h4>Result</h4>
+      <pre>Verify a real-time alert is sent when auditing fails.</pre>
+      <h4>Remediation</h4>
+      <pre>Configure the system to provide an immediate real-time alert to appropriate support staff when an audit log failure occurs.
+
+It is possible to create scripts or implement third-party tools to enable real-time alerting for audit failures in PostgreSQL.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-007500<small>V-261921</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must record time stamps in audit records and application data that can be mapped to Coordinated Universal Time (UTC), formerly Greenwich Mean Time (GMT).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000374-DB-000322</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261921 &middot; CD16-00-007500<br>PostgreSQL must record time stamps in audit records and application data that can be mapped to Coordinated Universal Time (UTC), formerly Greenwich Mean Time (GMT).</div>
+      <h4>Result</h4>
+      <pre>log_timezone is America/Chicago (expected UTC).</pre>
+      <h4>Evidence</h4>
+      <pre>log_timezone = America/Chicago
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>To change log_timezone in postgresql.conf to use a different time zone for logs, as the database administrator (shown here as &#34;postgres&#34;), run the following:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+log_timezone=&#39;UTC&#39;
+
+Restart the database:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-007600<small>V-261922</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate time stamps for audit records and application data with a minimum granularity of one second.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000375-DB-000323</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261922 &middot; CD16-00-007600<br>PostgreSQL must generate time stamps for audit records and application data with a minimum granularity of one second.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix contains %m.</pre>
+      <h4>Evidence</h4>
+      <pre>log_line_prefix = &#39;%m [%p] %u@%d %r&#39;</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-007700<small>V-261923</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must prohibit user installation of logic modules (stored procedures, functions, triggers, views, etc.) without explicit privileged status.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000378-DB-000365</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261923 &middot; CD16-00-007700<br>PostgreSQL must prohibit user installation of logic modules (stored procedures, functions, triggers, views, etc.) without explicit privileged status.</div>
+      <h4>Result</h4>
+      <pre>PUBLIC cannot create objects in any schema. Verify the remaining CREATE grants are documented and approved.</pre>
+      <h4>Evidence</h4>
+      <pre>postgres.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+pgaudit_test.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+template1.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+database postgres acl=(default)
+database pgaudit_test acl=(default)
+database template1 acl={=c/postgres,postgres=CTc/postgres}
+database template0 acl={=c/postgres,postgres=CTc/postgres}</pre>
+      <h4>Remediation</h4>
+      <pre>Document and obtain approval for any nonadministrative users who require the ability to create, alter, or replace logic modules.
+
+Implement the approved permissions. Revoke any unapproved permissions.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-007800<small>V-261924</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must enforce access restrictions associated with changes to the configuration of the DBMS or database(s).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000380-DB-000360</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261924 &middot; CD16-00-007800<br>PostgreSQL must enforce access restrictions associated with changes to the configuration of the DBMS or database(s).</div>
+      <h4>Result</h4>
+      <pre>PUBLIC cannot create objects in any schema. Verify the remaining CREATE grants are documented and approved.</pre>
+      <h4>Evidence</h4>
+      <pre>postgres.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+pgaudit_test.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+template1.public owner=pg_database_owner acl={pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
+superusers: postgres
+database postgres acl=(default)
+database pgaudit_test acl=(default)
+database template1 acl={=c/postgres,postgres=CTc/postgres}
+database template0 acl={=c/postgres,postgres=CTc/postgres}</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL to enforce access restrictions associated with changes to the configuration of PostgreSQL or database(s).
+
+Use ALTER ROLE to remove accesses from roles:
+
+$ psql -c &#34;ALTER ROLE &lt;role_name&gt; NOSUPERUSER&#34;
+
+Use REVOKE to remove privileges from databases and schemas:
+
+$ psql -c &#34;REVOKE ALL PRIVILEGES ON &lt;table&gt; FROM &lt;role_name&gt;&#34;</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-007900<small>V-261925</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must produce audit records of its enforcement of access restrictions associated with changes to the configuration of PostgreSQL or database(s).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000381-DB-000361</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261925 &middot; CD16-00-007900<br>PostgreSQL must produce audit records of its enforcement of access restrictions associated with changes to the configuration of PostgreSQL or database(s).</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+0600 postgres:postgres /var/lib/pgsql/16/data/postgresql.conf
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-008000<small>V-261926</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accordance with the Ports, Protocols, and Services Management (PPSM) guidance.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000383-DB-000364</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261926 &middot; CD16-00-008000<br>PostgreSQL must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accordance with the Ports, Protocols, and Services Management (PPSM) guidance.</div>
+      <h4>Result</h4>
+      <pre>Compare port 5432 with the PPSM CAL (or set postgres_stig_approved_ports).</pre>
+      <h4>Evidence</h4>
+      <pre>port = 5432
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>To change the listening port of the database, as the database administrator, change the following setting in postgresql.conf:
+
+$ sudo su - postgres
+$ vi $PGDATA/postgresql.conf
+
+Change the port parameter to the desired port.
+
+Restart the database:
+
+$ sudo systemctl restart postgresql-${PGVER?}
+
+Note: psql uses the port 5432 by default. This can be changed by specifying the port with psql or by setting the PGPORT environment variable:
+
+$ psql -p 5432 -c &#34;SHOW port&#34;
+$ export PGPORT=5432</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-008100<small>V-261927</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must require users to reauthenticate when organization-defined circumstances or situations require reauthentication.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000389-DB-000372</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261927 &middot; CD16-00-008100<br>PostgreSQL must require users to reauthenticate when organization-defined circumstances or situations require reauthentication.</div>
+      <h4>Result</h4>
+      <pre>Verify reauthentication is forced (pg_terminate_backend) in the organization-defined situations.</pre>
+      <h4>Remediation</h4>
+      <pre>Modify and/or configure PostgreSQL and related applications and tools so that users are always required to reauthenticate when changing role or escalating privileges.
+
+To make a single user reauthenticate, the following must be present:
+
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE user=&#39;&lt;username&gt;&#39;
+
+To make all users reauthenticate, the following must be present:
+
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE user LIKE &#39;%&#39;</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-008300<small>V-261928</small></span>
+      <span class="st">Open</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must use NSA-approved cryptography to protect classified information in accordance with the data owner&#39;s requirements.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000416-DB-000380</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261928 &middot; CD16-00-008300<br>PostgreSQL must use NSA-approved cryptography to protect classified information in accordance with the data owner&#39;s requirements.</div>
+      <h4>Result</h4>
+      <pre>ssl is off.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+ssl_min_protocol_version = TLSv1.2
+(settings source: live)</pre>
+      <h4>Comments</h4>
+      <pre>Also confirm the server is protected by NSA-approved encrypting devices.</pre>
+      <h4>Remediation</h4>
+      <pre>To configure PostgreSQL to use SSL as a database administrator (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Add the following parameter:
+
+ssl = on
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.
+
+Deploy NSA-approved encrypting devices to protect the server on the network.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-008400<small>V-261929</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must only accept end entity certificates issued by DOD PKI or DOD-approved PKI Certification Authorities (CAs) for the establishment of all encrypted sessions.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000427-DB-000385</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261929 &middot; CD16-00-008400<br>PostgreSQL must only accept end entity certificates issued by DOD PKI or DOD-approved PKI Certification Authorities (CAs) for the establishment of all encrypted sessions.</div>
+      <h4>Result</h4>
+      <pre>ssl is off; no DoD certificate is in use.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Revoke trust in any certificates not issued by a DOD-approved certificate authority.
+
+Configure PostgreSQL to accept only DOD and DOD-approved PKI end-entity certificates.
+
+To configure PostgreSQL to accept approved CAs, refer to the official PostgreSQL documentation: http://www.postgresql.org/docs/current/static/ssl-tcp.html
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-008500<small>V-261930</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL must implement cryptographic mechanisms to prevent unauthorized modification of organization-defined information at rest (to include, at a minimum, PII and classified information) on organization-defined information system components.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000428-DB-000386</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261930 &middot; CD16-00-008500<br>PostgreSQL must implement cryptographic mechanisms to prevent unauthorized modification of organization-defined information at rest (to include, at a minimum, PII and classified information) on organization-defined information system components.</div>
+      <h4>Result</h4>
+      <pre>Verify organization-defined data at rest (at least PII and classified) is cryptographically protected from modification.</pre>
+      <h4>Evidence</h4>
+      <pre>pgcrypto available: True</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL, operating system/file system, and additional software as relevant, to provide the required level of cryptographic protection.
+
+The pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.
+
+With pgcrypto installed, it is possible to insert encrypted data into the database:
+
+INSERT INTO accounts(username, password) VALUES (&#39;bob&#39;, crypt(&#39;mypass&#39;, gen_salt(&#39;bf&#39;, 4));</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-008600<small>V-261931</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must implement cryptographic mechanisms preventing the unauthorized disclosure of organization-defined information at rest on organization-defined information system components.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000429-DB-000387</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261931 &middot; CD16-00-008600<br>PostgreSQL must implement cryptographic mechanisms preventing the unauthorized disclosure of organization-defined information at rest on organization-defined information system components.</div>
+      <h4>Result</h4>
+      <pre>Verify organization-defined data at rest is cryptographically protected from disclosure.</pre>
+      <h4>Evidence</h4>
+      <pre>pgcrypto available: True</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL, operating system/file system, and additional software as relevant, to provide the required level of cryptographic protection for information requiring cryptographic protection against disclosure.
+
+Secure the premises, equipment, and media to provide the required level of physical protection.
+
+The pgcrypto module provides cryptographic functions for PostgreSQL. Refer to supplementary content APPENDIX-E for documentation on installing pgcrypto.
+
+With pgcrypto installed, it is possible to insert encrypted data into the database:
+
+INSERT INTO accounts(username, password) VALUES (&#39;bob&#39;, crypt(&#39;mypass&#39;, gen_salt(&#39;bf&#39;, 4));</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-008800<small>V-261932</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must maintain the confidentiality and integrity of information during preparation for transmission.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000441-DB-000378</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261932 &middot; CD16-00-008800<br>PostgreSQL must maintain the confidentiality and integrity of information during preparation for transmission.</div>
+      <h4>Result</h4>
+      <pre>ssl is off.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+ssl_min_protocol_version = TLSv1.2
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Implement protective measures against unauthorized disclosure and modification during preparation for transmission.
+
+To configure PostgreSQL to use SSL, as a database administrator (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Add the following parameter:
+
+ssl = on
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-008900<small>V-261933</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must maintain the confidentiality and integrity of information during reception.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000442-DB-000379</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261933 &middot; CD16-00-008900<br>PostgreSQL must maintain the confidentiality and integrity of information during reception.</div>
+      <h4>Result</h4>
+      <pre>ssl is off.</pre>
+      <h4>Evidence</h4>
+      <pre>ssl = off
+ssl_min_protocol_version = TLSv1.2
+(settings source: live)</pre>
+      <h4>Remediation</h4>
+      <pre>Implement protective measures against unauthorized disclosure and modification during reception.
+
+To configure PostgreSQL to use SSL, refer to supplementary content APPENDIX-G for instructions on enabling SSL.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009000<small>V-261934</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">When invalid inputs are received, PostgreSQL must behave in a predictable and documented manner that reflects organizational and system objectives.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000447-DB-000393</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261934 &middot; CD16-00-009000<br>When invalid inputs are received, PostgreSQL must behave in a predictable and documented manner that reflects organizational and system objectives.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009100<small>V-261935</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">When updates are applied to the PostgreSQL software, any software components that have been replaced or made unnecessary must be removed.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000454-DB-000389</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261935 &middot; CD16-00-009100<br>When updates are applied to the PostgreSQL software, any software components that have been replaced or made unnecessary must be removed.</div>
+      <h4>Result</h4>
+      <pre>Only one PostgreSQL major version is installed.</pre>
+      <h4>Evidence</h4>
+      <pre>pgaudit_16|16.1-1PGDG.rhel8|PostgreSQL Global Development Group
+postgresql16|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-contrib|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-libs|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group
+postgresql16-server|16.15-1PGDG.rhel8.10|PostgreSQL Global Development Group</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-009200<small>V-261936</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT II</span>
+      <span class="title">Security-relevant software updates to PostgreSQL must be installed within the time period directed by an authoritative source (e.g., IAVM, CTOs, DTMs, and STIGs).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000456-DB-000390</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261936 &middot; CD16-00-009200<br>Security-relevant software updates to PostgreSQL must be installed within the time period directed by an authoritative source (e.g., IAVM, CTOs, DTMs, and STIGs).</div>
+      <h4>Result</h4>
+      <pre>Compare the version with the vendor&#39;s current security releases (or set the min_version variable to automate).</pre>
+      <h4>Evidence</h4>
+      <pre>PostgreSQL version: 16.15
+PostgreSQL 16 is supported by the PostgreSQL community until November 2028.</pre>
+      <h4>Remediation</h4>
+      <pre>Institute and adhere to policies and procedures to ensure that patches are consistently applied to PostgreSQL within the time allowed.</pre>
+    </div>
+  </details>
+  <details class="Not_Reviewed" data-status="Not_Reviewed">
+    <summary>
+      <span class="id">CD16-00-009300<small>V-283674</small></span>
+      <span class="st">Not Reviewed</span>
+      <span>CAT I</span>
+      <span class="title">PostgreSQL products must be a version supported by the vendor.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-001035-DB-000323</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-283674 &middot; CD16-00-009300<br>PostgreSQL products must be a version supported by the vendor.</div>
+      <h4>Result</h4>
+      <pre>Compare the version with the vendor&#39;s current security releases (or set the min_version variable to automate).</pre>
+      <h4>Evidence</h4>
+      <pre>PostgreSQL version: 16.15
+PostgreSQL 16 is supported by the PostgreSQL community until November 2028.</pre>
+      <h4>Remediation</h4>
+      <pre>Upgrade or install a version of the product supported by the vendor.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009400<small>V-261938</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must be able to generate audit records when security objects are accessed.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000492-DB-000332</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261938 &middot; CD16-00-009400<br>PostgreSQL must be able to generate audit records when security objects are accessed.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009500<small>V-261939</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to access security objects occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000492-DB-000333</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261939 &middot; CD16-00-009500<br>PostgreSQL must generate audit records when unsuccessful attempts to access security objects occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009600<small>V-261940</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are accessed.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000494-DB-000344</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261940 &middot; CD16-00-009600<br>PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are accessed.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs ddl, write, role.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009700<small>V-261941</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to access categories of information (e.g., classification levels/security levels) occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000494-DB-000345</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261941 &middot; CD16-00-009700<br>PostgreSQL must generate audit records when unsuccessful attempts to access categories of information (e.g., classification levels/security levels) occur.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs ddl, write, role.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009800<small>V-261942</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when privileges/permissions are added.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000495-DB-000326</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261942 &middot; CD16-00-009800<br>PostgreSQL must generate audit records when privileges/permissions are added.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-009900<small>V-261943</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to add privileges/permissions occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000495-DB-000327</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261943 &middot; CD16-00-009900<br>PostgreSQL must generate audit records when unsuccessful attempts to add privileges/permissions occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010000<small>V-261944</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when privileges/permissions are modified.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000495-DB-000328</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261944 &middot; CD16-00-010000<br>PostgreSQL must generate audit records when privileges/permissions are modified.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010100<small>V-261945</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to modify privileges/permissions occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000495-DB-000329</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261945 &middot; CD16-00-010100<br>PostgreSQL must generate audit records when unsuccessful attempts to modify privileges/permissions occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-010200<small>V-261946</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when security objects are modified.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000496-DB-000334</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261946 &middot; CD16-00-010200<br>PostgreSQL must generate audit records when security objects are modified.</div>
+      <h4>Result</h4>
+      <pre>pgaudit.log_catalog is off.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Remediation</h4>
+      <pre>To ensure logging is enabled, see the instructions in the supplementary content APPENDIX-C.
+
+PostgreSQL can be configured to audit these requests using pgaudit. Refer to supplementary content APPENDIX-B for documentation on installing pgaudit.
+
+With pgaudit installed, the following configurations can be made:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Add the following parameters (or edit existing parameters):
+
+pgaudit.log_catalog = &#39;on&#39;
+pgaudit.log=&#39;ddl, role, read, write&#39;
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010300<small>V-261947</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to modify security objects occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000496-DB-000335</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261947 &middot; CD16-00-010300<br>PostgreSQL must generate audit records when unsuccessful attempts to modify security objects occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010400<small>V-261948</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are modified.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000498-DB-000346</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261948 &middot; CD16-00-010400<br>PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are modified.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010500<small>V-261949</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to modify categories of information (e.g., classification levels/security levels) occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000498-DB-000347</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261949 &middot; CD16-00-010500<br>PostgreSQL must generate audit records when unsuccessful attempts to modify categories of information (e.g., classification levels/security levels) occur.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010600<small>V-261950</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when privileges/permissions are deleted.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000499-DB-000330</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261950 &middot; CD16-00-010600<br>PostgreSQL must generate audit records when privileges/permissions are deleted.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010700<small>V-261951</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to delete privileges/permissions occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000499-DB-000331</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261951 &middot; CD16-00-010700<br>PostgreSQL must generate audit records when unsuccessful attempts to delete privileges/permissions occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010800<small>V-261952</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when security objects are deleted.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000501-DB-000336</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261952 &middot; CD16-00-010800<br>PostgreSQL must generate audit records when security objects are deleted.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-010900<small>V-261953</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to delete security objects occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000501-DB-000337</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261953 &middot; CD16-00-010900<br>PostgreSQL must generate audit records when unsuccessful attempts to delete security objects occur.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011000<small>V-261954</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are deleted.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000502-DB-000348</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261954 &middot; CD16-00-011000<br>PostgreSQL must generate audit records when categories of information (e.g., classification levels/security levels) are deleted.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011100<small>V-261955</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to delete categories of information (e.g., classification levels/security levels) occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000502-DB-000349</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261955 &middot; CD16-00-011100<br>PostgreSQL must generate audit records when unsuccessful attempts to delete categories of information (e.g., classification levels/security levels) occur.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011200<small>V-261956</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when successful logons or connections occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000503-DB-000350</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261956 &middot; CD16-00-011200<br>PostgreSQL must generate audit records when successful logons or connections occur.</div>
+      <h4>Result</h4>
+      <pre>Connections are logged.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011300<small>V-261957</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful logons or connection attempts occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000503-DB-000351</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261957 &middot; CD16-00-011300<br>PostgreSQL must generate audit records when unsuccessful logons or connection attempts occur.</div>
+      <h4>Result</h4>
+      <pre>Connections are logged.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011400<small>V-261958</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records for all privileged activities or other system-level access.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000504-DB-000354</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261958 &middot; CD16-00-011400<br>PostgreSQL must generate audit records for all privileged activities or other system-level access.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011500<small>V-261959</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful attempts to execute privileged activities or other system-level access occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000504-DB-000355</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261959 &middot; CD16-00-011500<br>PostgreSQL must generate audit records when unsuccessful attempts to execute privileged activities or other system-level access occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011600<small>V-261960</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records showing starting and ending time for user access to the database(s).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000505-DB-000352</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261960 &middot; CD16-00-011600<br>PostgreSQL must generate audit records showing starting and ending time for user access to the database(s).</div>
+      <h4>Result</h4>
+      <pre>Connections and disconnections are logged.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-011700<small>V-261961</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when concurrent logons/connections by the same user from different workstations occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000506-DB-000353</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261961 &middot; CD16-00-011700<br>PostgreSQL must generate audit records when concurrent logons/connections by the same user from different workstations occur.</div>
+      <h4>Result</h4>
+      <pre>log_line_prefix &#39;%m [%p] %u@%d %r&#39; does not contain %c.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+log_line_prefix = &#39;%m [%p] %u@%d %r&#39;
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Remediation</h4>
+      <pre>To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.
+
+As the database administrator (shown here as &#34;postgres&#34;), edit postgresql.conf:
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+
+Edit the following parameters as such:
+
+log_connections = on
+log_disconnections = on
+log_line_prefix = &#39;&lt; %m %u %d %c: &gt;&#39;
+
+Where:
+* %m is the time and date
+* %u is the username
+* %d is the database
+* %c is the session ID for the connection
+
+As the system administrator, reload the server with the new configuration:
+
+$ sudo systemctl reload postgresql-${PGVER?}</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011800<small>V-261962</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must be able to generate audit records when successful accesses to objects occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000507-DB-000356</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261962 &middot; CD16-00-011800<br>PostgreSQL must be able to generate audit records when successful accesses to objects occur.</div>
+      <h4>Result</h4>
+      <pre>pgaudit is loaded and logs role, read, write, ddl.</pre>
+      <h4>Evidence</h4>
+      <pre>shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-011900<small>V-261963</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records when unsuccessful accesses to objects occur.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000507-DB-000357</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261963 &middot; CD16-00-011900<br>PostgreSQL must generate audit records when unsuccessful accesses to objects occur.</div>
+      <h4>Result</h4>
+      <pre>Logging is enabled, so errors and denials are recorded.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+logging_collector = on
+log_directory = /var/log/postgresql
+log_min_messages = warning
+log_min_error_statement = error
+(settings source: live)
+shared_preload_libraries = pgaudit
+pgaudit.log = read, write, ddl, role, misc
+pgaudit.log_catalog = off
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+      <h4>Comments</h4>
+      <pre>DISA&#39;s procedure performs a test action (e.g. a denied statement or failed login). This read-only audit verified the logging configuration that records it instead; perform the test during the assessment if required.</pre>
+    </div>
+  </details>
+  <details class="NotAFinding" data-status="NotAFinding">
+    <summary>
+      <span class="id">CD16-00-012000<small>V-261964</small></span>
+      <span class="st">NotAFinding</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must generate audit records for all direct access to the database(s).</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000508-DB-000358</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261964 &middot; CD16-00-012000<br>PostgreSQL must generate audit records for all direct access to the database(s).</div>
+      <h4>Result</h4>
+      <pre>Connections and disconnections are logged.</pre>
+      <h4>Evidence</h4>
+      <pre>log_connections = on
+log_disconnections = on
+(settings source: live)
+shared_preload_libraries = pgaudit
+(settings source: live)
+latest log postgresql-2026-10-01_074813.log: AUDIT:=8, FATAL:=0, connection authorized=9, disconnection:=9, permission denied=0, syntax error=0</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-012200<small>V-261965</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to generate and validate cryptographic hashes.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000514-DB-000382</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261965 &middot; CD16-00-012200<br>PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to generate and validate cryptographic hashes.</div>
+      <h4>Result</h4>
+      <pre>Kernel FIPS mode is not enabled (fips_enabled=0).</pre>
+      <h4>Evidence</h4>
+      <pre>fips_enabled=0
+crypto-policy=FIPS:STIG</pre>
+      <h4>Remediation</h4>
+      <pre>Configure OpenSSL to be FIPS compliant.
+
+PostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, refer to the official RHEL Documentation: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies.
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-012300<small>V-261966</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owners&#39; requirements.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000514-DB-000383</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261966 &middot; CD16-00-012300<br>PostgreSQL must implement NIST FIPS 140-2 or 140-3 validated cryptographic modules to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owners&#39; requirements.</div>
+      <h4>Result</h4>
+      <pre>Kernel FIPS mode is not enabled (fips_enabled=0).</pre>
+      <h4>Evidence</h4>
+      <pre>fips_enabled=0
+crypto-policy=FIPS:STIG</pre>
+      <h4>Remediation</h4>
+      <pre>Configure OpenSSL to be FIPS compliant.
+
+PostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, refer to the official RHEL Documentation: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies.
+
+For more information on configuring PostgreSQL to use SSL, refer to supplementary content APPENDIX-G.</pre>
+    </div>
+  </details>
+  <details class="Open" data-status="Open" open>
+    <summary>
+      <span class="id">CD16-00-012400<small>V-261967</small></span>
+      <span class="st">Open</span>
+      <span>CAT II</span>
+      <span class="title">PostgreSQL must offload audit data to a separate log management facility; this must be continuous and in near real time for systems with a network connection to the storage facility and weekly or more often for standalone systems.</span>
+    </summary>
+    <div class="body">
+      <h4>SRG requirements</h4>
+      <div class="srg">SRG-APP-000515-DB-000318</div>
+      <h4>STIG rules</h4>
+      <div class="srg">V-261967 &middot; CD16-00-012400<br>PostgreSQL must offload audit data to a separate log management facility; this must be continuous and in near real time for systems with a network connection to the storage facility and weekly or more often for standalone systems.</div>
+      <h4>Result</h4>
+      <pre>log_destination (stderr) does not include syslog.</pre>
+      <h4>Evidence</h4>
+      <pre>log_destination = stderr
+syslog_facility = local0
+syslog_ident = postgres
+(settings source: live)
+rsyslog forwarding: *.* @@logcollector</pre>
+      <h4>Remediation</h4>
+      <pre>Configure PostgreSQL or deploy and configure software tools to transfer audit records to a centralized log management system, continuously and in near real time where a continuous network connection to the log management system exists, or at least weekly in the absence of such a connection.
+
+To ensure logging is enabled, review supplementary content APPENDIX-C for instructions on enabling logging.
+
+With logging enabled, as the database administrator (shown here as &#34;postgres&#34;), configure the following parameters in postgresql.conf (the example uses the default values - tailor for environment):
+
+Note: Consult the organization on how syslog facilities are defined in the syslog daemon configuration.
+
+$ sudo su - postgres
+$ vi ${PGDATA?}/postgresql.conf
+log_destination = &#39;syslog&#39;
+syslog_facility = &#39;LOCAL0&#39;
+syslog_ident = &#39;postgres&#39;
+[...] (see the STIG for the full fix text)</pre>
+    </div>
+  </details>
+  <p class="meta">* status set by postgres_stig_overrides. Automated results support, but do not replace, assessor review
+  of the full Crunchy Data Postgres 16 Security Technical Implementation Guide.</p>
+</main>
+<script>
+document.getElementById('filters').addEventListener('click', function (e) {
+  var f = e.target.getAttribute('data-f'); if (!f) return;
+  document.querySelectorAll('#filters button').forEach(function (b) { b.classList.toggle('on', b === e.target); });
+  document.querySelectorAll('details').forEach(function (d) {
+    d.style.display = (f === 'all' || d.getAttribute('data-status') === f) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

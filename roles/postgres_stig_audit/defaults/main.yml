@@ -29,7 +29,9 @@ postgres_stig_hba_exceptions: []
 #  - '^local all postgres\s+peer$'
 postgres_stig_approved_extensions: []         # e.g. [pgaudit, pgcrypto]; empty = manual review
 postgres_stig_approved_packages: []           # rpm names; empty = manual review
-postgres_stig_approved_security_definer: []   # regexes matched against "db: schema.function (owner x)"
+# Regexes matched against "db: schema.function (owner x)" or, for a function installed by an
+# extension, "db: schema.function (owner x, extension y)". Functions of approved extensions pass.
+postgres_stig_approved_security_definer: []
 postgres_stig_approved_owners: []             # roles authorized to own objects; empty = manual review
 postgres_stig_approved_ports: []              # e.g. [5432]; empty = manual review
 postgres_stig_log_timezone: UTC

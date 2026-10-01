@@ -174,6 +174,30 @@ class PostgresEvaluateTests(unittest.TestCase):
         self.assertIn("13", r["CD16-00-009100"]["finding_details"])
         self.assertEqual(r["CD16-00-006900"]["status"], pg.NR)   # SECURITY DEFINER needs review
 
+    def test_security_definer_functions_of_approved_extensions(self):
+        ev = hardened()
+        db = json.loads(ev["dbs"][0])
+        db["secdef"] = ["public.pgaudit_ddl_command_end (owner postgres, extension pgaudit)",
+                        "public.pgaudit_sql_drop (owner postgres, extension pgaudit)"]
+        ev["dbs"] = [json.dumps(db)]
+        r = by_id(pg.postgres_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["CD16-00-006900"]["status"], pg.NF)
+        r = by_id(pg.postgres_stig_evaluate(ev, dict(SETTINGS, approved_extensions=[])))
+        self.assertEqual(r["CD16-00-006900"]["status"], pg.NR)
+        self.assertIn("extension(s) pgaudit", r["CD16-00-006900"]["finding_details"])
+        db["secdef"].append("public.become_admin() (owner postgres)")
+        ev["dbs"] = [json.dumps(db)]
+        r = by_id(pg.postgres_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["CD16-00-006900"]["status"], pg.NR)
+        self.assertIn("1 SECURITY DEFINER", r["CD16-00-006900"]["finding_details"])
+
+    def test_classified_unknown_is_not_reviewed(self):
+        r = by_id(pg.postgres_stig_evaluate(insecure(), dict(SETTINGS, classified=None)))
+        self.assertEqual(r["CD16-00-008300"]["status"], pg.NR)
+        self.assertIn("postgres_stig_classified", r["CD16-00-008300"]["finding_details"])
+        r = by_id(pg.postgres_stig_evaluate(insecure(), dict(SETTINGS, classified=True)))
+        self.assertEqual(r["CD16-00-008300"]["status"], pg.OPEN)
+
     def test_settings_from_config_files_without_sql(self):
         ev = hardened()
         ev["sql"] = ""
