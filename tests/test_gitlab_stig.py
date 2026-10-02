@@ -297,6 +297,48 @@ class GitLabParsingTests(unittest.TestCase):
         self.assertEqual(p["base_url"], "https://lb.example.mil")
         self.assertEqual(gs.gitlab_probe_plan("")["base_url"], "")
 
+    @unittest.skipUnless(HAVE_YAML, "PyYAML not installed")
+    def test_gitlab_yml_summary(self):
+        summary = gs.gitlab_yml_summary(GITLAB_YML + "  extra:\n    pattern: !ruby/regexp /x/\n")
+        self.assertEqual(summary["ldap"]["servers"]["main"]["encryption"], "simple_tls")
+        self.assertNotIn("password", summary["ldap"]["servers"]["main"])
+        self.assertTrue(summary["smartcard"]["enabled"])
+        self.assertEqual(gs.gitlab_external_url(summary), "https://gitlab.example.mil")
+        ev = hardened_evidence()
+        ev["gitlab_yml"] = summary
+        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-006"]["status"], gs.NF)
+        ev["gitlab_yml"] = gs.gitlab_yml_summary("production: [unclosed")
+        r = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["GLAB-006"]["status"], gs.NR)
+        self.assertIn("could not be parsed", r["GLAB-006"]["finding_details"])
+
+    def test_runit_loggers_are_not_root_app_processes(self):
+        # First VM run: svlogd/runsv run as root by design and name the service in their arguments.
+        ev = hardened_evidence()
+        ev["processes"] = ("root svlogd /var/log/gitlab/gitaly\nroot runsv sidekiq\n"
+                           "root svlogd -tt /var/log/gitlab/puma\ngit puma: cluster worker 0: 1234 [gitlab-puma-worker]")
+        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-014"]["status"], gs.NF)
+        ev["processes"] = "root /opt/gitlab/embedded/bin/ruby /opt/gitlab/embedded/bin/sidekiq-cluster *"
+        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-014"]["status"], gs.OPEN)
+
+    def test_reconfigure_owned_structure_sql(self):
+        ev = hardened_evidence()
+        ev["rpm_verify"] = ".....U...    /opt/gitlab/embedded/service/gitlab-rails/db/structure.sql"
+        r = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]
+        self.assertEqual(r["status"], gs.NF, r["finding_details"])
+        ev["rpm_verify"] = "S.5....T.    /opt/gitlab/embedded/service/gitlab-rails/db/structure.sql"
+        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.OPEN)
+
+    def test_rails_partial_failure_keeps_settings(self):
+        ev = hardened_evidence()
+        data = gs._rails(ev["rails"])
+        data.pop("dormant", None)
+        data["errors"] = {"dormant": "NoMethodError: undefined method `humans'"}
+        ev["rails"] = json.dumps(data)
+        r = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["GLAB-003"]["status"], gs.NF)
+        self.assertIn("humans", r["GLAB-029"]["evidence"])
+
     def test_rails_output(self):
         self.assertEqual(gs._rails("noise\n{\"settings\": {\"a\": 1}}\n")["settings"], {"a": 1})
         self.assertEqual(gs._rails("boom"), {})

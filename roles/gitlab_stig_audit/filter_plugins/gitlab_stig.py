@@ -145,25 +145,65 @@ INTERNAL_PROCS = ("puma", "ruby", "bundle", "gitaly", "workhorse", "redis", "pos
 PUBLIC_PROCS = ("nginx", "gitlab-sshd", "registry", "gitlab-pages", "gitlab-kas", "mattermost")
 APP_PROCESS_RX = r"(^|/)(puma|sidekiq|gitaly|gitlab-workhorse)\b"
 PUBLIC_LEVEL = 20
+# Packaged files `gitlab-ctl reconfigure` hands to the git user (so migrations can dump the schema).
+RECONFIGURE_OWNED = ("embedded/service/gitlab-rails/db/structure.sql", "embedded/service/gitlab-rails/db/schema.rb")
 
 
 # ---------------------------------------------------------------------------
 # parsing helpers
 # ---------------------------------------------------------------------------
-def _yaml(text):
-    """Rendered gitlab.yml -> its 'production' section (or {} when unavailable)."""
+def _load_yaml(text):
+    """Rendered gitlab.yml -> (its 'production' section or {}, parse error or "")."""
     if isinstance(text, dict):
-        return text.get("production", text)
+        return text.get("production", text), ""
     if not text:
-        return {}
+        return {}, ""
     try:
         import yaml
-        data = yaml.safe_load(text)
-    except Exception:  # noqa: BLE001 - any parse problem means "no evidence"
-        return {}
+
+        class Loader(yaml.SafeLoader):
+            pass
+
+        # Rails YAML can carry Ruby tags (!ruby/regexp, !ruby/object:...); read them as plain values.
+        def untagged(loader, suffix, node):
+            if isinstance(node, yaml.MappingNode):
+                return loader.construct_mapping(node)
+            if isinstance(node, yaml.SequenceNode):
+                return loader.construct_sequence(node)
+            return loader.construct_scalar(node)
+
+        Loader.add_multi_constructor("!", untagged)
+        data = yaml.load(text, Loader=Loader)  # noqa: S506 - SafeLoader subclass
+    except Exception as e:  # noqa: BLE001 - any parse problem means "no evidence"
+        return {}, "%s: %s" % (type(e).__name__, str(e).splitlines()[0][:200] if str(e) else "")
     if not isinstance(data, dict):
-        return {}
-    return data.get("production", data) or {}
+        return {}, "unexpected top-level %s" % type(data).__name__
+    return data.get("production", data) or {}, ""
+
+
+def _yaml(text):
+    """Rendered gitlab.yml -> its 'production' section (or {} when unavailable)."""
+    return _load_yaml(text)[0]
+
+
+def gitlab_yml_summary(text):
+    """Unredacted gitlab.yml -> only the non-secret settings the checks read, so it is parsed before
+    redaction can alter it.  A parse failure is kept in 'parse_error'."""
+    gl, err = _load_yaml(text)
+    if err or not gl:
+        return {"parse_error": err or ("empty" if not text else "no production section")}
+    pick = lambda d, keys: dict((k, d[k]) for k in keys if isinstance(d, dict) and k in d)  # noqa: E731
+    ldap = gl.get("ldap") or {}
+    omni = gl.get("omniauth") or {}
+    return {
+        "gitlab": pick(gl.get("gitlab") or {}, ("host", "https", "port", "relative_url_root")),
+        "ldap": dict(pick(ldap, ("enabled",)), servers=dict(
+            (label, pick(srv or {}, ("host", "port", "encryption", "verify_certificates")))
+            for label, srv in (ldap.get("servers") or {}).items())),
+        "omniauth": dict(pick(omni, ("enabled",)), providers=[
+            {"name": p.get("name", "?")} for p in (omni.get("providers") or []) if isinstance(p, dict)]),
+        "smartcard": pick(gl.get("smartcard") or {}, ("enabled", "ca_file", "required_for_git_access")),
+    }
 
 
 def gitlab_rb(text):
@@ -226,6 +266,15 @@ def gitlab_probe_plan(external_url, audit_url=""):
     return plan
 
 
+def _command(args):
+    """The program a `ps` args line runs (the script for ruby/bundle), not its arguments: runit's
+    `svlogd /var/log/gitlab/gitaly` and `runsv gitaly` run as root by design and are not GitLab itself."""
+    words = str(args).split()
+    if len(words) > 1 and re.search(r"(^|/)(ruby|bundle)$", words[0]):
+        return words[1]
+    return words[0] if words else ""
+
+
 def _bool(v, default=None):
     if v is None or v == "":
         return default
@@ -254,7 +303,13 @@ def gitlab_stig_evaluate(ev, settings=None):
     ev = ev or {}
     host = ev.get("system") or {}
     rb = gitlab_rb(ev.get("gitlab_rb"))
-    gl = _yaml(ev.get("gitlab_yml"))
+    gl, gl_err = _load_yaml(ev.get("gitlab_yml"))
+    if isinstance(gl, dict) and "parse_error" in gl:   # from gitlab_yml_summary
+        gl, gl_err = {}, gl["parse_error"]
+    if gl_err and gl_err != "empty":
+        no_gl = "gitlab.yml could not be parsed (%s)." % gl_err
+    else:
+        no_gl = "gitlab.yml could not be read; run the audit with become: true."
     rails = _rails(ev.get("rails"))
     st = rails.get("settings") or {}
     have_st = bool(st)
@@ -293,7 +348,7 @@ def gitlab_stig_evaluate(ev, settings=None):
 
     # GLAB-001 ------------------------------------------------------------
     if not have_gl:
-        R.add("GLAB-001", NR, "gitlab.yml could not be read; run the audit with become: true.", auth_ev)
+        R.add("GLAB-001", NR, no_gl, auth_ev)
     elif not externals:
         R.add("GLAB-001", OPEN, "Only GitLab's local password database is configured; no LDAP, SAML/OIDC or "
               "smartcard authentication.", auth_ev)
@@ -364,7 +419,7 @@ def gitlab_stig_evaluate(ev, settings=None):
         R.add("GLAB-004", NR, "Authentication is federated (%s). Verify the IdP enforces MFA, then record the "
               "result with gitlab_stig_overrides." % ", ".join(providers), mfa_ev)
     elif not (have_gl and have_st):
-        R.add("GLAB-004", NR, "gitlab.yml or the application settings could not be read.", mfa_ev)
+        R.add("GLAB-004", NR, no_gl if not have_gl else no_st, mfa_ev)
     else:
         R.add("GLAB-004", OPEN, "Multifactor authentication is not enforced.", mfa_ev)
 
@@ -377,13 +432,13 @@ def gitlab_stig_evaluate(ev, settings=None):
     elif omni_on and have_st and not pw_web:
         R.add("GLAB-005", NR, "Authentication is federated (%s). Verify the IdP requires CAC/PIV." % ", ".join(providers), piv_ev)
     elif not have_gl:
-        R.add("GLAB-005", NR, "gitlab.yml could not be read.", piv_ev)
+        R.add("GLAB-005", NR, no_gl, piv_ev)
     else:
         R.add("GLAB-005", OPEN, "GitLab does not accept PIV/CAC credentials (no smartcard or CAC-enforcing IdP).", piv_ev)
 
     # GLAB-006 ------------------------------------------------------------
     if not gl:
-        R.add("GLAB-006", NR, "gitlab.yml could not be read.")
+        R.add("GLAB-006", NR, no_gl)
     elif not ldap_on:
         R.add("GLAB-006", NA, "LDAP authentication is not enabled.")
     else:
@@ -490,7 +545,7 @@ def gitlab_stig_evaluate(ev, settings=None):
     accounts = s.get("service_accounts") or ["git"]
     status, details, ev_lines = sc.eval_accounts(host, accounts, s.get("shell_exceptions") or {})
     root_procs = [l for l in sc._lines(ev.get("processes"))
-                  if l.split(None, 1)[0] == "root" and re.search(APP_PROCESS_RX, l.split(None, 1)[-1])]
+                  if l.split(None, 1)[0] == "root" and re.search(APP_PROCESS_RX, _command(l.split(None, 1)[-1]))]
     issues = list(details) if status == OPEN else []
     if root_procs:
         issues.append("GitLab application processes run as root: %s" % "; ".join(p[:120] for p in root_procs[:5]))
@@ -537,7 +592,8 @@ def gitlab_stig_evaluate(ev, settings=None):
             issues.append("%s is owned by %s (must be root)." % (path, st_.get("owner")))
         if m is not None and m & 0o022:
             issues.append("%s is group/world writable (mode %s)." % (path, st_["mode"]))
-    issues += sc.rpm_verify_issues(ev.get("rpm_verify"), ev_lines)
+    issues += sc.rpm_verify_issues(ev.get("rpm_verify"), ev_lines,
+                                   owner_changes=[install_dir + "/" + p for p in RECONFIGURE_OWNED])
     if not ev_lines:
         R.add("GLAB-016", NR, "%s was not found; verify binary protections manually." % install_dir)
     else:
@@ -676,6 +732,8 @@ def gitlab_stig_evaluate(ev, settings=None):
     ev_lines = ["deactivate_dormant_users=%s" % st.get("deactivate_dormant_users", "?"),
                 "deactivate_dormant_users_period=%s days" % st.get("deactivate_dormant_users_period", "?"),
                 "active human accounts idle > %d days: %s" % (max_days, "?" if dormant is None else dormant)]
+    if (rails.get("errors") or {}).get("dormant"):
+        ev_lines.append("idle account count failed: %s" % rails["errors"]["dormant"])
     if not have_st:
         R.add("GLAB-029", NR, no_st, ev_lines)
     elif sc._int(dormant, 0) > 0:
@@ -696,6 +754,7 @@ class FilterModule(object):
     def filters(self):
         return {
             "gitlab_external_url": gitlab_external_url,
+            "gitlab_yml_summary": gitlab_yml_summary,
             "gitlab_probe_plan": gitlab_probe_plan,
             "gitlab_stig_evaluate": gitlab_stig_evaluate,
         }

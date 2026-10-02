@@ -21,7 +21,7 @@
       log_dir: "{{ gitlab_log_dir }}"
       install_dir: "{{ gitlab_install_dir }}"
       gitlab_rb: "{{ (gsa_files | default({})).get('gitlab.rb', '') }}"
-      gitlab_yml: "{{ (gsa_files | default({})).get('gitlab.yml', '') }}"
+      gitlab_yml: "{{ gsa_gitlab_yml }}"
       nginx_conf: "{{ (gsa_files | default({})).get('gitlab-http.conf', '') }}"
       rails: "{{ _gsa_rails.stdout_lines | default([]) | select('match', '^\\{') | list | last | default('') }}"
       processes: "{{ _gsa_ps.stdout | default('') }}"

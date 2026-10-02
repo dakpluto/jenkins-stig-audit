@@ -19,11 +19,16 @@
     label: "{{ item.item.key }}"
   no_log: true
 
+- name: Extract the gitlab.yml settings the checks read (parsed before redaction)
+  ansible.builtin.set_fact:
+    gsa_gitlab_yml: >-
+      {{ (_gsa_slurp.results | selectattr('item.key', 'equalto', 'gitlab.yml') | selectattr('content', 'defined')
+          | map(attribute='content') | first | default('') | b64decode) | gitlab_yml_summary }}
+
 - name: Resolve external_url
   ansible.builtin.set_fact:
     gsa_external_url: >-
-      {{ (gsa_files | default({})).get('gitlab.yml', '')
-         | gitlab_external_url((gsa_files | default({})).get('gitlab.rb', '')) }}
+      {{ gsa_gitlab_yml | gitlab_external_url((gsa_files | default({})).get('gitlab.rb', '')) }}
 
 - name: Read application settings with gitlab-rails runner (read-only)
   ansible.builtin.command:
@@ -42,6 +47,15 @@
          else ('failed (rc ' ~ _gsa_rails.rc ~ '): ' ~ (_gsa_rails.stderr | default('') | trim | truncate(300))) }};
       the checks that need application settings will be Not_Reviewed.
   when: _gsa_rails.rc is defined and _gsa_rails.rc != 0
+
+- name: Warn about values gitlab-rails runner could not read
+  vars:
+    _errors: >-
+      {{ ((_gsa_rails.stdout_lines | default([]) | select('match', '^\{') | list | last | default('{}'))
+          | from_json).get('errors', {}) }}
+  ansible.builtin.debug:
+    msg: "gitlab-rails runner could not read {{ _errors.keys() | join(', ') }}: {{ _errors | to_json }}"
+  when: _gsa_rails.rc is defined and _gsa_rails.rc == 0 and _errors | length > 0
 
 - name: Record ownership and permissions of key GitLab paths
   vars:

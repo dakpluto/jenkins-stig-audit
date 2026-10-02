@@ -28,20 +28,32 @@ gsa_setting_keys:
 
 # Read-only Ruby run by `gitlab-rails runner`; prints one JSON line.
 gsa_rails_script: |
-  begin
+  # Each value is read on its own so a model change in one GitLab release only loses that value.
+  def gsa_part(out, name)
+    out[name] = yield
+  rescue => e
+    out['errors'][name] = "#{e.class}: #{e.message}"[0, 300]
+  end
+  out = { 'errors' => {} }
+  gsa_part(out, 'settings') do
     keys = %w[{{ (gsa_setting_keys + (gitlab_stig_expected_settings | list)) | unique | join(' ') }}]
     s = ApplicationSetting.current
-    days = {{ gitlab_stig_max_inactive_days | int }}
-    out = {
-      'settings' => (s ? s.attributes.slice(*keys) : {}),
-      'admins' => User.admins.active.pluck(:username),
-      'dormant' => User.active.humans.where('last_activity_on < ?', days.days.ago).count,
-      'terms' => ApplicationSetting::Term.last&.terms.to_s[0, 4000]
-    }
-    puts out.to_json
-  rescue => e
-    puts({ 'error' => e.message }.to_json)
+    # Accessors, not attributes: newer releases keep some settings in jsonb store columns.
+    s ? keys.select { |k| s.respond_to?(k) }.to_h { |k| [k, s.public_send(k)] } : {}
   end
+  gsa_part(out, 'admins') { User.admins.active.pluck(:username) }
+  gsa_part(out, 'dormant') do
+    users = User.active
+    # The human-user scope was renamed across releases (humans -> human); fall back to user_type.
+    users = if users.respond_to?(:humans) then users.humans
+            elsif users.respond_to?(:human) then users.human
+            else users.where(user_type: [nil, 0])
+            end
+    users.where('last_activity_on < ?', {{ gitlab_stig_max_inactive_days | int }}.days.ago).count
+  end
+  gsa_part(out, 'terms') { ApplicationSetting::Term.last&.terms.to_s[0, 4000] }
+  out['error'] = out['errors']['settings'] if out['errors']['settings']
+  puts out.to_json
 
 gsa_settings:
   max_session_timeout: "{{ gitlab_stig_max_session_timeout }}"

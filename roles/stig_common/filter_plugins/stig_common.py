@@ -421,9 +421,10 @@ def eval_log_perms(log_stats, owners, traverse_dirs=()):
     return (OPEN if issues else NF), (_cap(issues) or "Log files and directories are restricted."), ev
 
 
-def rpm_verify_issues(text, ev_lines):
+def rpm_verify_issues(text, ev_lines, owner_changes=()):
     """`rpm -V` output -> issues for altered packaged files (config, doc and ghost files ignored).
-    Appends the relevant lines to ev_lines."""
+    owner_changes: paths the product's installer re-owns by design; a user/group-only change there is
+    expected.  Appends the relevant lines to ev_lines."""
     issues = []
     for line in _lines(text):
         m = re.match(r"^(\S{9}|missing)\s+(?:([cdglr])\s+)?(/\S+)", line.strip())
@@ -431,6 +432,9 @@ def rpm_verify_issues(text, ev_lines):
             continue
         flags, kind, path = m.groups()
         if kind in ("c", "d", "g"):
+            continue
+        if path in owner_changes and flags != "missing" and not any(f in flags for f in "5SM"):
+            ev_lines.append("rpm -V: %s (expected: re-owned by the installer)" % line.strip())
             continue
         ev_lines.append("rpm -V: %s" % line.strip())
         if flags == "missing" or any(f in flags for f in "5MUG"):
@@ -446,7 +450,8 @@ def eval_offload(host, log_dirs, remote=None):
     """remote: evidence strings for product-native remote log shipping (already verified)."""
     rs = _lines((host or {}).get("rsyslog"))
     fwd = [l for l in rs if re.search(r"(^|\s)@@?[\w\[]|omfwd|omrelp", l)]
-    imfile = [l for l in rs if "imfile" in l or "File=" in l]
+    # input(type="imfile" File="...") or legacy $InputFileName; not imjournal's StateFile=
+    imfile = [l for l in rs if "imfile" in l or re.search(r"(^|[^\w])File\s*=|\$InputFileName", l)]
     ev = ["rsyslog forwarding: %s" % (" | ".join(fwd) or "none")] + \
          ["rsyslog imfile: %s" % l for l in imfile[:10]] + ["native: %s" % r for r in remote or []]
     if remote:
