@@ -152,6 +152,8 @@ permissions, and unauthenticated probes of `external_url`. Application settings 
 with a read-only `gitlab-rails runner` script. Rails boot alone often takes 5 minutes or more
 (the limit is `gitlab_stig_rails_timeout`, 30 minutes by default); set
 `gitlab_stig_query_settings: false` to skip it, and those checks become `Not_Reviewed`.
+The sign-in page can also be slow to render on a busy server, so each HTTP probe waits up to
+`gitlab_stig_http_timeout` seconds (60 by default).
 
 | ID | Check | SRG (base IDs) |
 |---|---|---|

@@ -21,6 +21,7 @@
             {'key': 'api_version', 'url': _plan.base_url ~ '/api/v4/version'},
             {'key': 'api_projects', 'url': _plan.base_url ~ '/api/v4/projects?per_page=5', 'content': true}])
          + ([{'key': 'plain_http', 'url': _plan.plain_url}] if _plan.plain_url else []) }}
+    sc_http_timeout: "{{ gitlab_stig_http_timeout }}"
     sc_tls_host: "{{ _plan.tls_host }}"
     sc_tls_port: "{{ _plan.tls_port }}"
 

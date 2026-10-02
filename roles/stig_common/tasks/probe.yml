@@ -4,6 +4,7 @@
 #   sc_http_requests  [{key, url, content (bool)}]
 #   sc_tls_host       host to test TLS versions against ('' = skip)
 #   sc_tls_port       its port
+#   sc_http_timeout   seconds per request (default 15)
 
 - name: Reset probe results
   ansible.builtin.set_fact:
@@ -17,7 +18,7 @@
     validate_certs: false
     follow_redirects: none
     return_content: "{{ item.content | default(false) }}"
-    timeout: 15
+    timeout: "{{ sc_http_timeout | default(15) | int }}"
   loop: "{{ sc_http_requests }}"
   loop_control:
     label: "{{ item.key }}"

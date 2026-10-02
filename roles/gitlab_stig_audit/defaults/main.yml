@@ -9,6 +9,8 @@ gitlab_install_dir: /opt/gitlab
 # URL used for HTTP/TLS probes, run *from the target host*. Leave blank to use
 # external_url. Set it when a load balancer/proxy in front of GitLab terminates TLS.
 gitlab_audit_url: ""
+# Seconds per HTTP probe. The sign-in page renders slowly while Puma is busy or short on memory.
+gitlab_stig_http_timeout: 60
 
 # ---------------------------------------------------------------------------
 # Organization-defined values
