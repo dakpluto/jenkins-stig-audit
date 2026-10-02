@@ -149,7 +149,8 @@ Written for **Omnibus GitLab** (`gitlab-ee`, `gitlab-ce` or `gitlab-fips` RPM). 
 comes from `/etc/gitlab/gitlab.rb`, the rendered `gitlab.yml`, `gitlab-ctl status`, file
 permissions, and unauthenticated probes of `external_url`. Application settings (sign-up,
 2FA, session length, visibility and so on) live in the database, so the role reads them
-with a read-only `gitlab-rails runner` script. That takes a minute or two; set
+with a read-only `gitlab-rails runner` script. Rails boot alone often takes 5 minutes or more
+(the limit is `gitlab_stig_rails_timeout`, 30 minutes by default); set
 `gitlab_stig_query_settings: false` to skip it, and those checks become `Not_Reviewed`.
 
 | ID | Check | SRG (base IDs) |

@@ -27,12 +27,21 @@
 
 - name: Read application settings with gitlab-rails runner (read-only)
   ansible.builtin.command:
-    argv: [timeout, "900", gitlab-rails, runner, "{{ gsa_rails_script }}"]
+    argv: [timeout, "{{ gitlab_stig_rails_timeout }}", gitlab-rails, runner, "{{ gsa_rails_script }}"]
   register: _gsa_rails
   changed_when: false
   failed_when: false
   check_mode: false
   when: gitlab_stig_query_settings | bool and gsa_running | bool
+
+- name: Warn when gitlab-rails runner did not return settings
+  ansible.builtin.debug:
+    msg: >-
+      gitlab-rails runner
+      {{ ('timed out after ' ~ gitlab_stig_rails_timeout ~ 's (raise gitlab_stig_rails_timeout)') if _gsa_rails.rc == 124
+         else ('failed (rc ' ~ _gsa_rails.rc ~ '): ' ~ (_gsa_rails.stderr | default('') | trim | truncate(300))) }};
+      the checks that need application settings will be Not_Reviewed.
+  when: _gsa_rails.rc is defined and _gsa_rails.rc != 0
 
 - name: Record ownership and permissions of key GitLab paths
   vars:

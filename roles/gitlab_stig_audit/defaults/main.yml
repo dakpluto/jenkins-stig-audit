@@ -59,9 +59,11 @@ gitlab_stig_asset:
 # ---------------------------------------------------------------------------
 # Optional / output
 # ---------------------------------------------------------------------------
-# Read application settings with `gitlab-rails runner` (read-only, takes 1-2 minutes).
+# Read application settings with `gitlab-rails runner` (read-only; Rails boot alone often takes 5+ minutes).
 # Without it, the checks that depend on application settings are left Not_Reviewed.
 gitlab_stig_query_settings: true
+# Seconds before the runner is killed (its checks then become Not_Reviewed).
+gitlab_stig_rails_timeout: 1800
 # Verify /opt/gitlab against the RPM database (can take a few minutes).
 gitlab_stig_rpm_verify: true
 # Query configured repos for a pending GitLab update (needs repo access).
