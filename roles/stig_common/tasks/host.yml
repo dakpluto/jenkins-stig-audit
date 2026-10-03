@@ -84,7 +84,7 @@
   check_mode: false
 
 - name: Report free space for data and log filesystems
-  ansible.builtin.shell: "df -hP {{ sc_df_dirs | map('quote') | join(' ') }} 2>/dev/null; true"
+  ansible.builtin.shell: "df -hP {{ sc_df_dirs | map('quote') | join(' ') }} 2>/dev/null | awk '!seen[$0]++'; true"
   register: _sc_df
   changed_when: false
   check_mode: false

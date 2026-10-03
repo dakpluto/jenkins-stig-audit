@@ -418,7 +418,7 @@ def eval_log_perms(log_stats, owners, traverse_dirs=()):
             issues.append("Log file %s mode %s (must be 0640 or stricter)." % (path, st_["mode"]))
     if not stats:
         return NR, "No log files were found; verify log protection manually.", ev
-    return (OPEN if issues else NF), (_cap(issues) or "Log files and directories are restricted."), ev
+    return (OPEN if issues else NF), (_cap(issues) or "Log files and directories are restricted."), _cap(ev, 40)
 
 
 def rpm_verify_issues(text, ev_lines, owner_changes=()):

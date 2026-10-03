@@ -146,7 +146,7 @@
 - name: Report free space for Jenkins data and log filesystems
   vars:
     _dirs: "{{ [jsa_home] + (jsa_files | default({}) | jenkins_audit_log_dirs(jsa_home, jsa_runtime)) }}"
-  ansible.builtin.shell: "df -hP {{ _dirs | map('quote') | join(' ') }} 2>/dev/null; true"
+  ansible.builtin.shell: "df -hP {{ _dirs | map('quote') | join(' ') }} 2>/dev/null | awk '!seen[$0]++'; true"
   register: _jsa_df
   changed_when: false
   check_mode: false
