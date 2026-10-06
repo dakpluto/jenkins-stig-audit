@@ -188,6 +188,36 @@ class NexusEvaluateTests(unittest.TestCase):
         ev["files"]["nexus.properties"] = ""
         self.assertEqual(by_id(nx.nexus_stig_evaluate(ev, SETTINGS))["NXRM-009"]["status"], nx.OPEN)
 
+    def test_break_glass_accounts(self):
+        ev = hardened_evidence()
+        ev["api"]["realms"]["json"] = ["NexusAuthenticatingRealm", "LdapRealm"]
+        ev["api"]["users"]["json"] = [
+            {"userId": "admin", "source": "default", "status": "active", "roles": ["nx-admin"]},
+            {"userId": "BreakGlass", "source": "default", "status": "active", "roles": ["nx-admin"]},
+            {"userId": "stig-audit", "source": "default", "status": "active", "roles": ["audit"]},
+            {"userId": "old", "source": "default", "status": "disabled", "roles": []},
+            {"userId": "jdoe", "source": "LDAP", "status": "active", "roles": []}]
+        s = dict(SETTINGS, api_user="stig-audit")
+        r = by_id(nx.nexus_stig_evaluate(ev, s))
+        self.assertEqual(r["NXRM-001"]["status"], nx.OPEN)
+        self.assertIn("admin, BreakGlass", r["NXRM-001"]["finding_details"])
+        self.assertNotIn("stig-audit", r["NXRM-001"]["finding_details"])
+        self.assertEqual(r["NXRM-003"]["status"], nx.OPEN)
+
+        r = by_id(nx.nexus_stig_evaluate(ev, dict(s, break_glass_accounts=["breakglass", "admin"])))
+        self.assertEqual(r["NXRM-001"]["status"], nx.NF, r["NXRM-001"]["finding_details"])
+        self.assertIn("BreakGlass", r["NXRM-001"]["finding_details"])
+        self.assertIn("stig-audit (audit API account)", r["NXRM-001"]["evidence"])
+        self.assertEqual(r["NXRM-003"]["status"], nx.NF)
+        self.assertIn("break-glass", r["NXRM-003"]["comments"])
+
+        r = by_id(nx.nexus_stig_evaluate(ev, dict(s, break_glass_accounts="breakglass")))
+        self.assertEqual(r["NXRM-001"]["status"], nx.OPEN)   # admin is still enabled and not listed
+        self.assertIn("admin.", r["NXRM-001"]["finding_details"])
+        ev["files"]["nexus.properties"] += "nexus.security.randompassword=false\n"
+        r = by_id(nx.nexus_stig_evaluate(ev, dict(s, break_glass_accounts=["admin"])))
+        self.assertEqual(r["NXRM-003"]["status"], nx.OPEN)   # the default password is never accepted
+
 
 class NexusParsingTests(unittest.TestCase):
     def test_runtime_defaults_and_overrides(self):

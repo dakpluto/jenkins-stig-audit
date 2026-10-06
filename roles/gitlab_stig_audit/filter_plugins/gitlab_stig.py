@@ -26,7 +26,8 @@ CHECKS = [
      ["SRG-APP-000148"], "medium",
      "Configure LDAP (gitlab_rails['ldap_servers']), SAML/OIDC (gitlab_rails['omniauth_providers']) or smartcard "
      "authentication, then Admin > Settings > General > Sign-in restrictions: clear 'Allow password authentication "
-     "for the web interface'. Record a documented break-glass root account with gitlab_stig_overrides."),
+     "for the web interface', or list the documented break-glass account(s) that keep it (e.g. root) in "
+     "gitlab_stig_break_glass_accounts."),
     ("GLAB-002", "GitLab must restrict public visibility and anonymous access",
      ["SRG-APP-000033"], "high",
      "Admin > Settings > General > Visibility and access controls: add 'Public' to Restricted visibility levels, "
@@ -338,6 +339,7 @@ def gitlab_stig_evaluate(ev, settings=None):
     smart = gl.get("smartcard") or {}
     smart_on = _bool(smart.get("enabled"), False)
     pw_web = _bool(st.get("password_authentication_enabled_for_web"), True)
+    break_glass = sc._names(s.get("break_glass_accounts"))
     externals = (["LDAP"] if ldap_on else []) + (["OmniAuth: %s" % ", ".join(providers)] if omni_on else []) + \
                 (["smartcard"] if smart_on else [])
     auth_ev = ["gitlab.yml ldap.enabled=%s" % ldap_on, "omniauth providers: %s" % (", ".join(providers) or "none"),
@@ -356,9 +358,29 @@ def gitlab_stig_evaluate(ev, settings=None):
         R.add("GLAB-001", NR, "Enterprise authentication is configured (%s). %s Verify password sign-in for the web "
               "interface is disabled." % ("; ".join(externals), no_st), auth_ev)
     elif pw_web:
-        R.add("GLAB-001", OPEN, "Enterprise authentication is configured (%s), but local password sign-in for the "
-              "web interface is still enabled." % "; ".join(externals), auth_ev,
-              comments="If this is only for a documented break-glass account, record it with gitlab_stig_overrides.")
+        msg = "Enterprise authentication is configured (%s), but local password sign-in for the web interface is " \
+              "still enabled." % "; ".join(externals)
+        local = rails.get("local_users")
+        if not isinstance(local, list):
+            R.add("GLAB-001", OPEN, msg, auth_ev,
+                  comments="If this is only for a documented break-glass account, list it in "
+                           "gitlab_stig_break_glass_accounts or record it with gitlab_stig_overrides.")
+        else:
+            others = [u for u in local if str(u).lower() not in break_glass]
+            exempt = [u for u in local if str(u).lower() in break_glass]
+            auth_ev.append("active accounts without an LDAP/SAML/OIDC identity: %s" % (", ".join(
+                "%s%s" % (u, " (break-glass)" if u in exempt else "") for u in local) or "none"))
+            if others:
+                R.add("GLAB-001", OPEN, msg + " Accounts that can only sign in with a GitLab password and are not "
+                      "documented break-glass accounts: %s." % ", ".join(others[:20]), auth_ev,
+                      comments="List documented break-glass accounts in gitlab_stig_break_glass_accounts.")
+            else:
+                R.add("GLAB-001", NF, "Users authenticate through %s. Password sign-in is still enabled, but %s." % (
+                      "; ".join(externals), "the only accounts without an enterprise identity are documented "
+                      "break-glass accounts (%s)" % ", ".join(exempt) if exempt else
+                      "every active account has an enterprise identity"), auth_ev,
+                      comments="Break-glass accounts per gitlab_stig_break_glass_accounts. Verify their credentials "
+                               "are sealed/vaulted and their use is logged and reviewed.")
     else:
         R.add("GLAB-001", NF, "Users authenticate through %s; local password web sign-in is disabled." %
               "; ".join(externals), auth_ev)
@@ -732,6 +754,13 @@ def gitlab_stig_evaluate(ev, settings=None):
     ev_lines = ["deactivate_dormant_users=%s" % st.get("deactivate_dormant_users", "?"),
                 "deactivate_dormant_users_period=%s days" % st.get("deactivate_dormant_users_period", "?"),
                 "active human accounts idle > %d days: %s" % (max_days, "?" if dormant is None else dormant)]
+    idle = rails.get("dormant_users")
+    if isinstance(idle, list) and idle:
+        exempt = [u for u in idle if str(u).lower() in break_glass]
+        ev_lines.append("idle accounts: %s%s" % (", ".join(idle[:20]), " ..." if len(idle) > 20 else ""))
+        if exempt and dormant is not None:
+            ev_lines.append("documented break-glass accounts not counted: %s" % ", ".join(exempt))
+            dormant = max(sc._int(dormant, 0) - len(exempt), 0)
     if (rails.get("errors") or {}).get("dormant"):
         ev_lines.append("idle account count failed: %s" % rails["errors"]["dormant"])
     if not have_st:

@@ -24,4 +24,6 @@ nsa_settings:
   min_version: "{{ nexus_stig_min_version }}"
   approved_ports: "{{ nexus_stig_approved_ports }}"
   overrides: "{{ nexus_stig_overrides }}"
+  break_glass_accounts: "{{ nexus_stig_break_glass_accounts }}"
+  api_user: "{{ nexus_stig_api_user }}"
   audit_url: "{{ nexus_audit_url }}"

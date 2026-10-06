@@ -17,6 +17,9 @@ gitlab_stig_http_timeout: 60
 # ---------------------------------------------------------------------------
 gitlab_stig_max_session_timeout: 15           # minutes
 gitlab_stig_max_inactive_days: 35
+# Documented break-glass (emergency) local accounts, e.g. [root]. They may keep password sign-in
+# without failing GLAB-001, and are not counted as idle accounts in GLAB-029.
+gitlab_stig_break_glass_accounts: []
 gitlab_stig_banner_regex: 'You are accessing a U\.S\. Government'
 gitlab_stig_tls_termination: auto             # auto | gitlab | proxy
 # Lowest acceptable GitLab version, e.g. "17.3.4". Empty = GLAB-020 left for manual review.

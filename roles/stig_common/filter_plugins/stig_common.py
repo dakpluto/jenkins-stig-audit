@@ -88,6 +88,13 @@ def _lines(val):
     return [l for l in str(val).splitlines() if l.strip()]
 
 
+def _names(val):
+    """Account names from a list or comma/space-separated string, lower-cased (for break-glass lists)."""
+    if isinstance(val, str):
+        val = re.split(r"[,\s]+", val)
+    return set(str(v).strip().lower() for v in (val or []) if str(v).strip())
+
+
 def _version_tuple(v):
     return tuple(int(p) for p in re.findall(r"\d+", str(v or "")))
 

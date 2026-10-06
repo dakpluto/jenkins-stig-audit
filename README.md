@@ -341,7 +341,30 @@ Product-specific options:
 | `gitlab_stig_expected_settings` | Application settings and their required values (GLAB-019) |
 | `gitlab_stig_query_settings` / `gitlab_stig_rpm_verify` | Skip the slower `gitlab-rails runner` / `rpm -V` steps |
 | `nexus_stig_api_user` / `nexus_stig_api_password` | Read-only REST API account (see above) |
+| `gitlab_stig_break_glass_accounts` / `nexus_stig_break_glass_accounts` | Documented break-glass (emergency) local accounts; see below |
 | `nexus_install_dir` / `nexus_data_dir` | Set when Nexus is stopped and not in a standard location |
+
+### Break-glass accounts
+
+Most sites keep one or two local emergency accounts for when the directory or IdP is down.
+List them, and the checks stop counting them against you (usernames are case-insensitive):
+
+```yaml
+gitlab_stig_break_glass_accounts: [root]
+nexus_stig_break_glass_accounts: [breakglass]   # add admin to also accept the built-in admin (NXRM-003)
+```
+
+- **GLAB-001**: if password sign-in is still enabled, the check lists every active account with no
+  LDAP/SAML/OIDC identity. It passes when all of them are break-glass accounts.
+- **GLAB-029**: break-glass accounts are not counted as idle accounts.
+- **NXRM-001**: if the Local Authenticating Realm is still active, the check lists the enabled local
+  users (needs `nx-users-read`). It passes when all of them are break-glass accounts or
+  `nexus_stig_api_user`.
+- **NXRM-003**: an enabled `admin` passes only when `admin` is in the list, and never with
+  `nexus.security.randompassword=false`.
+
+These results carry a comment naming the accounts, so the assessor can confirm the credentials are
+sealed or vaulted and that their use is logged and reviewed.
 
 ## Scope notes
 

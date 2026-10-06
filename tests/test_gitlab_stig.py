@@ -339,6 +339,33 @@ class GitLabParsingTests(unittest.TestCase):
         self.assertEqual(r["GLAB-003"]["status"], gs.NF)
         self.assertIn("humans", r["GLAB-029"]["evidence"])
 
+    def test_break_glass_accounts(self):
+        ev = hardened_evidence()
+        data = gs._rails(ev["rails"])
+        data["settings"].update(password_authentication_enabled_for_web=True, deactivate_dormant_users=True,
+                                deactivate_dormant_users_period=30)
+        data.update(local_users=["root", "ops"], dormant=2, dormant_users=["root", "bob"])
+        ev["rails"] = json.dumps(data)
+        r = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["GLAB-001"]["status"], gs.OPEN)
+        self.assertIn("root, ops", r["GLAB-001"]["finding_details"])
+        self.assertEqual(r["GLAB-029"]["status"], gs.OPEN)
+        self.assertIn("2 active", r["GLAB-029"]["finding_details"])
+
+        s = dict(SETTINGS, break_glass_accounts=["ROOT"])
+        r = by_id(gs.gitlab_stig_evaluate(ev, s))
+        self.assertEqual(r["GLAB-001"]["status"], gs.OPEN)
+        self.assertIn(": ops.", r["GLAB-001"]["finding_details"])
+        self.assertIn("1 active", r["GLAB-029"]["finding_details"])
+
+        data.update(local_users=["root"], dormant=1, dormant_users=["root"])
+        ev["rails"] = json.dumps(data)
+        r = by_id(gs.gitlab_stig_evaluate(ev, s))
+        self.assertEqual(r["GLAB-001"]["status"], gs.NF, r["GLAB-001"]["finding_details"])
+        self.assertIn("root (break-glass)", r["GLAB-001"]["evidence"])
+        self.assertEqual(r["GLAB-029"]["status"], gs.NF, r["GLAB-029"]["finding_details"])
+        self.assertIn("not counted: root", r["GLAB-029"]["evidence"])
+
     def test_rails_output(self):
         self.assertEqual(gs._rails("noise\n{\"settings\": {\"a\": 1}}\n")["settings"], {"a": 1})
         self.assertEqual(gs._rails("boom"), {})

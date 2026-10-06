@@ -17,6 +17,8 @@ nexus_stig_api_password: ""
 nexus_stig_max_session_timeout: 15
 nexus_stig_min_version: ""
 nexus_stig_approved_ports: []
+# Documented break-glass local accounts (accepted by NXRM-001; 'admin' also by NXRM-003).
+nexus_stig_break_glass_accounts: []
 
 # Documented mitigations / manual results.
 nexus_stig_overrides: {}

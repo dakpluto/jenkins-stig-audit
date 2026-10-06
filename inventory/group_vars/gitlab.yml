@@ -14,6 +14,8 @@ gitlab_stig_max_session_timeout: 15
 gitlab_stig_min_version: ""
 gitlab_stig_approved_ports: []
 gitlab_stig_approved_services: []
+# Documented break-glass local accounts (accepted by GLAB-001, not counted as idle by GLAB-029).
+gitlab_stig_break_glass_accounts: []   # e.g. [root]
 
 # Documented mitigations / manual results.
 gitlab_stig_overrides: {}

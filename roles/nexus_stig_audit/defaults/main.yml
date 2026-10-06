@@ -30,6 +30,10 @@ nexus_stig_min_java_major: 17
 nexus_stig_min_version: ""
 # PPSM-registered ports Nexus may listen on. Empty = NXRM-015 left for manual review.
 nexus_stig_approved_ports: []                 # e.g. [8443]
+# Documented break-glass (emergency) local accounts. They may stay enabled in the local realm
+# without failing NXRM-001; list 'admin' here to accept it as the break-glass account for NXRM-003.
+# nexus_stig_api_user is always accepted for NXRM-001.
+nexus_stig_break_glass_accounts: []           # e.g. [breakglass]
 
 # Record documented mitigations, risk acceptances or manual results.
 # status: NotAFinding | Open | Not_Applicable | Not_Reviewed

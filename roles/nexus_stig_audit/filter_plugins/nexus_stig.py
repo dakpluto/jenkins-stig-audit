@@ -27,8 +27,8 @@ CHECKS = [
     ("NXRM-001", "Nexus must authenticate users through the DoD enterprise ICAM, not local accounts",
      ["SRG-APP-000148"], "medium",
      "Administration > Security > LDAP (ldaps://) or SAML to the DoD IdP, then Administration > Security > "
-     "Realms: remove 'Local Authenticating Realm' from the active list. Record a documented break-glass local "
-     "account with nexus_stig_overrides."),
+     "Realms: remove 'Local Authenticating Realm' from the active list, or list the documented break-glass local "
+     "account(s) it is kept for in nexus_stig_break_glass_accounts."),
     ("NXRM-002", "Nexus anonymous access must be disabled",
      ["SRG-APP-000033"], "high",
      "Administration > Security > Anonymous Access: clear 'Allow anonymous users to access the server'."),
@@ -218,6 +218,12 @@ def nexus_stig_evaluate(ev, settings=None):
     realms = realms or []
     externals = [r for r in realms if r in PKI_REALMS + IDP_REALMS + DIR_REALMS]
     realm_ev = ["active realms: %s" % (", ".join(realms) if have_realms else "not read (no API credentials)")]
+    have_users, users = _api(ev, "users")
+    local_users = [u for u in users or [] if isinstance(u, dict) and
+                   str(u.get("source", "default")).lower() == "default" and
+                   str(u.get("status", "")).lower() in ("active", "changepassword")]
+    break_glass = sc._names(s.get("break_glass_accounts"))
+    api_user = str(s.get("api_user") or "").lower()
 
     # NXRM-001 ------------------------------------------------------------
     if not have_realms:
@@ -225,9 +231,33 @@ def nexus_stig_evaluate(ev, settings=None):
     elif not externals:
         R.add("NXRM-001", OPEN, "Only Nexus' local user database is used; no LDAP, SAML or PKI realm is active.", realm_ev)
     elif LOCAL_REALM in realms:
-        R.add("NXRM-001", OPEN, "Enterprise authentication is active (%s), but the Local Authenticating Realm is "
-              "also active." % ", ".join(externals), realm_ev,
-              comments="If this is only for a documented break-glass account, record it with nexus_stig_overrides.")
+        msg = "Enterprise authentication is active (%s), but the Local Authenticating Realm is also active." % \
+            ", ".join(externals)
+        if not have_users:
+            R.add("NXRM-001", OPEN, msg, realm_ev + ["local users: not read (needs nx-users-read)"],
+                  comments="If this is only for a documented break-glass account, list it in "
+                           "nexus_stig_break_glass_accounts or record it with nexus_stig_overrides.")
+        else:
+            def kind(uid):
+                u = uid.lower()
+                return "break-glass" if u in break_glass else ("audit API account" if u == api_user else "")
+            ids = [str(u.get("userId", "?")) for u in local_users]
+            realm_ev.append("enabled local users: %s" % (", ".join("%s%s" % (i, " (%s)" % kind(i) if kind(i) else "")
+                                                                   for i in ids) or "none"))
+            others = [i for i in ids if not kind(i)]
+            exempt = [i for i in ids if kind(i) == "break-glass"]
+            if others:
+                R.add("NXRM-001", OPEN, msg + " Enabled local accounts that are not documented break-glass accounts: "
+                      "%s." % ", ".join(others[:20]), realm_ev,
+                      comments="List documented break-glass accounts in nexus_stig_break_glass_accounts.")
+            else:
+                R.add("NXRM-001", NF, "Users authenticate through %s. The Local Authenticating Realm is active, but "
+                      "%s." % (", ".join(externals),
+                               "the only enabled local accounts are documented break-glass accounts (%s)" %
+                               ", ".join(exempt) if exempt else
+                               "no local account other than the audit API account is enabled"), realm_ev,
+                      comments="Break-glass accounts per nexus_stig_break_glass_accounts. Verify their credentials "
+                               "are sealed/vaulted and their use is logged and reviewed.")
     else:
         R.add("NXRM-001", NF, "Users authenticate through %s; the local realm is not active." % ", ".join(externals), realm_ev)
 
@@ -252,8 +282,7 @@ def nexus_stig_evaluate(ev, settings=None):
         R.add("NXRM-002", NR, NO_API + " No repositories were visible anonymously.", ev_lines)
 
     # NXRM-003 ------------------------------------------------------------
-    have_users, users = _api(ev, "users")
-    issues, ev_lines = [], []
+    issues, ev_lines, comments = [], [], ""
     rp_flag = props.get("nexus.security.randompassword", jvm.get("nexus.security.randompassword", ""))
     if str(rp_flag).lower() == "false":
         issues.append("nexus.security.randompassword=false: the built-in admin account is created with the "
@@ -263,12 +292,18 @@ def nexus_stig_evaluate(ev, settings=None):
         for u in admin:
             ev_lines.append("user admin: status=%s roles=%s" % (u.get("status"), ", ".join(u.get("roles") or [])))
             if str(u.get("status", "")).lower() in ("active", "changepassword"):
-                issues.append("The shared built-in 'admin' account is enabled.")
+                if "admin" in break_glass:
+                    comments = ("'admin' is enabled as a documented break-glass account "
+                                "(nexus_stig_break_glass_accounts). Verify its password is sealed/vaulted and its "
+                                "use is logged and reviewed.")
+                else:
+                    issues.append("The shared built-in 'admin' account is enabled.")
         ev_lines.append("%d users returned by the API" % len(users or []))
     if issues:
-        R.add("NXRM-003", OPEN, issues, ev_lines)
+        R.add("NXRM-003", OPEN, issues, ev_lines, comments=comments)
     elif have_users:
-        R.add("NXRM-003", NF, "The built-in 'admin' account is disabled or absent.", ev_lines)
+        R.add("NXRM-003", NF, "The built-in 'admin' account is enabled only as a documented break-glass account."
+              if comments else "The built-in 'admin' account is disabled or absent.", ev_lines, comments=comments)
     else:
         R.add("NXRM-003", NR, NO_API, ev_lines)
 

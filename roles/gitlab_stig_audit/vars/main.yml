@@ -41,16 +41,24 @@ gsa_rails_script: |
     # Accessors, not attributes: newer releases keep some settings in jsonb store columns.
     s ? keys.select { |k| s.respond_to?(k) }.to_h { |k| [k, s.public_send(k)] } : {}
   end
-  gsa_part(out, 'admins') { User.admins.active.pluck(:username) }
-  gsa_part(out, 'dormant') do
+  def gsa_humans
     users = User.active
     # The human-user scope was renamed across releases (humans -> human); fall back to user_type.
-    users = if users.respond_to?(:humans) then users.humans
-            elsif users.respond_to?(:human) then users.human
-            else users.where(user_type: [nil, 0])
-            end
-    users.where('last_activity_on < ?', {{ gitlab_stig_max_inactive_days | int }}.days.ago).count
+    if users.respond_to?(:humans) then users.humans
+    elsif users.respond_to?(:human) then users.human
+    else users.where(user_type: [nil, 0])
+    end
   end
+  gsa_part(out, 'admins') { User.admins.active.pluck(:username) }
+  gsa_part(out, 'dormant') do
+    gsa_humans.where('last_activity_on < ?', {{ gitlab_stig_max_inactive_days | int }}.days.ago).count
+  end
+  gsa_part(out, 'dormant_users') do
+    gsa_humans.where('last_activity_on < ?', {{ gitlab_stig_max_inactive_days | int }}.days.ago)
+              .limit(500).pluck(:username)
+  end
+  # Active people with no LDAP/SAML/OIDC identity, i.e. who can only sign in with a GitLab password.
+  gsa_part(out, 'local_users') { gsa_humans.where.not(id: Identity.select(:user_id)).limit(500).pluck(:username) }
   gsa_part(out, 'terms') { ApplicationSetting::Term.last&.terms.to_s[0, 4000] }
   out['error'] = out['errors']['settings'] if out['errors']['settings']
   puts out.to_json
@@ -67,4 +75,5 @@ gsa_settings:
   service_accounts: "{{ gitlab_stig_service_accounts }}"
   shell_exceptions: "{{ gitlab_stig_shell_exceptions }}"
   overrides: "{{ gitlab_stig_overrides }}"
+  break_glass_accounts: "{{ gitlab_stig_break_glass_accounts }}"
   audit_url: "{{ gitlab_audit_url }}"
