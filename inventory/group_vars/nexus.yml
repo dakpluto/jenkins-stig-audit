@@ -21,7 +21,13 @@ nexus_stig_approved_ports: []
 nexus_stig_break_glass_accounts: []
 
 # Documented mitigations / manual results.
-nexus_stig_overrides: {}
+nexus_stig_overrides:
+  NXRM-004:
+    status: NotAFinding
+    comment: >-
+      Passwords for Nexus accounts are checked out from Thycotic Secret Server, which
+      requires MFA for access. Accepted by the ISSO as meeting SRG-APP-000149/000391/000392/000820
+      (approval reference: <ticket or memo #>, <date>).
 #  NXRM-006:
 #    status: NotAFinding
 #    comment: "UI: Settings session timeout is 15 minutes; verified by ISSO 2026-09-01"
