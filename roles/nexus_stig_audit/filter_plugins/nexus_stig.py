@@ -193,6 +193,11 @@ def _api(ev, key):
     return r.get("status") == 200, r.get("json")
 
 
+def _loopback_url(url):
+    m = re.match(r"^\w+://(\[[^\]]+\]|[^/:]+)", url or "")
+    return bool(m) and (sc._is_loopback(m.group(1).strip("[]")) or m.group(1).lower() == "localhost")
+
+
 def nexus_stig_evaluate(ev, settings=None):
     s = settings or {}
     ev = ev or {}
@@ -479,8 +484,11 @@ def nexus_stig_evaluate(ev, settings=None):
         R.add("NXRM-017", status, details, ev_lines)
 
     # NXRM-018 ------------------------------------------------------------
-    servers = sorted(set(str(r.get("server")) for r in http.values() if isinstance(r, dict) and r.get("server")))
-    if not servers and not any(isinstance(r, dict) and r.get("status", -1) > 0 for r in http.values()):
+    # The plain_http probe of a loopback-only listener (Nexus behind a proxy) is not what users see.
+    probes = dict((k, r) for k, r in http.items()
+                  if not (k == "plain_http" and isinstance(r, dict) and _loopback_url(r.get("url"))))
+    servers = sorted(set(str(r.get("server")) for r in probes.values() if isinstance(r, dict) and r.get("server")))
+    if not servers and not any(isinstance(r, dict) and r.get("status", -1) > 0 for r in probes.values()):
         R.add("NXRM-018", NR, "Nexus HTTP endpoints could not be probed.")
     else:
         bad = [v for v in servers if re.search(r"\d", v)]

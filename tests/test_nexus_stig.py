@@ -218,6 +218,19 @@ class NexusEvaluateTests(unittest.TestCase):
         r = by_id(nx.nexus_stig_evaluate(ev, dict(s, break_glass_accounts=["admin"])))
         self.assertEqual(r["NXRM-003"]["status"], nx.OPEN)   # the default password is never accepted
 
+    def test_server_header_behind_proxy(self):
+        ev = hardened_evidence()
+        ev["http"]["ui"]["server"] = ev["http"]["status"]["server"] = "nginx"
+        # Nexus' own loopback listener still sends its version; users never reach it
+        ev["http"]["plain_http"] = {"url": "http://127.0.0.1:8081/", "status": 200, "server": "Nexus/3.90.2-06 (PRO)"}
+        r = by_id(nx.nexus_stig_evaluate(ev, SETTINGS))
+        self.assertEqual(r["NXRM-018"]["status"], nx.NF, r["NXRM-018"]["finding_details"])
+        ev["http"]["plain_http"]["url"] = "http://10.1.1.5:8081/"   # an exposed plaintext listener still counts
+        self.assertEqual(by_id(nx.nexus_stig_evaluate(ev, SETTINGS))["NXRM-018"]["status"], nx.OPEN)
+        ev["http"]["ui"]["server"] = "nginx/1.20.1"                  # server_tokens on
+        ev["http"]["plain_http"]["url"] = "http://127.0.0.1:8081/"
+        self.assertIn("nginx/1.20.1", by_id(nx.nexus_stig_evaluate(ev, SETTINGS))["NXRM-018"]["finding_details"])
+
 
 class NexusParsingTests(unittest.TestCase):
     def test_runtime_defaults_and_overrides(self):
