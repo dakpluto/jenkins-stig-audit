@@ -616,7 +616,17 @@ def gitlab_stig_evaluate(ev, settings=None):
             issues.append("%s is group/world writable (mode %s)." % (path, st_["mode"]))
     issues += sc.rpm_verify_issues(ev.get("rpm_verify"), ev_lines,
                                    owner_changes=[install_dir + "/" + p for p in RECONFIGURE_OWNED])
-    if not ev_lines:
+    rpm_rc = ev.get("rpm_verify_rc")
+    rpm_incomplete = not ev.get("rpm_verify_ran") or (
+        "rpm_verify_rc" in ev and (rpm_rc not in (0, 1) or bool(ev.get("rpm_verify_stderr"))))
+    if rpm_incomplete:
+        ev_lines.append("RPM verification incomplete or skipped (rc=%s). %s" % (
+            rpm_rc, ev.get("rpm_verify_stderr", "")))
+    if issues:
+        R.verdict("GLAB-016", issues, "", ev_lines)
+    elif rpm_incomplete:
+        R.add("GLAB-016", NR, "RPM integrity verification was skipped or did not complete; verify binary integrity manually.", ev_lines)
+    elif not ev_lines:
         R.add("GLAB-016", NR, "%s was not found; verify binary protections manually." % install_dir)
     else:
         R.verdict("GLAB-016", issues, "GitLab binaries are root-owned and match the RPM database.", ev_lines,

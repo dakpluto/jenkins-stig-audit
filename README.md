@@ -155,6 +155,14 @@ with a read-only `gitlab-rails runner` script. Rails boot alone often takes 5 mi
 The sign-in page can also be slow to render on a busy server, so each HTTP probe waits up to
 `gitlab_stig_http_timeout` seconds (60 by default).
 
+The `rpm -V` integrity check reads the local RPM database and installed files; it does
+not use a repository. Manually installing a transferred Omnibus RPM still registers
+it in that database. Verification is limited to `gitlab_stig_rpm_verify_timeout`
+seconds (300 by default, with a 10-second forced-stop grace period). To skip it, use
+`./run_local.sh gitlab -e gitlab_stig_rpm_verify=false`. Skipped, timed-out or failed
+verification leaves GLAB-016 `Not_Reviewed` unless collected evidence already shows
+an `Open` finding. Repository update checks remain disabled by default.
+
 | ID | Check | SRG (base IDs) |
 |---|---|---|
 | GLAB-001 | LDAP/SAML/OIDC/smartcard in use and local password web sign-in disabled | 000148 |

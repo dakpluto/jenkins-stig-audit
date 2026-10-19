@@ -102,7 +102,8 @@
   check_mode: false
 
 - name: Verify GitLab package files against the RPM database
-  ansible.builtin.command: rpm -V {{ gsa_package.name | quote }}
+  ansible.builtin.command:
+    argv: [timeout, --kill-after=10s, "{{ gitlab_stig_rpm_verify_timeout }}", rpm, -V, "{{ gsa_package.name }}"]
   register: _gsa_rpmv
   changed_when: false
   failed_when: false

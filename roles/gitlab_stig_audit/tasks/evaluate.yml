@@ -29,6 +29,8 @@
       log_stats: "{{ _gsa_logstats.stdout_lines }}"
       world_writable: "{{ _gsa_ww.stdout_lines }}"
       rpm_verify_ran: "{{ _gsa_rpmv.rc is defined }}"
+      rpm_verify_rc: "{{ _gsa_rpmv.rc | default(none) }}"
+      rpm_verify_stderr: "{{ _gsa_rpmv.stderr | default('') }}"
       rpm_verify: "{{ _gsa_rpmv.stdout | default('') }}"
       system: "{{ sc_host }}"
       http: "{{ sc_http }}"

@@ -329,6 +329,23 @@ class GitLabParsingTests(unittest.TestCase):
         ev["rpm_verify"] = "S.5....T.    /opt/gitlab/embedded/service/gitlab-rails/db/structure.sql"
         self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.OPEN)
 
+    def test_incomplete_rpm_verification_requires_review(self):
+        for ran, rc, stderr in [(False, None, ""), (True, 124, ""),
+                                (True, 137, ""), (True, 2, "RPM error"),
+                                (True, 1, "cannot read file")]:
+            with self.subTest(ran=ran, rc=rc):
+                ev = hardened_evidence()
+                ev.update(rpm_verify_ran=ran, rpm_verify_rc=rc,
+                          rpm_verify="", rpm_verify_stderr=stderr)
+                self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.NR)
+                ev["rpm_verify"] = "S.5....T.    /opt/gitlab/embedded/bin/ruby"
+                self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.OPEN)
+
+    def test_completed_rpm_verification(self):
+        ev = hardened_evidence()
+        ev.update(rpm_verify_rc=0, rpm_verify="", rpm_verify_stderr="")
+        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.NF)
+
     def test_rails_partial_failure_keeps_settings(self):
         ev = hardened_evidence()
         data = gs._rails(ev["rails"])
