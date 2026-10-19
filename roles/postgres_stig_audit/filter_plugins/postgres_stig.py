@@ -522,7 +522,8 @@ def h_pgdata(c, superusers=False, log_dir=False, pgaudit_files=False, install=Fa
         ev += [sc._fmt_stat(st) for st in pa]
         issues += ["%s is owned by %s (must be root)." % (st["path"], st["owner"]) for st in pa if st["owner"] != "root"]
         if not pa:
-            issues.append("pgaudit is not installed under %s/share/extension." % c.install)
+            share_dir = str(c.ev.get("share_dir") or c.install + "/share").rstrip("/")
+            issues.append("pgaudit was not found under %s/extension or the installation's lib directory; verify installation and collection paths." % share_dir)
     if install:
         i2, e2 = c.install_issues()
         issues += i2

@@ -55,7 +55,7 @@ psa_database_sql: |
 # psql as the database owner over the local socket, read-only.
 psa_psql: >-
   {{ ['runuser', '-u', postgres_os_user, '--', 'env', 'PGOPTIONS=-c default_transaction_read_only=on',
-      'PGAPPNAME=stig_audit', postgres_bin_dir ~ '/psql', '-X', '-A', '-t', '-q', '-v', 'ON_ERROR_STOP=1',
+      'PGAPPNAME=stig_audit', psa_bin_dir ~ '/psql', '-X', '-A', '-t', '-q', '-v', 'ON_ERROR_STOP=1',
       '-h', psa_socket_dir, '-p', psa_port | string] }}
 
 psa_settings:

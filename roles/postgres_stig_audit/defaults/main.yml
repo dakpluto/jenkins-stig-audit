@@ -4,7 +4,11 @@
 # ---------------------------------------------------------------------------
 postgres_version: 16
 postgres_install_dir: "/usr/pgsql-{{ postgres_version }}"
-postgres_bin_dir: "{{ postgres_install_dir }}/bin"
+# Blank = prefer postgres_install_dir/bin when psql exists there, then psql on PATH.
+postgres_bin_dir: ""
+# Blank = discover with the selected installation's pg_config --sharedir;
+# fall back to postgres_install_dir/share when pg_config is unavailable.
+postgres_share_dir: ""
 postgres_service_name: "postgresql-{{ postgres_version }}"
 postgres_os_user: postgres
 # Leave blank to use the running postmaster's -D, the service's PGDATA, or

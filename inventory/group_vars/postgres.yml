@@ -7,6 +7,11 @@
 postgres_stig_xccdf: ""   # "{{ playbook_dir }}/stig/U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG.zip"
 
 postgres_pgdata: ""       # blank = auto-detect (/var/lib/pgsql/16/data)
+# Binaries: prefer the installation's bin directory, then locate psql on PATH.
+# Shared directory: auto-detected with the resolved binary directory's pg_config --sharedir.
+# Optional overrides for distributions with separate binary/shared-file locations:
+# postgres_bin_dir: "/usr/bin"
+# postgres_share_dir: "/usr/share/pgsql"
 
 # Values from the system security plan.
 postgres_stig_max_connections: ""

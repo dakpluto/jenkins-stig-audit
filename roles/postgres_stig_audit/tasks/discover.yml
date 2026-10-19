@@ -39,9 +39,35 @@
   changed_when: false
   check_mode: false
 
+- name: Check the default PostgreSQL client location
+  ansible.builtin.stat:
+    path: "{{ postgres_install_dir }}/bin/psql"
+    get_checksum: false
+  register: _psa_default_psql
+  when: postgres_bin_dir | trim | length == 0
+
+- name: Locate psql on PATH
+  ansible.builtin.shell: command -v psql
+  register: _psa_path_psql
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - postgres_bin_dir | trim | length == 0
+    - not (_psa_default_psql.stat.exists | default(false))
+
+- name: Resolve the PostgreSQL binary directory
+  ansible.builtin.set_fact:
+    psa_bin_dir: >-
+      {{ postgres_bin_dir | trim or
+         (postgres_install_dir ~ '/bin' if (_psa_default_psql.stat.exists | default(false)) else
+          ((_psa_path_psql.stdout | trim | dirname)
+           if (_psa_path_psql.rc | default(1)) == 0 and (_psa_path_psql.stdout | default('') | trim).startswith('/')
+           else postgres_install_dir ~ '/bin')) }}
+
 - name: Resolve the PostgreSQL {{ postgres_version }} cluster
   vars:
-    _pick: "{{ _psa_pm.stdout | pg_pick_postmaster(postgres_bin_dir, postgres_pgdata) }}"
+    _pick: "{{ _psa_pm.stdout | pg_pick_postmaster(psa_bin_dir, postgres_pgdata) }}"
     _unit_pgdata: "{{ _psa_unit.stdout | default('') | trim }}"
   ansible.builtin.set_fact:
     psa_pid: "{{ _pick.pid }}"
@@ -77,11 +103,37 @@
   when: psa_running | bool
 
 - name: Read the PostgreSQL server version
-  ansible.builtin.command: "{{ postgres_bin_dir }}/postgres --version"
+  ansible.builtin.command: "{{ psa_bin_dir }}/postgres --version"
   register: _psa_version
   changed_when: false
   failed_when: false
   check_mode: false
+
+- name: Discover the PostgreSQL shared directory
+  ansible.builtin.command:
+    argv: ["{{ psa_bin_dir }}/pg_config", --sharedir]
+  register: _psa_sharedir
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: postgres_share_dir | trim | length == 0
+
+- name: Resolve the PostgreSQL shared directory
+  ansible.builtin.set_fact:
+    psa_share_dir: >-
+      {{ (postgres_share_dir | trim or
+          ((_psa_sharedir.stdout | default('') | trim)
+           if (_psa_sharedir.rc | default(1)) == 0 else '')
+          or postgres_install_dir ~ '/share') | regex_replace('/+$', '') }}
+
+- name: Warn when the shared directory could not be discovered
+  ansible.builtin.debug:
+    msg: >-
+      pg_config --sharedir did not return a directory; using {{ psa_share_dir }}.
+      Set postgres_share_dir if your installation stores shared files elsewhere.
+  when:
+    - postgres_share_dir | trim | length == 0
+    - (_psa_sharedir.rc | default(1)) != 0 or (_psa_sharedir.stdout | default('') | trim | length) == 0
 
 - name: Set connection details
   ansible.builtin.set_fact:
@@ -94,4 +146,6 @@
     msg:
       - "PostgreSQL {{ psa_version | default('?', true) }}; running: {{ psa_running }} (pid {{ psa_pid | default('-', true) }})"
       - "PGDATA: {{ psa_pgdata }}  socket: {{ psa_socket_dir }}:{{ psa_port }}"
+      - "Shared directory: {{ psa_share_dir }}"
+      - "Binary directory: {{ psa_bin_dir }} (set postgres_bin_dir to override, especially with multiple versions installed)"
       - "Packages: {{ _psa_rpm.stdout_lines | map('regex_replace', '[|].*$', '') | join(', ') }}"

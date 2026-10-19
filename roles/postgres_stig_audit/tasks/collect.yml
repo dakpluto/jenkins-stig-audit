@@ -121,7 +121,7 @@
 - name: Record ownership and permissions of the PostgreSQL software
   ansible.builtin.shell: >-
     find {{ postgres_install_dir | quote }} -maxdepth 1 -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null;
-    find {{ postgres_install_dir | quote }}/share/extension {{ postgres_install_dir | quote }}/lib -maxdepth 1
+    find {{ (psa_share_dir ~ '/extension') | quote }} {{ postgres_install_dir | quote }}/lib -maxdepth 1
     -name 'pgaudit*' -printf '%p|%u|%g|%m|%y|%T@|%s\n' 2>/dev/null; true
   register: _psa_install
   changed_when: false

@@ -16,6 +16,7 @@
       pgdata: "{{ psa_pgdata }}"
       port: "{{ psa_port }}"
       install_dir: "{{ postgres_install_dir }}"
+      share_dir: "{{ psa_share_dir }}"
       packages: "{{ _psa_rpm.stdout | default('') }}"
       paths: "{{ psa_paths }}"
       sql: "{{ psa_sql }}"
