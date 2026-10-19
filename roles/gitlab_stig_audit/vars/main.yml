@@ -44,9 +44,12 @@ gsa_rails_script: |
   def gsa_humans
     users = User.active
     # The human-user scope was renamed across releases (humans -> human); fall back to user_type.
-    if users.respond_to?(:humans) then users.humans
-    elsif users.respond_to?(:human) then users.human
-    else users.where(user_type: [nil, 0])
+    if users.respond_to?(:humans)
+      users.humans
+    elsif users.respond_to?(:human)
+      users.human
+    else
+      users.where(user_type: [nil, 0])
     end
   end
   gsa_part(out, 'admins') { User.admins.active.pluck(:username) }
