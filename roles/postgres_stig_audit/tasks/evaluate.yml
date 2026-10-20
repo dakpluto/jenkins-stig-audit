@@ -23,6 +23,8 @@
       dbs: "{{ _psa_dbsql.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
                | map(attribute='stdout') | list }}"
       files: "{{ psa_files | default({}) }}"
+      access: "{{ _psa_access.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
+                  | map(attribute='stdout') | list }}"
       pgdata_stats: "{{ _psa_pgdata.stdout_lines }}"
       pgdata_violations: "{{ _psa_pgdata_bad.stdout_lines }}"
       file_stats: "{{ _psa_files.stdout_lines }}"

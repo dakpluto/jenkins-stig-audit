@@ -273,10 +273,137 @@ and shows how many `AUDIT:`, `permission denied`, `connection authorized` and `F
 entries the newest log already holds. Each such result carries a comment saying so;
 run the test during the assessment if your assessor requires it.
 
+#### Approved database access (CD16-00-000300)
+
+Set `postgres_stig_approved_access` to a complete allowlist to compare database access
+with your documented authorizations. Leave it `null` to retain the manual check.
+The audit collects access in every connectable database, including `postgres` and
+`template1`; it does not change any grants. A database other than `template0` that
+cannot be inventoried keeps the check `Not_Reviewed`, unless a known policy violation
+already makes it `Open`.
+
+Example policy entries (a fragment, not a complete policy for a real installation):
+
+```yaml
+postgres_stig_approved_access:
+  # Full cluster administrator: explicitly accepts ownership, grant options,
+  # powerful role attributes and access in every database.
+  - role: postgres
+    database: '*'
+    objects: '*'
+    privileges: ['*']
+    grant_option: true
+    creator: '*'
+
+  - role: app_reader
+    database: appdb
+    objects: databases
+    object: appdb
+    privileges: [CONNECT]
+
+  - role: app_reader
+    database: appdb
+    objects: schemas
+    object: app
+    privileges: [USAGE]
+
+  - role: app_reader
+    database: appdb
+    objects: tables
+    schema: app
+    object: '*'
+    privileges: [SELECT]
+
+  # Memberships apply across the cluster. This authorizes alice to use the
+  # separately approved app_reader grants, including through SET ROLE.
+  - role: alice
+    database: '*'
+    objects: roles
+    object: app_reader
+    privileges: [MEMBER, INHERIT, SET]
+
+  # Explicit ALTER DEFAULT PRIVILEGES grants need the creating role too.
+  - role: app_reader
+    database: appdb
+    objects: default_tables
+    schema: app
+    creator: app_owner
+    privileges: [SELECT]
+
+# Match the complete HBA rules in their original order. These are examples only.
+# Lists/options match exactly; omit line/error and empty address/netmask fields.
+postgres_stig_approved_access_hba:
+  - type: local
+    database: [all]
+    user: [postgres]
+    method: peer
+  - type: hostssl
+    database: [appdb]
+    user: [alice]
+    address: 10.0.0.0
+    netmask: 255.255.255.0
+    method: cert
+    options: [clientcert=verify-full]
+
+# Supply an actual review reference before this rule can pass.
+postgres_stig_access_system_review: 'Access matrix v3 section 4; DBA review NAME, DATE'
+```
+
+Every grant must match an entry. `role`, `database`, `objects`, and `privileges` are
+required. Names are exact and case-sensitive; `'*'` means all values, not a partial
+glob. `schema` and `object` default to `'*'`. Privileges use uppercase names; `'*'`
+accepts all privileges for the selected kind. `grant_option` defaults to `false`;
+set it to `true` to allow delegation as well as the underlying privilege. `OWNER`
+must be approved explicitly (or with `'*'`), because ownership permits alteration,
+dropping and regranting access even when an ACL omits the owner. Extra approved
+privileges need not be present: this checks excessive access, not required grants.
+
+Supported `objects` values are `databases`, `schemas`, `tables` (also views,
+materialized views and foreign tables), `columns`, `sequences`, `functions` (also
+procedures), `types`, `languages` (trusted languages), `foreign_data_wrappers`,
+`foreign_servers`, `large_objects`, `roles`, and `'*'`. Database/schema/language and
+other unqualified names use `object`; their `schema` is empty. Column names are
+`table.column`. Functions use `name(identity arguments)` to distinguish overloads.
+Explicit default ACLs use `default_tables`, `default_sequences`, `default_functions`,
+`default_types` or `default_schemas`, and require `creator`; an empty schema means a
+global default within that database. The raw evidence contains the exact names.
+
+`PUBLIC` grants are evaluated as `role: PUBLIC`; accepting one authorizes access
+for every role. NULL ACLs are expanded using PostgreSQL's built-in defaults, so
+default PUBLIC `CONNECT`, `TEMPORARY`, `EXECUTE` and `USAGE` grants are not hidden.
+Memberships are checked separately from parent-role grants: every membership edge,
+including nested and predefined-role memberships, needs approval. For `objects: roles`,
+`object` is the parent role and privileges are `MEMBER`, `INHERIT`, `SET`, and `ADMIN`
+as applicable. This prevents a new member from silently receiving an approved group's
+permissions. Superuser and other cluster attributes use `object: '*'` and privileges
+`SUPERUSER`, `CREATEROLE`, `CREATEDB`, `REPLICATION`, and `BYPASSRLS`. These approvals
+must use `database: '*'`; a superuser or built-in role's powers cannot be confined to
+one database by this policy. The implicit `pg_database_owner` role is resolved to
+the current database owner for grants and ownership.
+
+System schemas (`pg_*`, `information_schema`), the internal `template0` database,
+built-in-role special powers, and behavior inside procedural code/`SECURITY DEFINER`
+functions are outside the application ACL comparison. Review those against your
+access documentation and record the reference in `postgres_stig_access_system_review`.
+Without that reference, the rule cannot pass. HBA approval compares file rules, not
+IdP group membership or operating-system access; include those in the baseline review
+where they affect account mapping. PostgreSQL documents [ACLs and privilege inquiry
+functions](https://www.postgresql.org/docs/16/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE)
+and [membership options](https://www.postgresql.org/docs/16/catalog-pg-auth-members.html).
+
+Start with an empty access list to inventory unmatched permissions, inspect the saved
+raw `access` evidence and finding details, then add only documented approvals. An
+empty list approves nothing; a missing policy section, malformed policy, failed query
+or unsupported evidence prevents a pass. Unknown policy fields, object kinds and
+privilege names are rejected. The report shows up to 100 unmatched authorizations; the raw evidence retains
+the complete inventory. Existing `postgres_stig_overrides` still support a documented
+manual assessment.
+
 What is automated:
 
 | Area | Rules |
 |---|---|
+| Approved database access policy: grants, ownership, role memberships/attributes, explicit default ACLs and HBA baseline (requires configured policy and system access review) | 000300 |
 | pgaudit preloaded and `pgaudit.log` classes (`role, read, write, ddl`), `log_catalog` | 000500, 000700, 000900, 009400–011100, 011400, 011800 |
 | Logging enabled so denials/errors are recorded; `log_line_prefix` tokens; connections/disconnections | 000400, 000800, 001000–001500, 007600, 007900, 009000, 009500–011900 (denial rules), 011200–012000 |
 | Log file mode 0600 and ownership; `client_min_messages = error` | 002000–002200, 006000, 006100 |

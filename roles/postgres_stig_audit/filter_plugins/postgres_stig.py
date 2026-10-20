@@ -928,6 +928,202 @@ def h_labels(c, key="security_labeling_required"):
     return NR, "Verify the required security labels are enforced with row-level security policies as documented.", rls
 
 
+ACCESS_PRIVILEGES = {
+    "databases": {"CONNECT", "CREATE", "TEMPORARY", "OWNER"},
+    "schemas": {"USAGE", "CREATE", "OWNER"},
+    "tables": {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "OWNER"},
+    "columns": {"SELECT", "INSERT", "UPDATE", "REFERENCES"},
+    "sequences": {"USAGE", "SELECT", "UPDATE", "OWNER"},
+    "functions": {"EXECUTE", "OWNER"},
+    "types": {"USAGE", "OWNER"},
+    "languages": {"USAGE", "OWNER"},
+    "foreign_data_wrappers": {"USAGE", "OWNER"},
+    "foreign_servers": {"USAGE", "OWNER"},
+    "large_objects": {"SELECT", "UPDATE", "OWNER"},
+    "roles": {"MEMBER", "INHERIT", "SET", "ADMIN", "SUPERUSER", "CREATEROLE", "CREATEDB",
+              "REPLICATION", "BYPASSRLS"},
+}
+for _kind in ("tables", "sequences", "functions", "types", "schemas"):
+    ACCESS_PRIVILEGES["default_" + _kind] = ACCESS_PRIVILEGES[_kind] - {"OWNER"}
+
+
+def _access_policy_error(policy):
+    if not isinstance(policy, list):
+        return "approved_access must be a list (use [] to approve no access)."
+    fields = {"role", "database", "objects", "schema", "object", "privileges", "grant_option", "creator"}
+    for i, entry in enumerate(policy):
+        prefix = "approved_access entry %s: " % (i + 1)
+        if not isinstance(entry, dict) or set(entry) - fields:
+            return prefix + "expected a mapping with only documented policy fields."
+        if any(not isinstance(entry.get(k), str) or not entry[k] for k in ("role", "database", "objects")):
+            return prefix + "role, database and objects must be nonempty strings."
+        kind = entry["objects"]
+        if kind not in ACCESS_PRIVILEGES and kind != "*":
+            return prefix + "unknown objects value %r." % kind
+        privs = entry.get("privileges")
+        supported = set().union(*ACCESS_PRIVILEGES.values()) if kind == "*" else ACCESS_PRIVILEGES[kind]
+        if not isinstance(privs, list) or not privs or any(
+                not isinstance(p, str) or p not in supported | {"*"} for p in privs):
+            return prefix + "privileges must be a nonempty list of supported uppercase privileges or '*'."
+        if any(k in entry and not isinstance(entry[k], str) for k in ("schema", "object", "creator")):
+            return prefix + "schema, object and creator must be strings."
+        if "grant_option" in entry and not isinstance(entry["grant_option"], bool):
+            return prefix + "grant_option must be a boolean."
+        if kind == "roles" and entry["database"] != "*":
+            return prefix + "role attributes and memberships are cluster-wide; database must be '*'."
+        if kind.startswith("default_") and not entry.get("creator"):
+            return prefix + "default privileges require an explicit creator (or '*')."
+    return ""
+
+
+def _access_allowed(row, policy):
+    for p in policy:
+        if p["objects"] not in ("*", row["objects"]):
+            continue
+        if any(p.get(k, "*") not in ("*", row[k]) for k in ("role", "database", "schema", "object")):
+            continue
+        if row.get("creator") and p.get("creator") not in ("*", row["creator"]):
+            continue
+        if row["privilege"] not in p["privileges"] and "*" not in p["privileges"]:
+            continue
+        if row.get("grant_option") and not p.get("grant_option", False):
+            continue
+        return True
+    return False
+
+
+def _hba_access_key(rule):
+    """Exact HBA approval; order within a rule is significant, line numbers are not."""
+    return json.dumps({k: rule.get(k) or ([] if k in ("database", "user", "options") else "")
+                       for k in ("type", "database", "user", "address", "netmask", "method", "options")},
+                      sort_keys=True)
+
+
+def h_access(c):
+    policy = c.s.get("approved_access")
+    if policy is None:
+        return h_manual(c, "Compare role privileges and pg_hba.conf entries with documented authorizations; "
+                        "configure postgres_stig_approved_access to automate the comparison.", ["roles", "hba"])
+    error = _access_policy_error(policy)
+    if error:
+        return NR, "Invalid access policy: " + error, []
+    hba_policy = c.s.get("approved_access_hba")
+    if hba_policy is not None and (not isinstance(hba_policy, list) or any(
+            not isinstance(r, dict) or set(r) - {"type", "database", "user", "address", "netmask", "method", "options"}
+            or not all(isinstance(r.get(k), list) and all(isinstance(v, str) for v in r[k])
+                       for k in ("database", "user"))
+            or not all(isinstance(r.get(k), str) and r[k] for k in ("type", "method"))
+            or any(r.get(k) is not None and not isinstance(r[k], str) for k in ("address", "netmask"))
+            or (r.get("options") is not None and (not isinstance(r["options"], list)
+                                    or any(not isinstance(v, str) for v in r["options"])))
+            for r in hba_policy)):
+        return NR, "Invalid approved_access_hba: use exact HBA mappings with type, database, user and method.", []
+    missing, issues, evidence = [], [], []
+    db_inventory = c.sql.get("databases")
+    if not isinstance(db_inventory, list) or not db_inventory or any(
+            not isinstance(d, dict) or not isinstance(d.get("name"), str) for d in db_inventory):
+        return NR, "Database inventory is missing; access policy could not be evaluated.", []
+    expected = {d["name"] for d in db_inventory if d.get("name") != "template0"}
+    if not expected:
+        return NR, "No assessable database was inventoried.", []
+    raw_snapshots = c.ev.get("access") or []
+    if not isinstance(raw_snapshots, list):
+        raw_snapshots = []
+    snapshots = [_sql(d) for d in raw_snapshots]
+    complete = {}
+    for d in snapshots:
+        if isinstance(d, dict) and isinstance(d.get("db"), str) and d.get("version") == 1 and \
+                isinstance(d.get("access"), list) and \
+                isinstance(d.get("roles"), list) and d["roles"] and isinstance(d.get("memberships"), list):
+            complete[d.get("db")] = d
+    absent = expected - set(complete)
+    if absent:
+        missing.append("Access inventory missing for database(s): %s." % ", ".join(sorted(absent)))
+    # Each membership must be explicitly approved. Together with approval of the
+    # parent role's grants this covers nested inheritance and SET ROLE, including
+    # predefined roles with special powers. Memberships cannot be scoped to a DB.
+    rows = []
+    global_seen = set()
+    for db in sorted(expected & set(complete)):
+        d = complete[db]
+        evidence.append("database %s: %s access records" % (db, len(d["access"])))
+        for a in d["access"]:
+            if not isinstance(a, dict) or not isinstance(a.get("objects"), str) or \
+                    not isinstance(a.get("privilege"), str) or a.get("objects") not in ACCESS_PRIVILEGES or \
+                    a.get("privilege") not in ACCESS_PRIVILEGES.get(a.get("objects"), set()) or \
+                    any(not isinstance(a.get(k), str) for k in ("role", "schema", "object", "creator")) or \
+                    not isinstance(a.get("grant_option"), bool):
+                missing.append("Malformed or unsupported access record in %s." % db)
+                continue
+            rows.append(dict(a, database=db))
+        global_rows = []
+        for r in d["roles"]:
+            if not isinstance(r, dict) or not isinstance(r.get("name"), str) or any(
+                    not isinstance(r.get(k), bool) for k in ("super", "createrole", "createdb", "replication", "bypassrls")):
+                missing.append("Malformed role evidence in %s." % db)
+                continue
+            for attr, priv in (("super", "SUPERUSER"), ("createrole", "CREATEROLE"), ("createdb", "CREATEDB"),
+                               ("replication", "REPLICATION"), ("bypassrls", "BYPASSRLS")):
+                if r[attr]:
+                    global_rows.append((r["name"], "*", priv))
+        for m in d["memberships"]:
+            if not isinstance(m, dict) or any(not isinstance(m.get(k), str) for k in ("role", "object")) or any(
+                    not isinstance(m.get(k), bool) for k in ("admin", "inherit", "set")):
+                missing.append("Malformed membership evidence in %s." % db)
+                continue
+            global_rows.append((m["role"], m["object"], "MEMBER"))
+            for flag, priv in (("admin", "ADMIN"), ("inherit", "INHERIT"), ("set", "SET")):
+                if m[flag]:
+                    global_rows.append((m["role"], m["object"], priv))
+        for role, obj, priv in global_rows:
+            key = (role, obj, priv)
+            if key not in global_seen:
+                global_seen.add(key)
+                rows.append(dict(role=role, database="*", objects="roles", schema="", object=obj,
+                                 privilege=priv, creator="", grant_option=False))
+    for row in rows:
+        if not _access_allowed(row, policy):
+            issues.append("Unapproved: role=%s database=%s %s %s%s privilege=%s%s%s" % (
+                row["role"], row["database"], row["objects"],
+                row["schema"] + "." if row["schema"] else "", row["object"], row["privilege"],
+                " WITH GRANT OPTION" if row["grant_option"] else "",
+                " creator=" + row["creator"] if row["creator"] else ""))
+    if not isinstance(c.sql.get("hba"), list) or not c.sql["hba"]:
+        missing.append("Live HBA evidence is missing.")
+    elif hba_policy is None:
+        missing.append("postgres_stig_approved_access_hba is not configured.")
+    else:
+        approved_hba = [_hba_access_key(r) for r in hba_policy]
+        actual_hba = []
+        for r in c.sql["hba"]:
+            if not isinstance(r, dict):
+                missing.append("Malformed HBA evidence.")
+            elif r.get("error") or not r.get("type"):
+                missing.append("HBA parse error at line %s: %s" % (r.get("line"), r.get("error")))
+            else:
+                actual_hba.append(_hba_access_key(r))
+            if isinstance(r, dict) and r.get("type") and not r.get("error") and _hba_access_key(r) not in approved_hba:
+                issues.append("Unapproved HBA line %s: %s" % (r.get("line"), _hba_access_key(r)))
+        if len(actual_hba) == len(c.sql["hba"]) and actual_hba != approved_hba:
+            issues.append("HBA rule content or order differs from the approved_access_hba baseline.")
+    review = c.s.get("access_system_review")
+    if not isinstance(review, str) or not review.strip():
+        missing.append("Record postgres_stig_access_system_review for system schemas, built-in role powers "
+                       "and SECURITY DEFINER access not modeled by application ACLs.")
+    else:
+        evidence.append("System access baseline review: " + review)
+    evidence += [_hba_access_key(r) for r in (c.sql.get("hba") or []) if isinstance(r, dict)] + \
+        issues[:100] + sorted(set(missing))
+    evidence.append("Compared %s grants, ownership, default privilege and role authorization records." % len(rows))
+    if issues:
+        return OPEN, "%s access authorization(s) exceed the approved policy. %s" % (
+            len(issues), "Evidence is incomplete; see evidence." if missing else ""), evidence
+    if missing:
+        return NR, "No collected access exceeds the policy, but evidence or policy coverage is incomplete.", evidence
+    return NF, "Collected access is within the approved policy, including memberships, ownership, grant options, " \
+        "default privileges and HBA rules; system/procedural access has a documented baseline review.", evidence
+
+
 def h_manual(c, text, evidence=None):
     ev = []
     for e in evidence or []:
@@ -958,8 +1154,7 @@ FOUR = ("role", "read", "write", "ddl")
 RULES = {
     "CD16-00-000100": h_connlimit,
     "CD16-00-000200": h_hba_external,
-    "CD16-00-000300": lambda c: h_manual(c, "Compare role privileges (\\du, \\dp) and pg_hba.conf entries with the "
-                                            "documented permissions for each group role.", ["roles", "hba"]),
+    "CD16-00-000300": h_access,
     "CD16-00-000400": lambda c: h_prefix(c, ("%m", "%a", "%u", "%d", "%r", "%p"), pgaudit=True),
     "CD16-00-000500": _audit_rule((), test=True),
     "CD16-00-000600": lambda c: h_pgdata(c, superusers=True),

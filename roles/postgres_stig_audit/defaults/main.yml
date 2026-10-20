@@ -37,6 +37,14 @@ postgres_stig_approved_packages: []           # rpm names; empty = manual review
 # extension, "db: schema.function (owner x, extension y)". Functions of approved extensions pass.
 postgres_stig_approved_security_definer: []
 postgres_stig_approved_owners: []             # roles authorized to own objects; empty = manual review
+# CD16-00-000300: complete allowlist; null keeps the rule manual. See README for examples.
+# Names are exact and case-sensitive; '*' matches all names in that field.
+postgres_stig_approved_access: null
+# Exact pg_hba_file_rules entries approved by the access policy (omit line/error).
+postgres_stig_approved_access_hba: null
+# Reference to the reviewed system-schema/built-in-role and SECURITY DEFINER access baseline.
+# SQL ACL comparison covers application objects; procedural/system access still needs this review.
+postgres_stig_access_system_review: ""
 postgres_stig_approved_ports: []              # e.g. [5432]; empty = manual review
 postgres_stig_log_timezone: UTC
 postgres_stig_syslog_facility: ""             # expected syslog_facility, e.g. local0
