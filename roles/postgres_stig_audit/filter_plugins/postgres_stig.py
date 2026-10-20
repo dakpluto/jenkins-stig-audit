@@ -910,11 +910,14 @@ def h_dod_cert(c):
     ev = c.setting_ev("ssl_cert_file", "ssl_ca_file") + sc._lines(cert)[:20]
     if not cert:
         return NR, "The server certificate could not be read; verify it and the CA file are DoD-issued.", ev
-    rx = c.s.get("dod_issuer_regex") or r"O\s*=\s*U\.S\. Government.*OU\s*=\s*DoD"
+    rx = c.s.get("dod_issuer_regex") or (
+        r"(?:O\s*=\s*U\.S\. Government.*OU\s*=\s*DoD|"
+        r"O\s*=\s*C2BMC\s*[,/].*OU\s*=\s*BMDS\.SMIL\.MIL\s*(?:[,/]|$))")
     issuer = next((l for l in sc._lines(cert) if l.lower().startswith("issuer")), "")
     if not re.search(rx, issuer):
-        return OPEN, "The server certificate is not issued by a DoD CA (%s)." % issuer, ev
-    return NF, "The server certificate is issued by a DoD CA.", ev, "Verify ssl_ca_file contains only DoD CAs."
+        return OPEN, "The server certificate issuer does not match an accepted DoD or site-approved CA (%s)." % issuer, ev
+    return NF, "The server certificate issuer matches an accepted DoD or site-approved CA.", ev, \
+        "Verify ssl_ca_file contains only DoD or DoD-approved CAs."
 
 
 def h_labels(c, key="security_labeling_required"):

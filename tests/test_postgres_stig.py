@@ -127,6 +127,20 @@ def by_id(results):
 
 
 class PostgresEvaluateTests(unittest.TestCase):
+    def test_approved_mda_certificate_issuer(self):
+        for org, unit, expected in (
+                ("C2BMC", "BMDS.SMIL.MIL", pg.NF),
+                ("Other", "BMDS.SMIL.MIL", pg.OPEN),
+                ("C2BMC", "Other", pg.OPEN),
+                ("C2BMC", "BMDS.SMIL.MIL.evil", pg.OPEN)):
+            with self.subTest(org=org, unit=unit):
+                ev = hardened()
+                ev["cert_info"] = "subject=CN = db01.example.mil\nissuer=O = %s, OU = %s, CN = Intermediate" % (org, unit)
+                r = by_id(pg.postgres_stig_evaluate(ev, SETTINGS))
+                self.assertEqual(r["CD16-00-008400"]["status"], expected)
+        r = by_id(pg.postgres_stig_evaluate(ev, dict(SETTINGS, dod_issuer_regex="Example CA")))
+        self.assertEqual(r["CD16-00-008400"]["status"], pg.OPEN)
+
     def test_one_result_per_rule_bound_to_its_vuln_id(self):
         for ev in (hardened(), insecure(), {}):
             res = pg.postgres_stig_evaluate(ev, SETTINGS)
