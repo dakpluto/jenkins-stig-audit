@@ -131,15 +131,27 @@ class PostgresEvaluateTests(unittest.TestCase):
         for org, unit, expected in (
                 ("C2BMC", "BMDS.SMIL.MIL", pg.NF),
                 ("U.S. Government", "NSS", pg.NF),
-                ("C2BMC", "NSS", pg.OPEN),
+                ("C2BMC", "NSS", pg.NF),
                 ("Other", "NSS", pg.OPEN),
                 ("U.S. Government", "NSS.evil", pg.OPEN),
                 ("Other", "BMDS.SMIL.MIL", pg.OPEN),
-                ("C2BMC", "Other", pg.OPEN),
-                ("C2BMC", "BMDS.SMIL.MIL.evil", pg.OPEN)):
+                ("C2BMC", "Other", pg.NF),
+                ("C2BMC.evil", "BMDS.SMIL.MIL", pg.OPEN)):
             with self.subTest(org=org, unit=unit):
                 ev = hardened()
                 ev["cert_info"] = "subject=CN = db01.example.mil\nissuer=O = %s, OU = %s, CN = Intermediate" % (org, unit)
+                r = by_id(pg.postgres_stig_evaluate(ev, SETTINGS))
+                self.assertEqual(r["CD16-00-008400"]["status"], expected)
+        for issuer, expected in (
+                ("O = C2BMC", pg.NF),
+                ("C = US, O = C2BMC, CN = Intermediate", pg.NF),
+                ("O=C2BMC,CN=Intermediate", pg.NF),
+                ("O = C2BMC.evil", pg.OPEN),
+                ("OU = C2BMC", pg.OPEN),
+                ("CN = O = C2BMC", pg.OPEN)):
+            with self.subTest(issuer=issuer):
+                ev = hardened()
+                ev["cert_info"] = "subject=CN = db01.example.mil\nissuer=" + issuer
                 r = by_id(pg.postgres_stig_evaluate(ev, SETTINGS))
                 self.assertEqual(r["CD16-00-008400"]["status"], expected)
         r = by_id(pg.postgres_stig_evaluate(ev, dict(SETTINGS, dod_issuer_regex="Example CA")))

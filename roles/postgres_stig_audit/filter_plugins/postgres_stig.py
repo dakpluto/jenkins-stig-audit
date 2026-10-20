@@ -912,7 +912,7 @@ def h_dod_cert(c):
         return NR, "The server certificate could not be read; verify it and the CA file are DoD-issued.", ev
     rx = c.s.get("dod_issuer_regex") or (
         r"(?:O\s*=\s*U\.S\. Government\s*[,/].*OU\s*=\s*(?:DoD|NSS)\s*(?:[,/]|$)|"
-        r"O\s*=\s*C2BMC\s*[,/].*OU\s*=\s*BMDS\.SMIL\.MIL\s*(?:[,/]|$))")
+        r"(?:^issuer\s*=|^|[,/])\s*O\s*=\s*C2BMC\s*(?:[,/]|$))")
     issuer = next((l for l in sc._lines(cert) if l.lower().startswith("issuer")), "")
     if not re.search(rx, issuer):
         return OPEN, "The server certificate issuer does not match an accepted DoD or site-approved CA (%s)." % issuer, ev
