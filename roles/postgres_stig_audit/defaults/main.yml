@@ -82,6 +82,17 @@ postgres_stig_asset:
 # ---------------------------------------------------------------------------
 # Optional / output
 # ---------------------------------------------------------------------------
+# Active SQL/log verification. Requires a pre-provisioned restricted LOGIN role
+# and a libpq service readable by postgres_os_user; see README. Mutates only
+# uniquely named synthetic schemas, and always attempts to remove them.
+postgres_stig_active_verify: false
+postgres_stig_active_role: stig_audit
+postgres_stig_active_service: stig_audit
+# Empty = every connectable, non-template database. Partial coverage cannot pass
+# an instance-wide active check.
+postgres_stig_active_databases: []
+postgres_stig_active_log_wait: 10
+postgres_stig_active_log_max_bytes: 8388608
 # Query configured repos for a pending PostgreSQL update (needs repo access).
 postgres_stig_check_repo_updates: false
 postgres_stig_report_dir: "{{ playbook_dir }}/reports"

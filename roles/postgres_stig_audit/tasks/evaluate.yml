@@ -25,6 +25,10 @@
       files: "{{ psa_files | default({}) }}"
       access: "{{ _psa_access.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
                   | map(attribute='stdout') | list }}"
+      active: "{{ psa_active_results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
+                  | map(attribute='stdout') | list }}"
+      active_errors: "{{ psa_active_results | default([]) | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0)
+                         | map(attribute='stderr') | list }}"
       pgdata_stats: "{{ _psa_pgdata.stdout_lines }}"
       pgdata_violations: "{{ _psa_pgdata_bad.stdout_lines }}"
       file_stats: "{{ _psa_files.stdout_lines }}"

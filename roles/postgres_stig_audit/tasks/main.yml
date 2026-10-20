@@ -1,14 +1,26 @@
 ---
 # Read-only audit of a Crunchy Data PostgreSQL 16 server (RHEL) against the DISA
-# Crunchy Data Postgres 16 STIG. Nothing on the target is modified: SQL runs in a
-# read-only transaction, and every command task runs with check_mode: false /
+# Crunchy Data Postgres 16 STIG. By default nothing on the target is modified:
+# SQL runs read-only, and every passive command task runs with check_mode: false /
 # changed_when: false so the role also works under --check.
+# Opt-in active verification creates and removes synthetic fixtures; skipped in --check.
 
 - name: Discover the PostgreSQL cluster
   ansible.builtin.import_tasks: discover.yml
 
 - name: Collect settings, files and host evidence
   ansible.builtin.import_tasks: collect.yml
+
+- name: Clear active evidence from any earlier role invocation
+  ansible.builtin.set_fact:
+    psa_active_results: []
+
+- name: Perform explicitly enabled active SQL and log verification
+  ansible.builtin.include_tasks: active.yml
+  when:
+    - postgres_stig_active_verify | bool and not ansible_check_mode
+    - postgres_stig_query_sql | bool and psa_running | bool
+    - psa_sql | length > 0
 
 - name: Evaluate evidence against the STIG rules
   ansible.builtin.import_tasks: evaluate.yml
@@ -38,6 +50,7 @@
       PGDATA: "{{ psa_pgdata }}"
       port: "{{ psa_port }}"
       running: "{{ psa_running }}"
+      active_verification: "{{ psa_active_results | length > 0 }}"
     sc_xccdf_path: "{{ postgres_stig_xccdf }}"
     sc_rule_map: "{{ postgres_stig_rule_map }}"
     sc_asset: "{{ postgres_stig_asset }}"

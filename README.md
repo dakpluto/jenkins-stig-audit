@@ -1,6 +1,6 @@
 # DISA SRG/STIG Audits (Ansible): Jenkins, GitLab, Nexus, PostgreSQL
 
-Read-only Ansible audits of RHEL servers against DISA benchmarks:
+Ansible audits of RHEL servers against DISA benchmarks (read-only by default):
 
 - **Jenkins**, **Omnibus GitLab** and **Sonatype Nexus Repository 3** against the
   **Application Server Security Requirements Guide (SRG)**. DISA publishes no
@@ -15,9 +15,10 @@ Read-only Ansible audits of RHEL servers against DISA benchmarks:
 | `nexus_stig_audit.yml` | `nexus` | Application Server SRG | 24 (`NXRM-*`) |
 | `postgres_stig_audit.yml` | `postgres` | Crunchy Data Postgres 16 STIG V1R3 | 111 (`CD16-00-*`, every rule) |
 
-The playbooks **change nothing on the target**. Every task only reads files,
+By default the playbooks **change nothing on the target**. Passive tasks only read files,
 runs status commands, makes `GET` requests, or does TLS handshakes. They also
-work under `--check`.
+work under `--check`. PostgreSQL also offers explicitly enabled active SQL/log
+verification, which creates and removes synthetic test fixtures and is skipped under `--check`.
 
 ## Outputs
 
@@ -252,7 +253,7 @@ report are DISA's (`roles/postgres_stig_audit/files/crunchy_pg16_stig_index.json
 For a STIG Viewer checklist, pass the STIG's XCCDF:
 `-e postgres_stig_xccdf=stig/U_Crunchy_Data_Postgres_16_V1R3_Manual_STIG.zip`.
 
-How the evidence is gathered (all read-only):
+How the passive evidence is gathered (all read-only):
 
 - **SQL**: `psql` runs as `postgres` over the local socket with
   `default_transaction_read_only=on`. It reads `pg_settings`, `pg_file_settings`, roles,
@@ -266,12 +267,118 @@ How the evidence is gathered (all read-only):
 - **Host**: FIPS mode and the OpenSSL FIPS provider, rsyslog forwarding, disk usage.
 
 Many of DISA's check procedures *write* to the database (`CREATE ROLE bob`, a test table,
-a failed login) and then look for the log entry. The audit does not do that. For those
+a failed login) and then look for the log entry. The default passive audit does not do that. For those
 rules it verifies the configuration that produces the record (logging enabled,
 `log_min_messages`/`log_min_error_statement`, `pgaudit.log` classes, `log_connections`)
 and shows how many `AUDIT:`, `permission denied`, `connection authorized` and `FATAL`
 entries the newest log already holds. Each such result carries a comment saying so;
 run the test during the assessment if your assessor requires it.
+
+#### Active SQL and log verification
+
+Enable active verification to generate controlled events and attach their SQL
+transcripts and corresponding server records to the report. Each assessed database
+gets a unique `_stig_probe_<run>` schema containing only synthetic data. The existing
+admin connection prepares fixtures; a real `stig_audit` login performs the probes.
+The admin connection removes the marked schema in a cleanup block. Authentication,
+logging settings, application tables and existing grants are not changed. Temporary
+fixture grants disappear with the schema. Template databases are deliberately excluded
+to avoid test objects being copied by concurrent `CREATE DATABASE` operations.
+
+Provision a dedicated role once, through your normal account-management process:
+
+```sql
+CREATE ROLE stig_audit LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+  NOREPLICATION NOBYPASSRLS NOINHERIT CONNECTION LIMIT 5;
+-- Where CONNECT is not already available, approve and grant it per target database:
+GRANT CONNECT ON DATABASE appdb TO stig_audit;
+```
+
+The runner refuses a missing/non-login role, a role with elevated cluster attributes,
+or a role with any explicit memberships. It does not create the account, assign a
+password, grant superuser or modify HBA/PKI settings. Configure the account's approved
+authentication and a libpq service named `stig_audit` readable by `postgres_os_user`
+(normally `postgres`). For example, in that OS account's `.pg_service.conf`:
+
+```ini
+[stig_audit]
+host=db01.example.mil
+port=5432
+user=stig_audit
+sslmode=verify-full
+sslrootcert=/approved/path/ca.pem
+sslcert=/approved/path/stig_audit.crt
+sslkey=/approved/path/stig_audit.key
+```
+
+Use your actual approved hostname, port and certificate paths. A password-based
+service can instead use a protected passfile when allowed by your policy. Credentials
+stay on the target; they are not passed through inventory or written into reports.
+Do not set `application_name` in the service: the runner assigns a unique name to
+each connection. The service must connect to the same PostgreSQL instance discovered
+by the audit; the runner verifies the database, real session user, current user and
+postmaster start time before accepting a session. It never substitutes `SET ROLE`
+for proof of a login.
+
+```yaml
+postgres_stig_active_verify: true
+postgres_stig_active_role: stig_audit
+postgres_stig_active_service: stig_audit
+postgres_stig_active_databases: []  # all connectable, non-template databases
+postgres_stig_active_log_wait: 10   # bounded polling for asynchronous log writes
+postgres_stig_active_log_max_bytes: 8388608
+```
+
+Use local collector `jsonlog` or `csvlog`, or text logs with both `%p` (PID) and `%e`
+(SQLSTATE) in `log_line_prefix`. Retain your other required prefix fields; for example:
+`'< %m %u %d %c [%p] %r %a %e: > '`. Structured logs are preferred for unusual database
+names and multiline records. The runner does not enable or alter logging to pass a
+probe. Syslog/journal-only sources are currently unsupported and produce incomplete
+active evidence. Target-side Python 3 and `psql` are required; no Python database
+driver or additional extension is installed.
+
+| Probe | Evidence and rule integration |
+|---|---|
+| SELECT of synthetic data and `information_schema.table_privileges` | pgAudit READ records; 000500, 000700, 000900, 001000, 001400 as applicable |
+| INSERT, UPDATE, DELETE of synthetic rows | Successful client command/row counts plus pgAudit WRITE records; 000500, 001000, 001400 |
+| CREATE/ALTER/DROP a synthetic table | Successful command tags plus pgAudit DDL records; 001000, 001400 |
+| SELECT/UPDATE/ALTER of an admin-owned protected fixture | Expected SQLSTATE 42501 and the matching ERROR/statement; 001000, 001400 |
+| Denied SELECT of `rolname, rolsuper` from `pg_catalog.pg_authid` (no password fields) | Failed retrieval of role metadata; 000800 |
+| A real restricted login and its disconnect | Correlated connection/disconnection records with timestamps; 000900, 011200, 011600 |
+
+In active mode the integrated rules require both acceptable configuration and actual
+SQL/log evidence. An old log entry or an unrelated `AUDIT:` line cannot pass: correlation
+uses the new run marker, database, account, application name, backend PID and appended
+log interval. A successful client result does not suffice without the matching audit
+record, and a pgAudit record does not suffice when the SQL failed. Denials require
+SQLSTATE 42501 in both the client outcome and server ERROR record, plus the associated
+statement. Connection records require an outcome code and timestamp too.
+
+Verified events appear in the HTML/JSON/checklist evidence. Full synthetic SQL
+transcripts, matching log excerpts and their filenames, run/schema identifiers,
+preflight and cleanup results are retained in the raw evidence. Only correlated server
+records are exported, rather than the complete log files. Missing records after a
+complete, bounded collection produce `Open`; unavailable/unparseable logs, unexpected
+SQL outcomes, failed cleanup, skipped tests or missing database coverage produce
+`Not_Reviewed`. A known configuration failure remains `Open`. Selecting only some
+databases cannot pass an instance-wide active check. All active work is skipped by
+`--check`, so active-dependent rules then remain unreviewed.
+
+These probes establish evidence for the listed operations; they do not execute every
+DISA procedure. CD16-00-000500 receives supplementary evidence but remains
+`Not_Reviewed` until the full DOD-defined event set has been assessed.
+Role-management/security-object deletion tests, deliberately failed
+authentication, remote-source attribution and concurrent logins from different
+workstations still require their own assessment. Their existing manual-test notes
+remain. Compare the captured evidence with the full check procedures in your STIG
+package before signing off the assessment. The repository's index contains titles and
+fix text, not the complete check procedures.
+
+Cleanup is attempted on normal/error paths. A host crash or forced process kill can
+leave a fixture; use the recorded schema and its run-marker comment to investigate
+and remove that specific schema. Do not use a broad wildcard cleanup. The permanent
+audit account and its approved CONNECT access remain available for future runs and
+should also appear in your approved-access documentation for CD16-00-000300.
 
 #### Approved database access (CD16-00-000300)
 

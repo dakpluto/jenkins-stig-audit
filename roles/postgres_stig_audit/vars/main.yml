@@ -21,7 +21,8 @@ psa_instance_sql: |
               'options', options, 'error', error) ORDER BY rule_number) FROM pg_hba_file_rules),
     'ident', (SELECT json_agg(json_build_object('map', map_name, 'system', sys_name, 'user', pg_username))
               FROM pg_ident_file_mappings),
-    'databases', (SELECT json_agg(json_build_object('name', datname, 'acl', datacl::text, 'connect', datallowconn))
+    'databases', (SELECT json_agg(json_build_object('name', datname, 'acl', datacl::text, 'connect', datallowconn,
+                         'template', datistemplate))
                   FROM pg_database),
     'pgcrypto_available', EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pgcrypto')
   );
@@ -80,3 +81,5 @@ psa_settings:
   categories_required: "{{ postgres_stig_categories_required }}"
   min_version: "{{ postgres_stig_min_version }}"
   overrides: "{{ postgres_stig_overrides }}"
+  active_verify: "{{ postgres_stig_active_verify }}"
+  active_role: "{{ postgres_stig_active_role }}"

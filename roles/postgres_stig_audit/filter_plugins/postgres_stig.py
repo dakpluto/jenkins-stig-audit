@@ -54,8 +54,8 @@ DEFAULTS = {
     "ssl_cert_file": "server.crt", "ssl_key_file": "server.key", "ssl_ca_file": "", "ssl_crl_file": "",
     "idle_session_timeout": "0", "idle_in_transaction_session_timeout": "0",
 }
-TEST_NOTE = ("DISA's procedure performs a test action (e.g. a denied statement or failed login). This read-only "
-             "audit verified the logging configuration that records it instead; perform the test during the "
+TEST_NOTE = ("DISA's procedure performs a test action (e.g. a denied statement or failed login). This passive "
+             "check verified the logging configuration that records it instead; perform the test during the "
              "assessment if required.")
 
 
@@ -247,6 +247,8 @@ class Ctx(object):
         if not self.pgaudit_loaded():
             issues.append("pgaudit is not in shared_preload_libraries.")
         have = _pgaudit_classes(self.get("pgaudit.log"))
+        if not classes and self.pgaudit_loaded() and not have:
+            issues.append("pgaudit is loaded but pgaudit.log is 'none'; no session audit classes are logged.")
         missing = [c for c in classes if c not in have]
         if missing:
             issues.append("pgaudit.log (%s) does not include: %s." % (self.get("pgaudit.log") or "none", ", ".join(missing)))
@@ -384,8 +386,6 @@ def h_pgaudit(c, classes=(), catalog=False, test=False, na_unless=None):
     if na_unless and c.s.get(na_unless) is False:
         return NA, "Category tracking is not required (postgres_stig_%s: false)." % na_unless, []
     issues, ev = c.pgaudit(classes, catalog)
-    if not classes and c.pgaudit_loaded() and _pgaudit_classes(c.get("pgaudit.log")) == set():
-        issues.append("pgaudit is loaded but pgaudit.log is 'none'; no session audit classes are logged.")
     ok = "pgaudit is loaded and logs %s." % (", ".join(classes) if classes else c.get("pgaudit.log"))
     return _v(issues, ok, ev + c.log_evidence(), TEST_NOTE if test else "")
 
@@ -1287,6 +1287,80 @@ RULES = {
 # ---------------------------------------------------------------------------
 # filter: postgres_stig_evaluate
 # ---------------------------------------------------------------------------
+ACTIVE_CASES = {
+    "CD16-00-000500": ("read", "insert", "denied_read"),
+    "CD16-00-000700": ("catalog_read",),
+    "CD16-00-000800": ("denied_permissions",),
+    "CD16-00-000900": ("connect", "read"),
+    "CD16-00-001000": ("read", "insert", "create", "denied_write"),
+    "CD16-00-001400": ("read", "insert", "update", "delete", "create", "alter", "drop",
+                       "denied_read", "denied_write", "denied_ddl"),
+    "CD16-00-011200": ("connect",),
+    "CD16-00-011600": ("connect", "disconnect"),
+}
+
+
+def active_result(c, cid, out):
+    """Active mode requires actual test/log evidence in addition to configuration."""
+    if not _on(c.s.get("active_verify")) or cid not in ACTIVE_CASES or out[0] == NA:
+        return out
+    evidence = list(out[2] if len(out) > 2 else [])
+    evidence += ["Active runner: " + str(e) for e in c.ev.get("active_errors", [])]
+    incomplete, failures = [], []
+    inventory = c.sql.get("databases") or []
+    expected = {d["name"] for d in inventory if isinstance(d, dict) and d.get("name") and d.get("connect")
+                and not d.get("template") and d["name"] not in ("template0", "template1")}
+    if not expected:
+        incomplete.append("No live inventory of assessable non-template databases.")
+    snapshots = {}
+    for raw in c.ev.get("active") or []:
+        d = _sql(raw)
+        if isinstance(d, dict) and isinstance(d.get("db"), str) and d.get("version") == 1:
+            snapshots[d["db"]] = d
+    for db in sorted(expected):
+        d = snapshots.get(db)
+        if not d:
+            incomplete.append("Active evidence missing for database %s (including check mode or unselected databases)." % db)
+            continue
+        evidence.append("Active run %s database=%s role=%s schema=%s cleanup=%s" % (
+            d.get("run", "?"), db, d.get("role", "?"), d.get("schema", "?"), d.get("cleanup", "?")))
+        if d.get("cleanup") != "cleaned" or d.get("errors"):
+            incomplete.append("%s: preflight, execution or cleanup was incomplete: %s" % (db, d.get("errors", [])))
+        if d.get("role") != c.s.get("active_role", "stig_audit"):
+            incomplete.append("%s: wrong active verification account." % db)
+        events = {e["name"]: e for e in d.get("events", []) if isinstance(e, dict) and isinstance(e.get("name"), str)}
+        for name in ACTIVE_CASES[cid]:
+            e = events.get(name, {})
+            state = e.get("state", "incomplete")
+            evidence.append("%s/%s: %s; %s" % (db, name, state, e.get("reason", "test not completed")))
+            if e.get("sql"):
+                evidence.append("SQL: " + e["sql"])
+            transcript = e.get("transcript") or {}
+            evidence += ["client rc=%s stdout=%s stderr=%s" % (
+                transcript.get("rc", "?"), transcript.get("stdout", ""), transcript.get("stderr", ""))]
+            evidence += ["log file: " + p for p in e.get("log_files", [])]
+            evidence += e.get("logs", [])
+            if state == "missing_log" and e.get("client") == "expected":
+                failures.append("%s/%s: expected log record missing." % (db, name))
+            elif state != "verified" or e.get("client") != "expected" or not e.get("logs"):
+                incomplete.append("%s/%s: test outcome and corresponding log record not verified." % (db, name))
+        if d.get("log_errors"):
+            evidence += ["Log collection: " + str(x) for x in d["log_errors"]]
+    evidence += failures + incomplete
+    scope = ("Active probes use synthetic objects and a restricted login. Role-management, failed-authentication, "
+             "remote-source and other DISA-specific scenarios are not exercised by this probe set. "
+             "Compare these records with the full STIG check procedure before assessment sign-off.")
+    if out[0] == OPEN or failures:
+        return OPEN, out[1] + " Active verification found missing evidence; see the recorded test results." \
+            if failures else out[1], evidence, scope
+    if out[0] == NR or incomplete:
+        return NR, "Active verification is incomplete; configuration alone does not satisfy this active check.", evidence, scope
+    if cid == "CD16-00-000500":
+        return NR, "The sampled SQL/log events were verified; the full DOD-defined event set, including role " \
+            "management, still needs assessment.", evidence, scope
+    return NF, "Configuration and correlated SQL/log evidence verified for: %s." % ", ".join(sorted(expected)), evidence, scope
+
+
 def postgres_stig_evaluate(ev, settings=None):
     s = settings or {}
     c = Ctx(ev or {}, s)
@@ -1296,7 +1370,7 @@ def postgres_stig_evaluate(ev, settings=None):
         if handler is None:
             R.add(cid, NR, "Not evaluated automatically; follow the STIG check procedure.")
             continue
-        out = handler(c)
+        out = active_result(c, cid, handler(c))
         R.add(cid, out[0], out[1], out[2] if len(out) > 2 else None, out[3] if len(out) > 3 else "")
     return sc.apply_overrides(R.items, s.get("overrides"))
 

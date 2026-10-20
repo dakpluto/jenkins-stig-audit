@@ -1,0 +1,69 @@
+---
+- name: Validate active verification options
+  ansible.builtin.assert:
+    that:
+      - postgres_stig_query_sql | bool
+      - psa_running | bool
+      - postgres_stig_active_role is match('^[a-z_][a-z0-9_]{0,62}$')
+      - postgres_stig_active_service is match('^[a-zA-Z0-9_-]+$')
+      - postgres_stig_active_databases is sequence and postgres_stig_active_databases is not string
+      - postgres_stig_active_databases is not mapping
+      - postgres_stig_active_databases | select('string') | list | length == postgres_stig_active_databases | length
+      - postgres_stig_active_log_wait | string is match('^[0-9]+$')
+      - postgres_stig_active_log_wait | int >= 0
+      - postgres_stig_active_log_wait | int <= 60
+      - postgres_stig_active_log_max_bytes | int > 0
+      - postgres_stig_active_log_max_bytes | int <= 67108864
+    fail_msg: Active verification requires live SQL, a restricted account and a configured libpq service.
+
+- name: Run the isolated active probes
+  block:
+    - name: Allocate a private runner directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: postgres_stig_probe_
+      register: _psa_active_tmp
+
+    - name: Install the dependency-free probe runner
+      ansible.builtin.copy:
+        src: active_probe.py
+        dest: "{{ _psa_active_tmp.path }}/active_probe.py"
+        mode: '0700'
+
+    - name: Exercise synthetic objects and correlate the server logs
+      vars:
+        _active_sql: "{{ psa_sql | from_json if psa_sql is string else psa_sql }}"
+        _active_dbs: >-
+          {{ postgres_stig_active_databases if postgres_stig_active_databases | length > 0 else
+             (_active_sql.databases | selectattr('connect') | rejectattr('template')
+              | map(attribute='name') | list) }}
+      ansible.builtin.command:
+        argv: ["{{ ansible_facts.python.executable | default('python3') }}", "{{ _psa_active_tmp.path }}/active_probe.py"]
+        stdin: >-
+          {{ {'database': item, 'role': postgres_stig_active_role,
+              'admin': ['runuser', '-u', postgres_os_user, '--', 'env',
+                        'PGOPTIONS=-c statement_timeout=5000 -c lock_timeout=1000',
+                        'PGAPPNAME=stig_probe_setup', psa_bin_dir ~ '/psql', '-X', '-A', '-t',
+                        '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-w',
+                        '-h', psa_socket_dir, '-p', psa_port | string],
+              'test': ['runuser', '-u', postgres_os_user, '--', 'env',
+                       'PGSERVICE=' ~ postgres_stig_active_service,
+                       'PGOPTIONS=-c statement_timeout=5000 -c lock_timeout=1000',
+                       psa_bin_dir ~ '/psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
+                       '-v', 'VERBOSITY=verbose', '-w', '-U', postgres_stig_active_role],
+              'log_wait': postgres_stig_active_log_wait | int,
+              'max_bytes': postgres_stig_active_log_max_bytes | int} | to_json }}
+      loop: "{{ _active_dbs }}"
+      register: _psa_active_run
+      changed_when: true
+      failed_when: false
+  always:
+    - name: Remove the private probe runner
+      ansible.builtin.file:
+        path: "{{ _psa_active_tmp.path }}"
+        state: absent
+      when: _psa_active_tmp.path is defined
+
+- name: Keep this invocation's active execution results
+  ansible.builtin.set_fact:
+    psa_active_results: "{{ _psa_active_run.results | default([]) }}"
