@@ -911,7 +911,7 @@ def h_dod_cert(c):
     if not cert:
         return NR, "The server certificate could not be read; verify it and the CA file are DoD-issued.", ev
     rx = c.s.get("dod_issuer_regex") or (
-        r"(?:O\s*=\s*U\.S\. Government.*OU\s*=\s*DoD|"
+        r"(?:O\s*=\s*U\.S\. Government\s*[,/].*OU\s*=\s*(?:DoD|NSS)\s*(?:[,/]|$)|"
         r"O\s*=\s*C2BMC\s*[,/].*OU\s*=\s*BMDS\.SMIL\.MIL\s*(?:[,/]|$))")
     issuer = next((l for l in sc._lines(cert) if l.lower().startswith("issuer")), "")
     if not re.search(rx, issuer):

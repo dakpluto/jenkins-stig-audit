@@ -130,6 +130,10 @@ class PostgresEvaluateTests(unittest.TestCase):
     def test_approved_mda_certificate_issuer(self):
         for org, unit, expected in (
                 ("C2BMC", "BMDS.SMIL.MIL", pg.NF),
+                ("U.S. Government", "NSS", pg.NF),
+                ("C2BMC", "NSS", pg.OPEN),
+                ("Other", "NSS", pg.OPEN),
+                ("U.S. Government", "NSS.evil", pg.OPEN),
                 ("Other", "BMDS.SMIL.MIL", pg.OPEN),
                 ("C2BMC", "Other", pg.OPEN),
                 ("C2BMC", "BMDS.SMIL.MIL.evil", pg.OPEN)):

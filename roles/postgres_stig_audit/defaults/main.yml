@@ -41,8 +41,8 @@ postgres_stig_approved_ports: []              # e.g. [5432]; empty = manual revi
 postgres_stig_log_timezone: UTC
 postgres_stig_syslog_facility: ""             # expected syslog_facility, e.g. local0
 # Issuer of the server certificate must match this (CD16-00-008400).
-# Accept the DoD PKI and the site's approved MDA program CA (C2BMC / BMDS.SMIL.MIL).
-postgres_stig_dod_issuer_regex: '(?:O\s*=\s*U\.S\. Government.*OU\s*=\s*DoD|O\s*=\s*C2BMC\s*[,/].*OU\s*=\s*BMDS\.SMIL\.MIL\s*(?:[,/]|$))'
+# Accept U.S. Government DoD/NSS issuers and the site's approved MDA CA (C2BMC / BMDS.SMIL.MIL).
+postgres_stig_dod_issuer_regex: '(?:O\s*=\s*U\.S\. Government\s*[,/].*OU\s*=\s*(?:DoD|NSS)\s*(?:[,/]|$)|O\s*=\s*C2BMC\s*[,/].*OU\s*=\s*BMDS\.SMIL\.MIL\s*(?:[,/]|$))'
 # Answers from the system documentation. Leave null when unknown (the rule is then evaluated or reviewed).
 postgres_stig_classified: null                # false = unclassified (CD16-00-008300 Not_Applicable)
 postgres_stig_security_labeling_required: null   # false = CD16-00-006400/6500/6600 Not a Finding
