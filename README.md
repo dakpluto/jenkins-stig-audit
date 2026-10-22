@@ -45,6 +45,8 @@ cd jenkins-stig-audit
 ./run_local.sh gitlab                # Omnibus GitLab
 ./run_local.sh nexus                 # Sonatype Nexus Repository
 ./run_local.sh postgres              # Crunchy Data PostgreSQL 16
+./run_local.sh postgres hsv          # Load inventory/group_vars/postgres_hsv.yml
+./run_local.sh postgres cos          # Load inventory/group_vars/postgres_cos.yml
 # optional: produce a STIG Viewer .ckl too
 ./run_local.sh gitlab -e gitlab_stig_xccdf=stig/U_Application_Server_SRG_V#R#_Manual.zip
 ```
@@ -54,6 +56,14 @@ Reports are written under `./reports/<fqdn>/` on that host. `run_local.sh [produ
 arguments are passed through (`--check`, `-e ...`, `-v`). Site settings still come from
 `inventory/group_vars/<product>.yml`. When run locally, modules use the same Python
 as `ansible-playbook`, so the Python 3.6 limitation below doesn't apply.
+
+An optional location after the product loads
+`inventory/group_vars/<product>_<location>.yml` as extra variables. Create that file
+with your location-specific overrides; its values take precedence over shared
+`inventory/group_vars/<product>.yml` settings and role defaults. Omitting the location
+keeps the shared settings. Locations may contain letters, numbers, underscores and
+hyphens; a missing file produces an error. Additional Ansible arguments still work,
+for example `./run_local.sh postgres hsv --check -v`.
 
 Air-gapped hosts: `dnf download --resolve ansible-core` on a connected RHEL 8
 machine and carry the RPMs across. For Jenkins advisory checks, also bring
