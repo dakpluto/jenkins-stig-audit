@@ -65,6 +65,16 @@ keeps the shared settings. Locations may contain letters, numbers, underscores a
 hyphens; a missing file produces an error. Additional Ansible arguments still work,
 for example `./run_local.sh postgres hsv --check -v`.
 
+To select a vault password file for a product and location, create an optional
+companion file `inventory/group_vars/<product>_<location>.vault-password-file`.
+Put only the path to the vault password file on one line, for example
+`~/.ansible/hsv-vault-pass` in `inventory/group_vars/nexus_hsv.vault-password-file`.
+The launcher passes that path as `--vault-password-file` when running
+`./run_local.sh nexus hsv`. Relative paths resolve from the project directory;
+`~/` expands to your home directory. Keep the actual password file outside the
+repository and restrict it with `chmod 600`. The companion file holds the path,
+not the vault password, and requires no change to `ansible.cfg`.
+
 Air-gapped hosts: `dnf download --resolve ansible-core` on a connected RHEL 8
 machine and carry the RPMs across. For Jenkins advisory checks, also bring
 `update-center.actual.json` (see `jenkins_stig_update_center_file`).

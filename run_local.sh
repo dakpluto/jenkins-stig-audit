@@ -16,6 +16,7 @@ case "${1:-}" in
 esac
 
 location_vars=""
+location_vault_config=""
 case "${1:-}" in
   ""|-*) ;;
   *)
@@ -28,6 +29,7 @@ case "${1:-}" in
         ;;
     esac
     location_vars="inventory/group_vars/${product}_${location}.yml"
+    location_vault_config="inventory/group_vars/${product}_${location}.vault-password-file"
     if [ ! -f "$location_vars" ]; then
       echo "Location variables file not found: $location_vars" >&2
       exit 1
@@ -48,6 +50,21 @@ fi
 
 if [ -n "$location_vars" ]; then
   set -- -e "@$location_vars" "$@"
+fi
+
+# The optional companion file contains a path, never shell commands or the secret.
+if [ -n "$location_vault_config" ] && [ -f "$location_vault_config" ]; then
+  vault_password_file=$(cat "$location_vault_config")
+  # Accept companion files edited on Windows as well as Unix.
+  vault_password_file=$(printf '%s' "$vault_password_file" | tr -d '\r')
+  case "$vault_password_file" in
+    '~/'*) vault_password_file="$HOME/${vault_password_file#\~/}" ;;
+  esac
+  if [ -z "$vault_password_file" ] || [ ! -r "$vault_password_file" ]; then
+    echo "Vault password file configured in $location_vault_config is missing or unreadable." >&2
+    exit 1
+  fi
+  set -- --vault-password-file "$vault_password_file" "$@"
 fi
 
 exec ansible-playbook -i inventory/local.yml "${product}_stig_audit.yml" $become_opt "$@"
