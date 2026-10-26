@@ -302,7 +302,11 @@ class ChecklistTests(unittest.TestCase):
                                "app_server_srg_index.json")) as f:
             x = json.load(f)
         self.assertTrue(all(r["rule_ver"].startswith("SRG-APP-") for r in x["rules"]))
+        timing = next(r for r in x['rules'] if r['vuln_num'] == 'V-204833')
+        self.assertEqual(timing['severity'], 'high')
+        self.assertEqual(timing['rule_id'], 'SV-204833r1265166_rule')
         res = js.jenkins_stig_evaluate(insecure_evidence(), SETTINGS)
+        self.assertNotIn('V-204833', js.stig_bind(res, x)['bound'])
         m = js.stig_vuln_map(res, x)
         self.assertEqual([v["vuln_num"] for v in m["JNKS-003"] if v["bound"]], ["V-204712"])
 

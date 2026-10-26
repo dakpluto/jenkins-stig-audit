@@ -554,7 +554,7 @@ applies to the SRG-based audits.
 
 The HTML report always shows each check's Vuln IDs (V-xxxxxx) and full
 `SRG-APP-xxxxxx-AS-xxxxxx` rule versions. Without `<product>_stig_xccdf` they come
-from a bundled index of the Application Server SRG V4R5
+from a bundled index of the Application Server SRG V4R6
 (`roles/stig_common/files/app_server_srg_index.json`: Vuln ID, Rule ID, rule
 version and title only). The `.ckl` still needs the XCCDF you supply, and when
 it is set every Vuln ID, Rule ID, title, check and fix text comes from DISA's
@@ -572,6 +572,11 @@ file instead of the index. Checks are bound to rules by base SRG ID:
   JSON report's `srg_binding` lists these checks under `unmatched`.
 
 Rules that no check covers stay `Not_Reviewed`, and you complete them in STIG Viewer.
+
+V4R6 raises log-transfer timing (V-204833 / SRG-APP-000515-AS-000203) to CAT I.
+The forwarding checks assess centralized off-loading, not delivery timing; review
+real-time delivery for interconnected systems or weekly transfer for standalone
+systems manually. See [the V4R6 comparison](docs/application-server-srg-v4r6-review.md).
 
 ## Tuning
 

@@ -76,9 +76,21 @@ class HostCheckTests(unittest.TestCase):
 
 
 class ReportTests(unittest.TestCase):
+    def test_v4r6_log_transfer_is_cat_i_and_requires_timing_review(self):
+        idx = load_index()
+        self.assertEqual(idx['info']['releaseinfo'], 'Release: 6 Benchmark Date: 30 Sep 2026')
+        self.assertEqual(len(idx['rules']), 137)
+        rule = next(r for r in idx['rules'] if r['vuln_num'] == 'V-204833')
+        self.assertEqual(rule['severity'], 'high')
+        self.assertEqual(rule['rule_id'], 'SV-204833r1265166_rule')
+        for mod, evaluate in ((gs, gs.gitlab_stig_evaluate), (nx, nx.nexus_stig_evaluate)):
+            with self.subTest(product=mod.__name__):
+                results = evaluate({}, {})
+                self.assertNotIn('V-204833', sc.stig_bind(results, idx)['bound'])
+
     def test_every_check_uses_known_srg_ids_or_is_documented(self):
         bases = set(r["group_title"] for r in load_index()["rules"])
-        retired = {"SRG-APP-000342"}   # not in V4R5; kept to match the Jenkins role
+        retired = {"SRG-APP-000342"}   # not in V4R6; kept to match the Jenkins role
         for mod in (gs, nx):
             for cid, _, srgs, sev, _ in mod.CHECKS:
                 self.assertIn(sev, ("high", "medium", "low"))

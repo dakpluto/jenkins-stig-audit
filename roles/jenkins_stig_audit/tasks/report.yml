@@ -17,7 +17,7 @@
     jsa_xccdf: "{{ jenkins_stig_xccdf | stig_xccdf_rules }}"
   when: jenkins_stig_xccdf | length > 0
 
-# Without an XCCDF, fall back to the bundled V-ID index (V4R5) so the HTML report
+# Without an XCCDF, fall back to the bundled V-ID index (V4R6) so the HTML report
 # still shows Vuln IDs. The .ckl needs the full XCCDF.
 - name: Map checks to SRG Vuln IDs
   ansible.builtin.set_fact:

@@ -2,14 +2,14 @@
  "info": {
   "title": "Application Server Security Requirements Guide",
   "version": "4",
-  "releaseinfo": "Release: 5 Benchmark Date: 2026-06-29",
-  "source": "DISA U_Application_Server_SRG_V4R5 (Vuln ID / rule index only)"
+  "releaseinfo": "Release: 6 Benchmark Date: 30 Sep 2026",
+  "source": "DISA U_Application_Server_V4R6_SRG (Vuln ID / rule index only)"
  },
  "rules": [
   {
    "vuln_num": "V-204708",
    "group_title": "SRG-APP-000001",
-   "rule_id": "SV-204708r960735_rule",
+   "rule_id": "SV-204708r1265167_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000001-AS-000001",
    "rule_title": "The application server must limit the number of concurrent sessions to an organization-defined number for all accounts and/or account types."
@@ -73,7 +73,7 @@
   {
    "vuln_num": "V-204716",
    "group_title": "SRG-APP-000086",
-   "rule_id": "SV-204716r960873_rule",
+   "rule_id": "SV-204716r1265168_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000086-AS-000048",
    "rule_title": "For application servers providing log record aggregation, the application server must compile log records from organization-defined information system components into a system-wide log trail that is time-correlated with an organization-defined level of tolerance for the relationship between time stamps of individual records in the log trail."
@@ -249,7 +249,7 @@
   {
    "vuln_num": "V-204740",
    "group_title": "SRG-APP-000131",
-   "rule_id": "SV-204740r981678_rule",
+   "rule_id": "SV-204740r1265169_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000131-AS-000002",
    "rule_title": "The application server must prevent the installation of patches, service packs, or application components without verification the software component has been digitally signed using a certificate recognized and approved by the organization."
@@ -273,7 +273,7 @@
   {
    "vuln_num": "V-204743",
    "group_title": "SRG-APP-000141",
-   "rule_id": "SV-204743r960963_rule",
+   "rule_id": "SV-204743r1265170_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000141-AS-000095",
    "rule_title": "The application server must adhere to the principles of least functionality by providing only essential capabilities."
@@ -281,7 +281,7 @@
   {
    "vuln_num": "V-204744",
    "group_title": "SRG-APP-000142",
-   "rule_id": "SV-204744r1043177_rule",
+   "rule_id": "SV-204744r1265171_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000142-AS-000014",
    "rule_title": "The application server must prohibit or restrict the use of nonsecure ports, protocols, modules, and/or services as defined in the PPSM CAL and vulnerability assessments."
@@ -289,10 +289,10 @@
   {
    "vuln_num": "V-204745",
    "group_title": "SRG-APP-000148",
-   "rule_id": "SV-204745r1051118_rule",
+   "rule_id": "SV-204745r1265172_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000148-AS-000101",
-   "rule_title": "The application server must use an approved DOD enterprise identity, credential, and access management (ICAM) solution to uniquely identify and authenticate users (or processes acting on behalf of organizational users)."
+   "rule_title": "The application server must use an approved DoW enterprise identity, credential, and access management (ICAM) solution to uniquely identify and authenticate users (or processes acting on behalf of organizational users)."
   },
   {
    "vuln_num": "V-204746",
@@ -377,7 +377,7 @@
   {
    "vuln_num": "V-204756",
    "group_title": "SRG-APP-000177",
-   "rule_id": "SV-204756r961044_rule",
+   "rule_id": "SV-204756r1265175_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000177-AS-000126",
    "rule_title": "The application server must map the authenticated identity to the individual user or group account for PKI-based authentication."
@@ -393,7 +393,7 @@
   {
    "vuln_num": "V-204758",
    "group_title": "SRG-APP-000179",
-   "rule_id": "SV-204758r961050_rule",
+   "rule_id": "SV-204758r1265176_rule",
    "severity": "high",
    "rule_ver": "SRG-APP-000179-AS-000129",
    "rule_title": "The application server must utilize FIPS 140-2 approved encryption modules when authenticating users and processes."
@@ -428,7 +428,7 @@
    "rule_id": "SV-204762r1043178_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000219-AS-000147",
-   "rule_title": "The application server must be configured to mutually authenticate connecting proxies, application servers or gateways. "
+   "rule_title": "The application server must be configured to mutually authenticate connecting proxies, application servers or gateways."
   },
   {
    "vuln_num": "V-204763",
@@ -489,7 +489,7 @@
   {
    "vuln_num": "V-204770",
    "group_title": "SRG-APP-000231",
-   "rule_id": "SV-204770r961128_rule",
+   "rule_id": "SV-204770r1265177_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000231-AS-000133",
    "rule_title": "The application server must protect the confidentiality and integrity of all information at rest."
@@ -697,7 +697,7 @@
   {
    "vuln_num": "V-204798",
    "group_title": "SRG-APP-000389",
-   "rule_id": "SV-204798r1050785_rule",
+   "rule_id": "SV-204798r1265178_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000389-AS-000253",
    "rule_title": "The application server must require users to reauthenticate when organization-defined circumstances or situations require reauthentication."
@@ -705,7 +705,7 @@
   {
    "vuln_num": "V-204800",
    "group_title": "SRG-APP-000391",
-   "rule_id": "SV-204800r961494_rule",
+   "rule_id": "SV-204800r1265179_rule",
    "severity": "high",
    "rule_ver": "SRG-APP-000391-AS-000239",
    "rule_title": "The application server must accept Personal Identity Verification (PIV) credentials to access the management interface."
@@ -713,7 +713,7 @@
   {
    "vuln_num": "V-204801",
    "group_title": "SRG-APP-000392",
-   "rule_id": "SV-204801r961497_rule",
+   "rule_id": "SV-204801r1265180_rule",
    "severity": "high",
    "rule_ver": "SRG-APP-000392-AS-000240",
    "rule_title": "The application server must electronically verify Personal Identity Verification (PIV) credentials for access to the management interface."
@@ -745,7 +745,7 @@
   {
    "vuln_num": "V-204807",
    "group_title": "SRG-APP-000403",
-   "rule_id": "SV-204807r961530_rule",
+   "rule_id": "SV-204807r1265182_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000403-AS-000248",
    "rule_title": "The application server must electronically verify Personal Identity Verification (PIV) credentials from other federal agencies to access the management interface."
@@ -769,10 +769,10 @@
   {
    "vuln_num": "V-204811",
    "group_title": "SRG-APP-000427",
-   "rule_id": "SV-204811r961596_rule",
+   "rule_id": "SV-204811r1265185_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000427-AS-000264",
-   "rule_title": "The application server must only allow the use of DoD PKI-established certificate authorities for verification of the establishment of protected sessions."
+   "rule_title": "The application server must only allow the use of DoW PKI-established certificate authorities for verification of the establishment of protected sessions."
   },
   {
    "vuln_num": "V-204812",
@@ -937,26 +937,26 @@
   {
    "vuln_num": "V-204832",
    "group_title": "SRG-APP-000514",
-   "rule_id": "SV-204832r1137585_rule",
+   "rule_id": "SV-204832r1265188_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000514-AS-000137",
-   "rule_title": "The application server must use DOD- or CNSS-approved PKI Class 3 or Class 4 certificates."
+   "rule_title": "The application server must use DoW or CNSS-approved PKI Class 3 or Class 4 certificates."
   },
   {
    "vuln_num": "V-204833",
    "group_title": "SRG-APP-000515",
-   "rule_id": "SV-204833r961860_rule",
-   "severity": "medium",
+   "rule_id": "SV-204833r1265166_rule",
+   "severity": "high",
    "rule_ver": "SRG-APP-000515-AS-000203",
    "rule_title": "The application server must, at a minimum, transfer the logs of interconnected systems in real time, and transfer the logs of standalone systems weekly."
   },
   {
    "vuln_num": "V-204834",
    "group_title": "SRG-APP-000516",
-   "rule_id": "SV-204834r961863_rule",
+   "rule_id": "SV-204834r1265191_rule",
    "severity": "medium",
    "rule_ver": "SRG-APP-000516-AS-000237",
-   "rule_title": "The application server must be configured in accordance with the security configuration settings based on DoD security configuration or implementation guidance, including STIGs, NSA configuration guides, CTOs, and DTMs."
+   "rule_title": "The application server must be configured in accordance with the security configuration settings based on DoW security configuration or implementation guidance, including STIGs, NSA configuration guides, CTOs, and DTMs."
   },
   {
    "vuln_num": "V-240925",
