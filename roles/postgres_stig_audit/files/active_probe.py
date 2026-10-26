@@ -319,7 +319,7 @@ def run(config):
                  AND obj_description(oid,'pg_namespace')='%s') THEN
         EXECUTE 'DROP SCHEMA %s CASCADE';
       END IF;
-      END $probe$;
+      END; $probe$;
       SELECT 'STIG_CLEAN:' || (NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='%s'))::text;
       """ % (schema, token, schema, schema)
     try:

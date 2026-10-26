@@ -208,6 +208,20 @@ class RunnerLifecycleTests(unittest.TestCase):
             cleanup = next(sql for sql in self.commands if 'STIG_CLEAN:' in sql)
             self.assertIn("obj_description(oid,'pg_namespace')", cleanup)
             self.assertIn(result['run'], cleanup)
+            # The PL/pgSQL block needs its own terminator inside the dollar quotes.
+            self.assertIn('END; $probe$;', cleanup)
+
+    def test_cleanup_failure_is_reported_with_its_database_error(self):
+        self.commands, self.setup_failure = [], False
+        def backend(argv, sql):
+            if 'STIG_CLEAN:' in sql:
+                return dict(rc=3, stdout='', stderr='ERROR: permission denied for schema')
+            return self.fake_execute(argv, sql)
+        with patch.object(probe, 'execute', backend):
+            result = probe.run(dict(database='appdb', role='stig_audit', admin=['psql'], test=['psql'], log_wait=0))
+        self.assertEqual(result['cleanup'], 'failed')
+        self.assertIn('permission denied', result['cleanup_transcript']['stderr'])
+        self.assertTrue(any('Cleanup failed' in error for error in result['errors']))
 
     def test_preflight_does_not_modify_a_privileged_or_missing_account(self):
         self.commands = []
