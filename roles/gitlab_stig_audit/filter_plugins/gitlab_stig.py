@@ -84,8 +84,8 @@ CHECKS = [
      "/etc/gitlab/initial_root_password; remove world-writable files."),
     ("GLAB-016", "GitLab application binaries must be protected from modification",
      ["SRG-APP-000133"], "medium",
-     "Keep /opt/gitlab owned by root and not writable by the git account; reinstall the package if 'rpm -V' "
-     "reports modified files."),
+     "Keep /opt/gitlab owned by root and not writable by the git account; verify binary integrity through the "
+     "approved deployment process (RPM verification is excepted)."),
     ("GLAB-017", "Administrative functions must be separated from user functions",
      ["SRG-APP-000211"], "medium",
      "Admin > Settings > General > Sign-in restrictions: enable 'Admin Mode' so administrators re-authenticate "
@@ -146,8 +146,6 @@ INTERNAL_PROCS = ("puma", "ruby", "bundle", "gitaly", "workhorse", "redis", "pos
 PUBLIC_PROCS = ("nginx", "gitlab-sshd", "registry", "gitlab-pages", "gitlab-kas", "mattermost")
 APP_PROCESS_RX = r"(^|/)(puma|sidekiq|gitaly|gitlab-workhorse)\b"
 PUBLIC_LEVEL = 20
-# Packaged files `gitlab-ctl reconfigure` hands to the git user (so migrations can dump the schema).
-RECONFIGURE_OWNED = ("embedded/service/gitlab-rails/db/structure.sql", "embedded/service/gitlab-rails/db/schema.rb")
 
 
 # ---------------------------------------------------------------------------
@@ -614,23 +612,14 @@ def gitlab_stig_evaluate(ev, settings=None):
             issues.append("%s is owned by %s (must be root)." % (path, st_.get("owner")))
         if m is not None and m & 0o022:
             issues.append("%s is group/world writable (mode %s)." % (path, st_["mode"]))
-    issues += sc.rpm_verify_issues(ev.get("rpm_verify"), ev_lines,
-                                   owner_changes=[install_dir + "/" + p for p in RECONFIGURE_OWNED])
-    rpm_rc = ev.get("rpm_verify_rc")
-    rpm_incomplete = not ev.get("rpm_verify_ran") or (
-        "rpm_verify_rc" in ev and (rpm_rc not in (0, 1) or bool(ev.get("rpm_verify_stderr"))))
-    if rpm_incomplete:
-        ev_lines.append("RPM verification incomplete or skipped (rc=%s). %s" % (
-            rpm_rc, ev.get("rpm_verify_stderr", "")))
+    exception = ("Exception: RPM database integrity verification is excluded from this GitLab audit "
+                 "by operator direction; the deployment does not maintain GitLab in its RPM database. "
+                 "Binary contents are not verified. Directory ownership and permissions are still checked.")
     if issues:
-        R.verdict("GLAB-016", issues, "", ev_lines)
-    elif rpm_incomplete:
-        R.add("GLAB-016", NR, "RPM integrity verification was skipped or did not complete; verify binary integrity manually.", ev_lines)
-    elif not ev_lines:
-        R.add("GLAB-016", NR, "%s was not found; verify binary protections manually." % install_dir)
+        R.verdict("GLAB-016", issues, "", ev_lines, comments=exception)
     else:
-        R.verdict("GLAB-016", issues, "GitLab binaries are root-owned and match the RPM database.", ev_lines,
-                  comments="" if ev.get("rpm_verify_ran") else "rpm -V was skipped (gitlab_stig_rpm_verify).")
+        R.add("GLAB-016", NR, exception, ev_lines,
+              comments="RPM integrity exception recorded; verify integrity through the approved deployment process.")
 
     # GLAB-017 ------------------------------------------------------------
     admins = rails.get("admins")

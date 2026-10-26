@@ -69,10 +69,6 @@ gitlab_stig_asset:
 gitlab_stig_query_settings: true
 # Seconds before the runner is killed (its checks then become Not_Reviewed).
 gitlab_stig_rails_timeout: 1800
-# Verify installed files against the local RPM database; no repository access.
-gitlab_stig_rpm_verify: true
-# Seconds before verification is terminated; incomplete verification needs manual review.
-gitlab_stig_rpm_verify_timeout: 300
 # Query configured repos for a pending GitLab update (needs repo access).
 gitlab_stig_check_repo_updates: false
 gitlab_stig_report_dir: "{{ playbook_dir }}/reports"

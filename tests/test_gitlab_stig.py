@@ -227,7 +227,7 @@ class GitLabEvaluateTests(unittest.TestCase):
         self.assertIn("wheel", r["GLAB-014"]["finding_details"])
         self.assertNotIn("git has an interactive", r["GLAB-014"]["finding_details"])
         self.assertIn("initial_root_password", r["GLAB-015"]["finding_details"])
-        self.assertIn("/opt/gitlab/embedded/bin/ruby", r["GLAB-016"]["finding_details"])
+        self.assertIn("/opt/gitlab is owned by git", r["GLAB-016"]["finding_details"])
         self.assertNotIn("/opt/gitlab/etc/foo", r["GLAB-016"]["finding_details"])
         self.assertIn("gitlab-runner", r["GLAB-017"]["finding_details"])
         self.assertIn("9090", r["GLAB-018"]["finding_details"])
@@ -238,7 +238,7 @@ class GitLabEvaluateTests(unittest.TestCase):
 
     def test_hardened_server(self):
         r = by_id(gs.gitlab_stig_evaluate(hardened_evidence(), SETTINGS))
-        expect_other = {"GLAB-009": gs.OPEN, "GLAB-019": gs.NR, "GLAB-020": gs.NR, "GLAB-027": gs.NR,
+        expect_other = {"GLAB-016": gs.NR, "GLAB-009": gs.OPEN, "GLAB-019": gs.NR, "GLAB-020": gs.NR, "GLAB-027": gs.NR,
                         "GLAB-029": gs.NR, "GLAB-018": gs.NR}
         for cid, res in r.items():
             self.assertEqual(res["status"], expect_other.get(cid, gs.NF),
@@ -321,30 +321,17 @@ class GitLabParsingTests(unittest.TestCase):
         ev["processes"] = "root /opt/gitlab/embedded/bin/ruby /opt/gitlab/embedded/bin/sidekiq-cluster *"
         self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-014"]["status"], gs.OPEN)
 
-    def test_reconfigure_owned_structure_sql(self):
+    def test_rpm_integrity_exception_preserves_permission_findings(self):
         ev = hardened_evidence()
-        ev["rpm_verify"] = ".....U...    /opt/gitlab/embedded/service/gitlab-rails/db/structure.sql"
-        r = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]
-        self.assertEqual(r["status"], gs.NF, r["finding_details"])
-        ev["rpm_verify"] = "S.5....T.    /opt/gitlab/embedded/service/gitlab-rails/db/structure.sql"
-        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.OPEN)
-
-    def test_incomplete_rpm_verification_requires_review(self):
-        for ran, rc, stderr in [(False, None, ""), (True, 124, ""),
-                                (True, 137, ""), (True, 2, "RPM error"),
-                                (True, 1, "cannot read file")]:
-            with self.subTest(ran=ran, rc=rc):
-                ev = hardened_evidence()
-                ev.update(rpm_verify_ran=ran, rpm_verify_rc=rc,
-                          rpm_verify="", rpm_verify_stderr=stderr)
-                self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.NR)
-                ev["rpm_verify"] = "S.5....T.    /opt/gitlab/embedded/bin/ruby"
-                self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.OPEN)
-
-    def test_completed_rpm_verification(self):
-        ev = hardened_evidence()
-        ev.update(rpm_verify_rc=0, rpm_verify="", rpm_verify_stderr="")
-        self.assertEqual(by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]["status"], gs.NF)
+        for key in list(ev):
+            if key.startswith("rpm_verify"):
+                del ev[key]
+        result = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-016"]
+        self.assertEqual(result["status"], gs.NR)
+        self.assertIn("Exception:", result["finding_details"])
+        self.assertIn("Binary contents are not verified", result["finding_details"])
+        result = by_id(gs.gitlab_stig_evaluate(insecure_evidence(), SETTINGS))["GLAB-016"]
+        self.assertEqual(result["status"], gs.OPEN)
 
     def test_rails_partial_failure_keeps_settings(self):
         ev = hardened_evidence()

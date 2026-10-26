@@ -176,13 +176,11 @@ with a read-only `gitlab-rails runner` script. Rails boot alone often takes 5 mi
 The sign-in page can also be slow to render on a busy server, so each HTTP probe waits up to
 `gitlab_stig_http_timeout` seconds (60 by default).
 
-The `rpm -V` integrity check reads the local RPM database and installed files; it does
-not use a repository. Manually installing a transferred Omnibus RPM still registers
-it in that database. Verification is limited to `gitlab_stig_rpm_verify_timeout`
-seconds (300 by default, with a 10-second forced-stop grace period). To skip it, use
-`./run_local.sh gitlab -e gitlab_stig_rpm_verify=false`. Skipped, timed-out or failed
-verification leaves GLAB-016 `Not_Reviewed` unless collected evidence already shows
-an `Open` finding. Repository update checks remain disabled by default.
+GitLab RPM integrity verification is excluded by operator direction because this
+deployment does not maintain GitLab in the RPM database. No `rpm -V` command runs.
+GLAB-016 records this exception as `Not_Reviewed`; directory ownership and permission
+violations still produce an `Open` finding. Verify binary integrity through the
+approved deployment process. Repository update checks remain disabled by default.
 
 | ID | Check | SRG (base IDs) |
 |---|---|---|
@@ -201,7 +199,7 @@ an `Open` finding. Repository update checks remain disabled by default.
 | GLAB-013 | FIPS mode + crypto policy, and the `gitlab-fips` package | 000179, 000514 |
 | GLAB-014 | Service accounts unprivileged; app processes not root | 000342 |
 | GLAB-015 | `gitlab.rb`, `gitlab-secrets.json`, TLS keys 0600; `initial_root_password` removed | 000380, 000171, 000176 |
-| GLAB-016 | `/opt/gitlab` root-owned, `rpm -V` integrity | 000133 |
+| GLAB-016 | `/opt/gitlab` ownership/permissions; RPM integrity exception recorded | 000133 |
 | GLAB-017 | Admin Mode enabled; no GitLab Runner on the server | 000211 |
 | GLAB-018 | Approved ports, internal components on loopback, firewalld | 000142 |
 | GLAB-019 | Bundled services baseline; Service Ping / Gravatar off | 000141 |
@@ -601,7 +599,7 @@ Product-specific options:
 | `gitlab_stig_min_version` / `nexus_stig_min_version` | Lowest acceptable release; turns GLAB-020 / NXRM-017 into automated checks |
 | `gitlab_stig_approved_services` | `gitlab-ctl status` service baseline for GLAB-019 |
 | `gitlab_stig_expected_settings` | Application settings and their required values (GLAB-019) |
-| `gitlab_stig_query_settings` / `gitlab_stig_rpm_verify` | Skip the slower `gitlab-rails runner` / `rpm -V` steps |
+| `gitlab_stig_query_settings` | Skip the slower `gitlab-rails runner` step |
 | `nexus_stig_api_user` / `nexus_stig_api_password` | Read-only REST API account (see above) |
 | `gitlab_stig_break_glass_accounts` / `nexus_stig_break_glass_accounts` | Documented break-glass (emergency) local accounts; see below |
 | `nexus_install_dir` / `nexus_data_dir` | Set when Nexus is stopped and not in a standard location |
