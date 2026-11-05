@@ -398,10 +398,12 @@ def eval_ports(host, product_listeners, approved, product="The service"):
                "approved_ports variable to automate)." % (", ".join(str(p) for p in exposed) or "none"), ev
 
 
-def eval_log_perms(log_stats, owners, traverse_dirs=()):
+def eval_log_perms(log_stats, owners, traverse_dirs=(), trusted_groups=()):
     """Log directories must be 0750 or stricter (traverse_dirs, which service users must pass
     through, only must not be group/world writable) and files 0640 or stricter.  A file's
-    group/other bits only count when its directory lets that class of user in."""
+    group/other bits only count when its directory lets that class of user in.
+    Products may explicitly allow group read/write for trusted service groups.
+    """
     stats = _parse_stats(log_stats)
     issues, ev = [], []
     for path, st_ in sorted(stats.items()):
@@ -411,8 +413,13 @@ def eval_log_perms(log_stats, owners, traverse_dirs=()):
             continue
         if st_["owner"] not in owners:
             issues.append("%s is owned by %s." % (path, st_["owner"]))
+        trusted_group = st_["group"] in trusted_groups
+        if trusted_groups and m & 0o070 and not trusted_group:
+            issues.append("%s has unapproved group %s." % (path, st_["group"]))
         if st_["type"] == "d":
-            if m & (0o022 if path in traverse_dirs else 0o027):
+            forbidden = (0o002 if path in traverse_dirs else 0o007) if trusted_group else (
+                0o022 if path in traverse_dirs else 0o027)
+            if m & forbidden:
                 issues.append("Log directory %s mode %s is too permissive." % (path, st_["mode"]))
             continue
         pm = _mode(stats.get(os.path.dirname(path)) or {})
@@ -421,8 +428,9 @@ def eval_log_perms(log_stats, owners, traverse_dirs=()):
                 m &= ~0o007
             if not pm & 0o010:
                 m &= ~0o070
-        if m & 0o137:
-            issues.append("Log file %s mode %s (must be 0640 or stricter)." % (path, st_["mode"]))
+        if m & (0o117 if trusted_group else 0o137):
+            issues.append("Log file %s mode %s (must be %s or stricter)." %
+                          (path, st_["mode"], "0660" if trusted_group else "0640"))
     if not stats:
         return NR, "No log files were found; verify log protection manually.", ev
     return (OPEN if issues else NF), (_cap(issues) or "Log files and directories are restricted."), _cap(ev, 40)

@@ -204,6 +204,30 @@ def by_id(results):
 
 
 class GitLabEvaluateTests(unittest.TestCase):
+    def test_log_permissions_allow_approved_service_groups(self):
+        ev = hardened_evidence()
+        ev["log_stats"] = [
+            stat("/var/log/gitlab", "root", "root", "755", "d"),
+            stat("/var/log/gitlab/gitlab-rails", "git", "gitlab-www", "2770", "d"),
+            stat("/var/log/gitlab/gitlab-rails/production.log", "git", "gitlab-www", "660"),
+        ]
+        result = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-025"]
+        self.assertEqual(result["status"], gs.NF, result["finding_details"])
+
+    def test_log_permissions_reject_unauthorized_access(self):
+        for owner, group, mode, kind in (
+                ("git", "users", "2770", "d"),
+                ("alice", "git", "2770", "d"),
+                ("git", "git", "2775", "d"),
+                ("git", "users", "640", "f"),
+                ("git", "git", "664", "f"),
+                ("git", "git", "770", "f")):
+            with self.subTest(owner=owner, group=group, mode=mode, kind=kind):
+                ev = hardened_evidence()
+                ev["log_stats"] = [stat("/var/log/gitlab/service", owner, group, mode, kind)]
+                result = by_id(gs.gitlab_stig_evaluate(ev, SETTINGS))["GLAB-025"]
+                self.assertEqual(result["status"], gs.OPEN, result["finding_details"])
+
     def test_every_check_reported_once(self):
         for ev in (insecure_evidence(), hardened_evidence(), {}):
             ids = [r["id"] for r in gs.gitlab_stig_evaluate(ev, SETTINGS)]

@@ -121,8 +121,9 @@ CHECKS = [
      "Keep the bundled NGINX access log (/var/log/gitlab/nginx/gitlab_access.log) enabled, or log at the reverse proxy."),
     ("GLAB-025", "GitLab log files must be protected from unauthorized read, modification and deletion",
      ["SRG-APP-000118", "SRG-APP-000119", "SRG-APP-000120"], "medium",
-     "Keep /var/log/gitlab/<service> directories 0700/0750 (Omnibus default) and log files 0640 or stricter; "
-     "/var/log/gitlab itself must not be group/world writable."),
+     "Restrict log ownership and group access to root and approved GitLab service accounts. Service log "
+     "directories may use 2770 and files 0660 or stricter with approved groups; prohibit world access "
+     "to service logs."),
     ("GLAB-026", "GitLab audit records must be off-loaded to a centralized log server",
      ["SRG-APP-000358"], "low",
      "Set logging['udp_log_shipping_host'] in gitlab.rb, or read /var/log/gitlab with rsyslog imfile and forward it."),
@@ -732,7 +733,8 @@ def gitlab_stig_evaluate(ev, settings=None):
 
     # GLAB-025 ------------------------------------------------------------
     owners = ["root"] + list(accounts)
-    status, details, ev_lines = sc.eval_log_perms(ev.get("log_stats"), owners, traverse_dirs=[log_dir])
+    status, details, ev_lines = sc.eval_log_perms(ev.get("log_stats"), owners, traverse_dirs=[log_dir],
+                                                trusted_groups=owners)
     R.add("GLAB-025", status, details, ev_lines)
 
     # GLAB-026 ------------------------------------------------------------
