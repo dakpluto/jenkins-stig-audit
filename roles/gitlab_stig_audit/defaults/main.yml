@@ -34,7 +34,7 @@ gitlab_stig_expected_settings:
   gravatar_enabled: false                     # avatar lookups send e-mail hashes to gravatar.com
 
 # Accounts Omnibus creates. Shells listed in gitlab_stig_shell_exceptions are accepted.
-gitlab_stig_service_accounts: [git, gitlab-www, gitlab-redis, gitlab-psql, gitlab-prometheus]
+gitlab_stig_service_accounts: [git, gitlab-www, gitlab-redis, gitlab-psql, gitlab-prometheus, registry]
 gitlab_stig_shell_exceptions:
   git: "gitlab-shell needs a shell for Git over SSH"
   gitlab-psql: "Omnibus default; used by gitlab-psql and gitlab-ctl for database maintenance"
