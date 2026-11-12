@@ -80,3 +80,4 @@ gsa_settings:
   overrides: "{{ gitlab_stig_overrides }}"
   break_glass_accounts: "{{ gitlab_stig_break_glass_accounts }}"
   audit_url: "{{ gitlab_audit_url }}"
+  audit_controls: "{{ gitlab_stig_audit_controls }}"

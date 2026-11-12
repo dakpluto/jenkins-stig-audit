@@ -75,3 +75,17 @@ gitlab_stig_report_dir: "{{ playbook_dir }}/reports"
 gitlab_stig_save_raw_evidence: true
 # Fail the host when Open findings of these severities exist (high|medium|low).
 gitlab_stig_fail_on: []
+
+# V-204715/716/718/719/720: policy and referenced external observations.
+# Optional JSON file ON THE TARGET; see docs/gitlab-audit-controls.md.
+gitlab_stig_audit_control_evidence_file: ""
+gitlab_stig_audit_controls:
+  evidence_max_age_hours: 24
+  nonrepudiation_actions: []
+  aggregates_logs: null
+  aggregation_scope_reference: ""
+  aggregation_sources: []
+  aggregation_tolerance_seconds: null
+  approved_logging_principals: []
+  issm_approval_reference: ""
+  privilege_operations: []

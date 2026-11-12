@@ -213,6 +213,14 @@ approved deployment process. Repository update checks remain disabled by default
 | GLAB-027 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
 | GLAB-028 | chronyd active and synchronized | 000116, 000374, 000920 |
 | GLAB-029 | No active accounts idle > 35 days; dormant-user deactivation | 000163, 000705 |
+| GLAB-030 | Non-repudiation coverage, attribution and protected retention | 000080 |
+| GLAB-031 | Aggregation source receipt and time correlation | 000086 |
+| GLAB-032 | ISSM-approved effective logging configuration access | 000090 |
+| GLAB-033 | Successful and failed privileged-operation logging | 000091 |
+| GLAB-034 | Automatic session logging at application startup | 000092 |
+
+See [GitLab audit control configuration and evidence](docs/gitlab-audit-controls.md) for policy inputs, bounded collection, external evidence format and applicability. These checks default to Not_Reviewed until sufficient evidence is available.
+
 
 ## Nexus Repository checks
 

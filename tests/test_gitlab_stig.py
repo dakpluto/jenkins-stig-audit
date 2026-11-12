@@ -263,7 +263,8 @@ class GitLabEvaluateTests(unittest.TestCase):
     def test_hardened_server(self):
         r = by_id(gs.gitlab_stig_evaluate(hardened_evidence(), SETTINGS))
         expect_other = {"GLAB-016": gs.NR, "GLAB-009": gs.OPEN, "GLAB-019": gs.NR, "GLAB-020": gs.NR, "GLAB-027": gs.NR,
-                        "GLAB-029": gs.NR, "GLAB-018": gs.NR}
+                        "GLAB-029": gs.NR, "GLAB-018": gs.NR, **{
+                            "GLAB-%03d" % n: gs.NR for n in range(30, 35)}}
         for cid, res in r.items():
             self.assertEqual(res["status"], expect_other.get(cid, gs.NF),
                              "%s: %s" % (cid, res["finding_details"]))

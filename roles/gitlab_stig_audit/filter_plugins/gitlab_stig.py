@@ -12,6 +12,9 @@ Filters exported:
 from __future__ import absolute_import, division, print_function
 
 import os
+import json
+import math
+from datetime import datetime, timezone
 import re
 import sys
 
@@ -139,6 +142,18 @@ CHECKS = [
      "Admin > Settings > General > Account and limit: enable dormant user deactivation (GitLab's minimum period "
      "is 90 days, so record the gap with gitlab_stig_overrides)."),
 ]
+CHECKS.extend([
+    ("GLAB-030", "Organization-defined actions must be covered by non-repudiation",
+     ["SRG-APP-000080"], "medium", "Define required actions, verify attributable event coverage and protect independently retained records."),
+    ("GLAB-031", "Log aggregation must cover required sources within the approved time tolerance",
+     ["SRG-APP-000086"], "medium", "Declare aggregation applicability, required sources and clock tolerance; verify receipt at the collector."),
+    ("GLAB-032", "Only ISSM-appointed personnel may select logged events",
+     ["SRG-APP-000090"], "medium", "Compare all effective OS, GitLab and streaming configuration access with ISSM-approved personnel."),
+    ("GLAB-033", "Successful and unsuccessful privilege access attempts must be logged",
+     ["SRG-APP-000091"], "medium", "Verify attributable allowed and denied privileged-operation records for every required operation."),
+    ("GLAB-034", "Session logging must start automatically with the application",
+     ["SRG-APP-000092"], "medium", "Verify automatic logging configuration and session records following the current application startup."),
+])
 CHECK_META = sc.catalog(CHECKS)
 
 # Components that ship inside Omnibus and should only listen on loopback/sockets.
@@ -293,6 +308,173 @@ def _levels(v):
 
 def _vis(v):
     return {0: "private", 10: "internal", 20: "public"}.get(sc._int(v), str(v))
+
+
+def _audit_time(value):
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed.timestamp() if parsed.tzinfo else None
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def _audit_controls(R, ev, policy):
+    """Evaluate bounded local records plus dated, referenced external observations.
+
+    External observations are evidence, not overrides. Missing facts never imply success.
+    """
+    raw = ev.get("audit_control_evidence")
+    doc = raw if isinstance(raw, dict) else sc._json(raw or "{}")
+    doc = doc if isinstance(doc, dict) else {}
+    # Reject malformed evidence rather than failing the entire audit or inferring a pass.
+    for key in ("nonrepudiation", "aggregation", "logging_access", "privilege_access", "startup"):
+        if not isinstance(doc.get(key, {}), dict):
+            doc = {}
+            break
+    if not isinstance(doc.get("records", []), list):
+        doc = {}
+    if not isinstance((doc.get("aggregation") or {}).get("sources", {}), dict):
+        doc = {}
+    if any(not isinstance(item, dict) for item in ((doc.get("aggregation") or {}).get("sources") or {}).values()):
+        doc = {}
+    if not isinstance((doc.get("logging_access") or {}).get("scope_reviewed", {}), dict):
+        doc = {}
+    now = _audit_time(ev.get("collected_at"))
+    observed = _audit_time(doc.get("observed_at"))
+    age = policy.get("evidence_max_age_hours", 24)
+    try:
+        fresh = now is not None and observed is not None and 0 <= now - observed <= float(age) * 3600 and float(age) > 0
+    except (ValueError, TypeError):
+        fresh = False
+    valid = fresh and bool(doc.get("reference"))
+    evidence = ["External evidence reference: %s; observed_at: %s" % (doc.get("reference", "missing"), doc.get("observed_at", "missing"))]
+    evidence.extend(ev.get("audit_collection_errors") or [])
+    records = []
+    for line in (ev.get("audit_samples") or "").splitlines():
+        try:
+            row = json.loads(line)
+            if isinstance(row, dict):
+                records.append(row)
+        except (ValueError, TypeError):
+            pass
+    # External normalized records must identify their original source and observation time.
+    if valid:
+        records.extend(r for r in doc.get("records", []) if isinstance(r, dict) and r.get("source"))
+
+    def attributable(r):
+        timestamp = _audit_time(r.get("created_at") or r.get("time"))
+        recent = now is not None and timestamp is not None and 0 <= now - timestamp <= float(age) * 3600 if fresh else False
+        return (recent and bool(r.get("author_id") or r.get("user_id") or r.get("actor")) and
+                _audit_time(r.get("created_at") or r.get("time")) is not None and
+                bool(r.get("target_id") or r.get("target") or (r.get("details") if isinstance(r.get("details"), dict) else {}).get("target_details")))
+
+    def event_type(r):
+        return r.get("event_type") or (r.get("details") if isinstance(r.get("details"), dict) else {}).get("event_type")
+
+    def verdict(cid, problems, missing, success):
+        R.add(cid, OPEN if problems else NR if missing else NF,
+              "; ".join(problems or missing) if problems or missing else success, evidence)
+
+    actions = policy.get("nonrepudiation_actions") or []
+    section = doc.get("nonrepudiation") or {} if valid else {}
+    missing, problems = [], []
+    if not actions:
+        missing.append("Define nonrepudiation_actions as GitLab event types for the installed version/license")
+    for action in actions:
+        if not any(event_type(r) == action and attributable(r) for r in records):
+            missing.append("No attributable record sampled for %s (absence in a bounded sample is not proof of failure)" % action)
+    for key in ("coverage_verified", "identity_binding_verified", "independent_retention_verified", "tamper_protection_verified"):
+        if section.get(key) is False:
+            problems.append("Non-repudiation evidence reports %s=false" % key)
+        elif section.get(key) is not True:
+            missing.append("Missing current referenced evidence: nonrepudiation.%s" % key)
+    verdict("GLAB-030", problems, missing, "Required actions have attributable records and verified identity binding, coverage and protected independent retention.")
+
+    applicable = policy.get("aggregates_logs")
+    if applicable is False and policy.get("aggregation_scope_reference"):
+        R.add("GLAB-031", NA, "This server does not provide log aggregation: %s" % policy["aggregation_scope_reference"])
+    else:
+        missing, problems = [], []
+        sources = policy.get("aggregation_sources") or []
+        tolerance = policy.get("aggregation_tolerance_seconds")
+        if applicable is not True:
+            missing.append("Declare aggregates_logs and document the aggregation scope")
+        if not sources:
+            missing.append("Define aggregation_sources")
+        try:
+            tolerance = float(tolerance)
+            if tolerance < 0 or not math.isfinite(tolerance):
+                raise ValueError()
+        except (ValueError, TypeError):
+            tolerance = None
+            missing.append("Define a nonnegative aggregation_tolerance_seconds")
+        section = doc.get("aggregation") or {} if valid else {}
+        for source in sources:
+            item = (section.get("sources") or {}).get(source, {})
+            if item.get("received") is False:
+                problems.append("Collector reports missing source %s" % source)
+            elif item.get("received") is not True:
+                missing.append("No collector receipt evidence for %s" % source)
+            for key in ("timestamps_parseable", "correlation_verified"):
+                if item.get(key) is False:
+                    problems.append("%s: %s=false" % (source, key))
+                elif item.get(key) is not True:
+                    missing.append("%s: missing %s" % (source, key))
+            try:
+                offset = abs(float(item["clock_offset_seconds"]))
+                if not math.isfinite(offset):
+                    raise ValueError()
+                if tolerance is not None and offset > tolerance:
+                    problems.append("%s clock offset exceeds %ss" % (source, tolerance))
+            except (KeyError, TypeError, ValueError):
+                missing.append("No measured clock offset for %s" % source)
+        verdict("GLAB-031", problems, missing, "All required sources are received and time-correlated within the approved tolerance.")
+
+    approved = policy.get("approved_logging_principals") or []
+    section = doc.get("logging_access") or {} if valid else {}
+    missing, problems = [], []
+    if not approved or not policy.get("issm_approval_reference"):
+        missing.append("Supply approved_logging_principals and issm_approval_reference")
+    principals = section.get("effective_principals")
+    if not isinstance(principals, list) or not principals:
+        missing.append("No complete effective logging configuration principal inventory")
+    elif approved:
+        problems.extend("Unauthorized logging configuration principal: %s" % x for x in principals if x not in approved)
+    for scope in ("os", "gitlab", "streaming"):
+        if (section.get("scope_reviewed") or {}).get(scope) is False:
+            problems.append("Logging access review reports uncontrolled %s access" % scope)
+        elif (section.get("scope_reviewed") or {}).get(scope) is not True:
+            missing.append("Effective %s access has not been reviewed (including sudo, groups and delegated roles)" % scope)
+    verdict("GLAB-032", problems, missing, "All effective logging configuration principals are ISSM-approved across OS, GitLab and streaming controls.")
+
+    missing, problems = [], []
+    operations = policy.get("privilege_operations") or []
+    section = doc.get("privilege_access") or {} if valid else {}
+    if not operations:
+        missing.append("Define privilege_operations event types")
+    for operation in operations:
+        for outcome in ("success", "failure"):
+            if not any(event_type(r) == operation and r.get("outcome") == outcome and attributable(r) for r in records):
+                missing.append("No attributable %s record for privileged operation %s" % (outcome, operation))
+    if section.get("coverage_verified") is False:
+        problems.append("Privilege attempt logging coverage is incomplete")
+    elif section.get("coverage_verified") is not True:
+        missing.append("Missing current referenced privilege_access.coverage_verified evidence")
+    verdict("GLAB-033", problems, missing, "Both successful and unsuccessful attempts are attributable for all required privileged operations.")
+
+    section = doc.get("startup") or {} if valid else {}
+    missing, problems = [], []
+    for key in ("automatic_logging_verified", "current_start_verified", "session_logging_verified"):
+        if section.get(key) is False:
+            problems.append("Startup evidence reports %s=false" % key)
+        elif section.get(key) is not True:
+            missing.append("Missing current referenced startup.%s evidence" % key)
+    start, log_start, session = (_audit_time(section.get(k)) for k in ("application_started_at", "logging_started_at", "first_session_record_at"))
+    if None in (start, log_start, session) or now is None:
+        missing.append("Need application/logging startup and first session record timestamps")
+    elif max(start, log_start, session) > now or log_start > start or session < start:
+        problems.append("Logging must start no later than the application and session evidence must follow startup without future timestamps")
+    verdict("GLAB-034", problems, missing, "Automatic session logging is verified for the current application startup.")
 
 
 # ---------------------------------------------------------------------------
@@ -777,6 +959,7 @@ def gitlab_stig_evaluate(ev, settings=None):
     else:
         R.add("GLAB-029", OPEN, "Local accounts are not disabled after %d days of inactivity." % max_days, ev_lines)
 
+    _audit_controls(R, ev, s.get("audit_controls") or {})
     return sc.apply_overrides(R.items, s.get("overrides"))
 
 

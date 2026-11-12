@@ -109,3 +109,17 @@
     sc_accounts: "{{ gitlab_stig_service_accounts }}"
     sc_df_dirs: ["{{ gitlab_data_dir }}", "{{ gitlab_log_dir }}"]
     sc_update_packages: "{{ [gsa_package.name] if (gitlab_stig_check_repo_updates | bool and gsa_package.name) else [] }}"
+
+- name: Collect bounded audit records and optional external control evidence
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - '-'
+      - "{{ gitlab_log_dir }}/gitlab-rails/audit_json.log"
+      - "{{ gitlab_stig_audit_control_evidence_file }}"
+    stdin: "{{ lookup('ansible.builtin.file', role_path ~ '/files/audit_controls.py') }}"
+  register: _gsa_audit_controls
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
