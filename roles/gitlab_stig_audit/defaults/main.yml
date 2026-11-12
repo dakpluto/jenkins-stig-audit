@@ -95,6 +95,14 @@ gitlab_stig_audit_controls:
   approved_log_tool_groups: [root]
   backup_log_sources: []
   integrity_log_sources: []
+  # Empty lists mean scope is unknown, unless a referenced inventory explicitly verifies absence.
+  group_auth_paths: []
+  soap_endpoints: []
+  pki_auth_paths: []
+  authentication_interfaces: []
+  peer_connections: []
+  session_termination_methods: [logout]
+  session_generation_paths: [gitlab_web]
 # Additional absolute paths to logging binaries, scripts/configuration or agent controls.
 # Standard Omnibus log tools and runit service controls are discovered automatically.
 gitlab_stig_log_tool_paths: []

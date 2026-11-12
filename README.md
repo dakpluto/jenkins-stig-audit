@@ -224,6 +224,15 @@ approved deployment process. Repository update checks remain disabled by default
 | GLAB-038 | Log tools protected from unauthorized deletion | 000123 |
 | GLAB-039 | Log backups on a separate system/component at least every seven days | 000125 |
 | GLAB-040 | Cryptographic protection of log integrity | 000126 |
+| GLAB-041 | Individual authentication before shared authenticator use | 000153 |
+| GLAB-042 | SOAP secure authentication, or documented non-applicability | 000156 |
+| GLAB-043 | PKI identity mapping to the intended account | 000177 |
+| GLAB-044 | Obscured authentication input across applicable interfaces | 000178 |
+| GLAB-045 | Mutual authentication of applicable peer connections | 000219 |
+| GLAB-046 | Server-side session invalidation after logout/termination | 000220 |
+| GLAB-047 | Unique underlying session identifiers (V-204764) | 000223 |
+| GLAB-048 | Only system-generated session identifiers (V-204765) | 000223 |
+| GLAB-049 | Session ID generation through an approved RNG | 000224 |
 
 See [GitLab audit control configuration and evidence](docs/gitlab-audit-controls.md) for policy inputs, bounded collection, external evidence format and applicability. These checks default to Not_Reviewed until sufficient evidence is available.
 

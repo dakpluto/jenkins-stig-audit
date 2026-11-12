@@ -133,3 +133,70 @@ List protected sources in integrity_log_sources. log_integrity.sources must iden
 False verification/protection facts or tampering_detected=true are Open. Missing observations or unsupported mechanisms remain Not_Reviewed. HTTPS alone, a streaming bearer token, encryption without integrity authentication, file permissions and an unprotected adjacent checksum file do not establish retained-log cryptographic integrity. A protected hash manifest can qualify only when its trusted baseline and verification process are independently protected and approved.
 
 All six checks default to Not_Reviewed. Local collection is read-only, does not restart services, run privileged test commands, perform backups, or modify integrity settings. External observations are trusted inputs whose references must substantiate their claims. No live GitLab/collector validation is performed by controller unit tests.
+
+## Identity and session controls: V-204748/749/756/757/762?766
+
+GLAB-041 through GLAB-049 cover these nine rules in order. [Authentication evidence example](examples/gitlab-auth-control-evidence.json) supplies the exact JSON schema. Its values are illustrative observations, not evidence of your deployment. Merge the auth_controls member into the same dated, referenced evidence file used by the earlier checks. Never place credentials, tokens, cookies, CSRF values or private certificate material in that file.
+
+Add the applicable paths to gitlab_stig_audit_controls, preserving the other policy entries:
+
+```yaml
+group_auth_paths: [broker]
+soap_endpoints: [gateway]
+pki_auth_paths: [cac-idp]
+authentication_interfaces: [gitlab-web]
+peer_connections: [proxy-gitlab]
+session_termination_methods: [logout, expiry]
+session_generation_paths: [gitlab_web]
+```
+
+Each name is an organization-defined inventory key matching the corresponding evidence object. Include all applicable SSO/IdP, shared-account, native smartcard, gateway, browser, terminal and additional session-generation paths. A group/project token used by automation is not automatically a human group authenticator; the reviewed usage determines applicability. Inventory completeness is explicitly verified in each evidence section. False verified control facts yield Open, missing/invalid/stale evidence yields Not_Reviewed. Reviews are trusted external inputs; the role does not independently reproduce their claims.
+
+### Scope and identity mapping
+
+- **GLAB-041 / V-204748:** group_auth requires inventory_complete and paths keyed by group_auth_paths. Each path verifies individual_auth_required, bypass_prevented and traceability_verified. Representative sourced records identify individual and group_account separately and show individual_authenticated_at preceding or equaling group_used_at. Both timestamps must be recent. Observed reversed order is Open. An absence inventory may establish NotAFinding when no group authenticators are used; an empty list alone cannot.
+- **GLAB-042 / V-204749:** soap requires inventory_complete and endpoints keyed by soap_endpoints. Each verifies ws_security_configured, authentication_enforced, unauthenticated_rejected and invalid_credentials_rejected, supported by configuration_reference and test_reference. HTTPS alone does not establish WS-Security. For ordinary GitLab without in-scope SOAP, use the documented absence format below, not a guessed SOAP URL returning 404.
+- **GLAB-043 / V-204756:** pki_mapping requires inventory_complete and paths keyed by pki_auth_paths. Each verifies certificate_validated, mapping_configured, intended_account_verified and unmapped_identity_rejected; supply certificate_identity_reference, account_reference, configuration_reference and test_reference. For federation, trace certificate to IdP principal to GitLab account, including bypass controls and ambiguous/unmapped identity tests. Native smartcard enablement or a CA file alone cannot pass. The collector now retains the non-secret SAN mapping setting as supporting evidence.
+
+For a reviewed absence, leave the associated policy list empty and set that evidence section to:
+
+```json
+{"inventory_complete": true, "none_present": true, "scope_reference": "reviewed deployment inventory section 4"}
+```
+
+This produces Not_Applicable for SOAP, PKI and peer authentication, or NotAFinding for group authentication. Use pki_mapping absence only when there is genuinely no PKI authentication path; enabled native smartcard configuration contradicts that claim and leaves the check Not_Reviewed. PKI absence does not satisfy the separate CAC/PIV requirements. Scope evidence must include custom gateways, co-hosted services and external IdP boundaries relevant to the assessment. Unknown scope remains Not_Reviewed.
+
+### Input and peer authentication
+
+- **GLAB-044 / V-204757:** input_masking requires inventory_complete and interfaces keyed by authentication_interfaces. Each supplies rendered_or_terminal_verified, all_secret_inputs_obscured and test_reference. Verify dummy input in every applicable secret-entry field without submitting real credentials. The existing unauthenticated sign-in-page response is parsed for candidate input types without exporting field values. Static HTML, especially without browser execution, does not establish computed visibility or JavaScript behavior, so it cannot alone pass or fail this rule. Rendered browser, IdP, smartcard middleware and terminal observations provide the complete result. Usernames need not be masked.
+- **GLAB-045 / V-204762:** peer_auth requires inventory_complete and connections keyed by peer_connections. Each supplies both_peers_authenticated, peer_identity_verified, missing_credentials_rejected, untrusted_credentials_rejected and bypass_prevented with configuration_reference and test_reference. Verify both directions and effective trust/identity checks. A trusted source IP, ordinary server-authenticated HTTPS or a client certificate configured without verification is insufficient. Local sockets do not automatically prove no applicable peer connections; document the topology before claiming non-applicability.
+
+### Sessions and RNG
+
+All session observations reside under auth_controls.sessions. session_termination_methods must include logout and every other applicable termination mechanism, such as inactivity/absolute expiry, explicit revocation or IdP-triggered termination where supported/required. termination_inventory_complete establishes that the list was reviewed. termination.<method> needs authenticated_before, termination_completed, old_session_rejected, tested_at and test_reference. An old cookie still authenticating after confirmed termination is Open. A probe that never established an authenticated session or never completed termination is inconclusive, not proof of an invalidation defect.
+
+Set generation_inventory_complete and generation.<path> for every session_generation_paths entry. Each path requires implementation_reference for the exact installed gitlab_version. This avoids applying a code review from one release to another.
+
+- **GLAB-047 / V-204764:** implementation_verified, underlying_ids_unique and independent_sessions_verified, with recent tested_at and test_reference. Compare actual underlying session IDs through an approved controlled inspection or implementation-aware test. Do not export IDs. Different encrypted cookie values alone do not prove unique underlying identifiers.
+- **GLAB-048 / V-204765:** implementation_verified, fabricated_rejected, tampered_rejected and fixation_rejected, with recent tested_at and test_reference. Confirm bogus identifiers cannot establish authentication and an identifier supplied before login cannot be used to replay the resulting authenticated session.
+- **GLAB-049 / V-204766:** rng_path_traced, validated_module_verified and approved_runtime_verified, plus rng_backend, rng_reference, module_validation_reference and runtime_reference. Trace the actual installed generation path to an approved RNG within the validated module and its operational environment. The read-only Rails query now collects Ruby version, linked OpenSSL version, OpenSSL FIPS mode and configured session-store class. For rng_backend=openssl, missing runtime mode is inconclusive and explicitly disabled mode is Open. Approved runtime claims for other backends require the referenced runtime assessment. OS FIPS mode, package names, TLS settings or statistically random samples alone cannot pass this high-severity rule.
+
+V-204764 and V-204765 share SRG-APP-000223. GLAB-047/048 carry explicit V-ID bindings so each changes only the intended checklist entry. Normal gitlab_stig_rule_map overrides remain available.
+
+### Optional session-test workflow
+
+The role remains read-only. Run [scripts/gitlab_session_probe.py](../scripts/gitlab_session_probe.py) explicitly from a trusted machine against a dedicated test account when you want active session evidence. It creates two local-password sessions and logs them out, so it is deliberately not called by an ordinary audit or Ansible check mode.
+
+Supply GITLAB_SESSION_TEST_USER and GITLAB_SESSION_TEST_PASSWORD through your approved secret-injection method, then run:
+
+```text
+python scripts/gitlab_session_probe.py --url https://gitlab.example.mil --reference session-test-report-42 --ca-file /path/to/approved-ca.pem
+```
+
+Omit --ca-file to use system trust. TLS verification is mandatory; HTTP, credentials in URLs, query strings and fragments are rejected. Environment HTTP proxies and redirects are disabled, so credentials are never forwarded to an unexpected IdP or host. SSO-only, MFA, CAPTCHA and unsupported login flows return inconclusive observations without attempting to bypass them. GitLab installed under a relative URL can be addressed with that base path. The expected session cookie is _gitlab_session; other names require a separately reviewed test.
+
+The probe checks that both sessions authenticate to the same account at /api/v4/user, tests fabricated/tampered cookies and fixation replay, compares opaque cookie values, logs out using the current CSRF token, and replays the original session cookie. Only confirmed JSON 401 Unauthorized responses count as rejection; redirects, WAF errors, outages and unexpected responses remain inconclusive. Authenticated state is checked before replay tests. Passwords, cookies and response bodies remain in memory and are not emitted. Cleanup attempts logout for both sessions, with a sanitized notice if cleanup is incomplete; revoke the dedicated account's test sessions when needed.
+
+The JSON output is a partial evidence document, not a pass result. Merge its sessions.termination.logout and sessions.generation.gitlab_web observations into your reviewed evidence without erasing implementation/RNG/scope evidence. Retain the probe report at its reference and preserve the original tested_at timestamps. The probe does not declare inventory completeness, test expiry/revocation, inspect underlying IDs or prove a FIPS RNG. Those remain Not_Reviewed until separately verified. Invalidated or inactive test sessions should not be reused as independent evidence in a later run.
+
+Reference documentation: [GitLab authentication implementation](https://docs.gitlab.com/development/authentication/), [session storage](https://docs.gitlab.com/development/session/), [smartcard identity mapping](https://docs.gitlab.com/administration/auth/smartcard/), [FIPS verification](https://docs.gitlab.com/development/fips_gitlab/), [mutual TLS configuration](https://docs.gitlab.com/omnibus/settings/ssl/).

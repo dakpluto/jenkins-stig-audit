@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import stig_common as sc  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gitlab_audit_extended import evaluate_extended  # noqa: E402
+from gitlab_auth_controls import evaluate_auth_controls  # noqa: E402
 
 NF, OPEN, NA, NR = sc.NF, sc.OPEN, sc.NA, sc.NR
 
@@ -167,6 +168,24 @@ CHECKS.extend([
      ["SRG-APP-000125"], "medium", "Verify log coverage, separate destination, backup schedule and successful backup history."),
     ("GLAB-040", "Log integrity must be protected cryptographically",
      ["SRG-APP-000126"], "medium", "Verify approved cryptographic integrity mechanisms, protected verification material and successful integrity verification."),
+    ("GLAB-041", "Individual authentication must precede use of group authenticators",
+     ["SRG-APP-000153"], "medium", "Inventory shared authentication paths and verify individual authentication precedes group credential use without bypass."),
+    ("GLAB-042", "SOAP services must provide secure authentication extensions",
+     ["SRG-APP-000156"], "medium", "Document SOAP scope or verify effective WS-Security authentication on every applicable SOAP endpoint."),
+    ("GLAB-043", "PKI identities must map to the intended user or group account",
+     ["SRG-APP-000177"], "medium", "Verify certificate identity mapping through native smartcard or IdP federation to the intended GitLab account."),
+    ("GLAB-044", "Authentication interfaces must obscure secret input",
+     ["SRG-APP-000178"], "medium", "Inspect rendered password/PIN/authenticator input on every applicable web, IdP, middleware and CLI interface."),
+    ("GLAB-045", "Connecting proxies, servers and gateways must authenticate mutually",
+     ["SRG-APP-000219"], "medium", "Inventory connections, verify both peer identities and rejection of absent/untrusted credentials."),
+    ("GLAB-046", "Session identifiers must be invalidated on logout or termination",
+     ["SRG-APP-000220"], "medium", "Replay prior test session credentials after logout and every applicable termination mechanism; protected access must fail."),
+    ("GLAB-047", "Each session must have a unique session identifier",
+     ["SRG-APP-000223"], "medium", "Verify installed generation implementation and distinct underlying identifiers across independent sessions."),
+    ("GLAB-048", "Only system-generated session identifiers may be recognized",
+     ["SRG-APP-000223"], "medium", "Verify generation implementation, reject fabricated/tampered identifiers and test fixation across login."),
+    ("GLAB-049", "Session identifiers must use an approved random number generator",
+     ["SRG-APP-000224"], "high", "Trace session generation to the validated cryptographic module and verify its approved runtime configuration."),
 ])
 CHECK_META = sc.catalog(CHECKS)
 
@@ -231,7 +250,7 @@ def gitlab_yml_summary(text):
             for label, srv in (ldap.get("servers") or {}).items())),
         "omniauth": dict(pick(omni, ("enabled",)), providers=[
             {"name": p.get("name", "?")} for p in (omni.get("providers") or []) if isinstance(p, dict)]),
-        "smartcard": pick(gl.get("smartcard") or {}, ("enabled", "ca_file", "required_for_git_access")),
+        "smartcard": pick(gl.get("smartcard") or {}, ("enabled", "ca_file", "required_for_git_access", "san_extensions")),
     }
 
 
@@ -975,6 +994,11 @@ def gitlab_stig_evaluate(ev, settings=None):
 
     _audit_controls(R, ev, s.get("audit_controls") or {})
     evaluate_extended(R, ev, s.get("audit_controls") or {})
+    evaluate_auth_controls(R, ev, s.get("audit_controls") or {})
+    # These share a base SRG ID; bind each to its actual V-ID before checklist mapping.
+    for result in R.items:
+        if result["id"] in ("GLAB-047", "GLAB-048"):
+            result["vuln_ids"] = ["V-204764" if result["id"] == "GLAB-047" else "V-204765"]
     return sc.apply_overrides(R.items, s.get("overrides"))
 
 

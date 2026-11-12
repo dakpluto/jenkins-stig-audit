@@ -1,0 +1,118 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "assessment:42",
+  "auth_controls": {
+    "group_auth": {
+      "inventory_complete": true,
+      "paths": {
+        "broker": {
+          "individual_auth_required": true,
+          "bypass_prevented": true,
+          "traceability_verified": true,
+          "records": [
+            {
+              "individual": "alice",
+              "group_account": "shared-admin",
+              "source": "broker:42",
+              "individual_authenticated_at": "2026-11-12T11:00:00Z",
+              "group_used_at": "2026-11-12T11:01:00Z"
+            }
+          ]
+        }
+      }
+    },
+    "soap": {
+      "inventory_complete": true,
+      "endpoints": {
+        "gateway": {
+          "ws_security_configured": true,
+          "authentication_enforced": true,
+          "unauthenticated_rejected": true,
+          "invalid_credentials_rejected": true,
+          "configuration_reference": "soap:config",
+          "test_reference": "soap:test"
+        }
+      }
+    },
+    "pki_mapping": {
+      "inventory_complete": true,
+      "paths": {
+        "cac-idp": {
+          "certificate_validated": true,
+          "mapping_configured": true,
+          "intended_account_verified": true,
+          "unmapped_identity_rejected": true,
+          "certificate_identity_reference": "certificate:subject",
+          "account_reference": "user:42",
+          "configuration_reference": "mapping:42",
+          "test_reference": "mapping:test"
+        }
+      }
+    },
+    "input_masking": {
+      "inventory_complete": true,
+      "interfaces": {
+        "gitlab-web": {
+          "rendered_or_terminal_verified": true,
+          "all_secret_inputs_obscured": true,
+          "test_reference": "browser:42"
+        }
+      }
+    },
+    "peer_auth": {
+      "inventory_complete": true,
+      "connections": {
+        "proxy-gitlab": {
+          "both_peers_authenticated": true,
+          "peer_identity_verified": true,
+          "missing_credentials_rejected": true,
+          "untrusted_credentials_rejected": true,
+          "bypass_prevented": true,
+          "configuration_reference": "mtls:config",
+          "test_reference": "mtls:test"
+        }
+      }
+    },
+    "sessions": {
+      "termination_inventory_complete": true,
+      "generation_inventory_complete": true,
+      "termination": {
+        "logout": {
+          "authenticated_before": true,
+          "termination_completed": true,
+          "old_session_rejected": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "session:test"
+        },
+        "expiry": {
+          "authenticated_before": true,
+          "termination_completed": true,
+          "old_session_rejected": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "session:test"
+        }
+      },
+      "generation": {
+        "gitlab_web": {
+          "implementation_verified": true,
+          "underlying_ids_unique": true,
+          "independent_sessions_verified": true,
+          "fabricated_rejected": true,
+          "tampered_rejected": true,
+          "fixation_rejected": true,
+          "rng_path_traced": true,
+          "validated_module_verified": true,
+          "approved_runtime_verified": true,
+          "implementation_reference": "source:17.3.4",
+          "gitlab_version": "17.3.4",
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "session:test",
+          "rng_backend": "openssl",
+          "rng_reference": "rng:source",
+          "module_validation_reference": "CMVP:example",
+          "runtime_reference": "runtime:report"
+        }
+      }
+    }
+  }
+}

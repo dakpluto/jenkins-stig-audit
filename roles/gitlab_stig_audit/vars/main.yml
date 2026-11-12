@@ -64,6 +64,15 @@ gsa_rails_script: |
   gsa_part(out, 'local_users') { gsa_humans.where.not(id: Identity.select(:user_id)).limit(500).pluck(:username) }
   gsa_part(out, 'terms') { ApplicationSetting::Term.last&.terms.to_s[0, 4000] }
   out['error'] = out['errors']['settings'] if out['errors']['settings']
+  gsa_part(out, 'session_crypto') do
+    require 'openssl'
+    {
+      'ruby_version' => RUBY_VERSION,
+      'openssl_version' => OpenSSL::OPENSSL_VERSION,
+      'openssl_fips_mode' => OpenSSL.fips_mode,
+      'session_store' => Rails.application.config.session_store.to_s
+    }
+  end
   puts out.to_json
 
 gsa_settings:
