@@ -117,6 +117,9 @@
       - '-'
       - "{{ gitlab_log_dir }}/gitlab-rails/audit_json.log"
       - "{{ gitlab_stig_audit_control_evidence_file }}"
+      - "{{ gitlab_install_dir }}"
+      - "{{ (gitlab_stig_log_tool_paths + gitlab_stig_audit_controls.get('required_log_tools', [])) | unique | list | to_json }}"
+      - "{{ gitlab_data_dir }}"
     stdin: "{{ lookup('ansible.builtin.file', role_path ~ '/files/audit_controls.py') }}"
   register: _gsa_audit_controls
   changed_when: false

@@ -80,3 +80,56 @@ Startup evidence must verify the currently running application start, automatic 
 External records contain only actor/target identifiers, event type, timestamp, outcome and source reference. Avoid tokens, headers, payloads and free-form sensitive messages: evidence is saved in the normal raw evidence report when enabled.
 
 GitLab reference documentation: [event types](https://docs.gitlab.com/user/compliance/audit_event_types/), [security telemetry](https://docs.gitlab.com/security/security_telemetry/), [instance streaming](https://docs.gitlab.com/administration/compliance/audit_event_streaming/). Some events are streaming-only; presence of audit_json.log or a particular edition never proves complete coverage.
+
+## Privileged recording and log protection: V-204727, V-204735?739
+
+GLAB-035 through GLAB-040 add these six rules. The same dated external evidence file supports them. [Example external observations](examples/gitlab-audit-extended-evidence.json) illustrate the schema; the dates, tool list and verification values are examples, not production evidence. Merge the sections into the existing evidence object when using both sets of checks.
+
+Add these keys to gitlab_stig_audit_controls (preserve the other policy keys):
+
+```yaml
+privileged_access_paths:
+  sudo: full_command
+  shared-admin: individual_identity
+required_log_tools:
+  - /opt/gitlab/embedded/bin/svlogd
+approved_log_tool_writers: [root]
+approved_log_tool_groups: [root]
+backup_log_sources: [audit]
+integrity_log_sources: [audit]
+```
+
+Set gitlab_stig_log_tool_paths separately to include additional absolute agent/tool/configuration paths. Required tools are automatically added to collection. Discovery also covers existing standard Omnibus logging binaries, gitlab-ctl, service log scripts, logrotate configuration, rsyslog/journald controls and common forwarder executables. This is a starting inventory: the referenced review must establish completeness, including deployment tooling, library/interpreter dependencies, enabled custom agents and controls not found automatically. Omitted custom tools prevent a defensible completeness attestation.
+
+### GLAB-035 / V-204727
+
+Define every applicable privileged access path, including sudo maintenance, Rails runner/console, shared GitLab accounts and relevant delegated or service-account operations. Each policy path selects full_command or individual_identity mode. The privileged_recording.paths observation must include configuration_verified=true, coverage_verified=true and at least one recent, sourced record meeting that mode. An explicit recording_gap=true or false configuration/coverage fact yields Open. Missing observations yield Not_Reviewed.
+
+For full_command, the record needs actor, time, source, full_text_verified=true and command_record_reference pointing to the complete command in the protected source. The role does not retrieve command text: it can contain credentials. This path depends on the referenced inspection confirming full command capture rather than a truncated command, event name or URL. For individual_identity, provide account, a different individual, individual_identity_verified=true, time and source. A shared author_id or a service account name alone does not prove human attribution. The review must establish the identity binding; different strings by themselves are insufficient.
+
+### GLAB-036/037/038 / V-204735/736/737
+
+The target collector obtains owners, groups, modes, resolved targets and lexical/resolved ancestor metadata. It collects getfacl output with filenames for review. Discovery is limited to 128 paths and ACL output to 256 KiB, with a 15-second ACL command timeout. Missing tools, errors or truncation cannot produce a pass. Install getfacl on the target to obtain complete ACL evidence; the role does not install it.
+
+log_tool_protection must have inventory_complete=true and effective_access_reviewed=true. Each discovered or required path must have access_restricted, modification_restricted and deletion_restricted observations. The reviewer must consider named ACL entries/masks, directory traversal, group membership, root/sudo, tool-specific read/execute policy, service controls and configuration management. Broad read/execute modes are not automatically findings: approved access depends on the tool's purpose. Local ACL text is retained as evidence, not automatically interpreted as a complete effective-access model.
+
+For modification, the evaluator flags unapproved owners, unapproved writable groups and non-sticky world-writable files/directories. For deletion it evaluates directories rather than assuming file write permissions govern removal. Both ancestor chains are examined for symlinks. Sticky world-writable ancestors require review and remain Not_Reviewed. Required absent tools are Open; unknown metadata remains Not_Reviewed. Reviewed false restriction facts yield Open. Root-owned binaries alone cannot produce a pass.
+
+### GLAB-039 / V-204738
+
+List every required log source in backup_log_sources. log_backup.sources must provide per source:
+
+- coverage_verified, separate_destination_verified and history_verified booleans;
+- destination_reference identifying the other system/component;
+- schedule_interval_hours and maximum_success_gap_hours, both positive and at most 168;
+- last_success_at, a timezone-aware successful completion timestamp no more than 168 hours before collection.
+
+A failed coverage/separation/history verification, an interval over seven days or an overdue last successful backup is Open. Missing or future timestamps, absent history and unknown destinations are Not_Reviewed. Maximum successful gap is measured from the reviewed backup history, not inferred from the cron interval. The evidence must cover a representative interval and identify it in the referenced report. Continuous forwarding is acceptable evidence only when the reviewed destination actually retains complete required logs as the approved backup arrangement. Neither forwarding configuration nor a normal GitLab backup command proves log backup coverage.
+
+### GLAB-040 / V-204739
+
+List protected sources in integrity_log_sources. log_integrity.sources must identify digital_signature, hmac, authenticated_storage or protected_hash_manifest as the mechanism. Each source needs coverage_verified, mechanism_approved, verification_material_protected and verification_success booleans, configuration_reference, verification_reference and a recent last_verified_at. Cryptographic verification occurs in the referenced system; this role validates the observations and freshness rather than signing logs or accessing keys. Protect verification keys/manifests independently from the logs and include applicable transport/storage coverage in the referenced assessment.
+
+False verification/protection facts or tampering_detected=true are Open. Missing observations or unsupported mechanisms remain Not_Reviewed. HTTPS alone, a streaming bearer token, encryption without integrity authentication, file permissions and an unprotected adjacent checksum file do not establish retained-log cryptographic integrity. A protected hash manifest can qualify only when its trusted baseline and verification process are independently protected and approved.
+
+All six checks default to Not_Reviewed. Local collection is read-only, does not restart services, run privileged test commands, perform backups, or modify integrity settings. External observations are trusted inputs whose references must substantiate their claims. No live GitLab/collector validation is performed by controller unit tests.

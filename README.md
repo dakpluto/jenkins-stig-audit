@@ -218,6 +218,12 @@ approved deployment process. Repository update checks remain disabled by default
 | GLAB-032 | ISSM-approved effective logging configuration access | 000090 |
 | GLAB-033 | Successful and failed privileged-operation logging | 000091 |
 | GLAB-034 | Automatic session logging at application startup | 000092 |
+| GLAB-035 | Full privileged command recording or individual group-account attribution | 000101 |
+| GLAB-036 | Log tools protected from unauthorized access | 000121 |
+| GLAB-037 | Log tools protected from unauthorized modification | 000122 |
+| GLAB-038 | Log tools protected from unauthorized deletion | 000123 |
+| GLAB-039 | Log backups on a separate system/component at least every seven days | 000125 |
+| GLAB-040 | Cryptographic protection of log integrity | 000126 |
 
 See [GitLab audit control configuration and evidence](docs/gitlab-audit-controls.md) for policy inputs, bounded collection, external evidence format and applicability. These checks default to Not_Reviewed until sufficient evidence is available.
 

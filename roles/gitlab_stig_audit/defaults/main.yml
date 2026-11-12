@@ -76,7 +76,7 @@ gitlab_stig_save_raw_evidence: true
 # Fail the host when Open findings of these severities exist (high|medium|low).
 gitlab_stig_fail_on: []
 
-# V-204715/716/718/719/720: policy and referenced external observations.
+# V-204715/716/718/719/720/727/735-739: policy and referenced external observations.
 # Optional JSON file ON THE TARGET; see docs/gitlab-audit-controls.md.
 gitlab_stig_audit_control_evidence_file: ""
 gitlab_stig_audit_controls:
@@ -89,3 +89,12 @@ gitlab_stig_audit_controls:
   approved_logging_principals: []
   issm_approval_reference: ""
   privilege_operations: []
+  privileged_access_paths: {}
+  required_log_tools: []
+  approved_log_tool_writers: [root]
+  approved_log_tool_groups: [root]
+  backup_log_sources: []
+  integrity_log_sources: []
+# Additional absolute paths to logging binaries, scripts/configuration or agent controls.
+# Standard Omnibus log tools and runit service controls are discovered automatically.
+gitlab_stig_log_tool_paths: []

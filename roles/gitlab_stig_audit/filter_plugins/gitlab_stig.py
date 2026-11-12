@@ -20,6 +20,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "stig_common", "filter_plugins"))
 import stig_common as sc  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gitlab_audit_extended import evaluate_extended  # noqa: E402
 
 NF, OPEN, NA, NR = sc.NF, sc.OPEN, sc.NA, sc.NR
 
@@ -153,6 +155,18 @@ CHECKS.extend([
      ["SRG-APP-000091"], "medium", "Verify attributable allowed and denied privileged-operation records for every required operation."),
     ("GLAB-034", "Session logging must start automatically with the application",
      ["SRG-APP-000092"], "medium", "Verify automatic logging configuration and session records following the current application startup."),
+    ("GLAB-035", "Privileged commands or group-account users must be individually recorded",
+     ["SRG-APP-000101"], "medium", "Verify full command recording or individual attribution for every applicable administrative access path."),
+    ("GLAB-036", "Log tools must be protected from unauthorized access",
+     ["SRG-APP-000121"], "medium", "Inventory log tools and verify effective access against approved identities."),
+    ("GLAB-037", "Log tools must be protected from unauthorized modification",
+     ["SRG-APP-000122"], "medium", "Protect tool files, resolved targets and ancestor directories from unauthorized writes."),
+    ("GLAB-038", "Log tools must be protected from unauthorized deletion",
+     ["SRG-APP-000123"], "medium", "Protect containing and ancestor directories, including ACL and privileged access paths."),
+    ("GLAB-039", "Logs must be backed up at least every seven days to a separate system or component",
+     ["SRG-APP-000125"], "medium", "Verify log coverage, separate destination, backup schedule and successful backup history."),
+    ("GLAB-040", "Log integrity must be protected cryptographically",
+     ["SRG-APP-000126"], "medium", "Verify approved cryptographic integrity mechanisms, protected verification material and successful integrity verification."),
 ])
 CHECK_META = sc.catalog(CHECKS)
 
@@ -960,6 +974,7 @@ def gitlab_stig_evaluate(ev, settings=None):
         R.add("GLAB-029", OPEN, "Local accounts are not disabled after %d days of inactivity." % max_days, ev_lines)
 
     _audit_controls(R, ev, s.get("audit_controls") or {})
+    evaluate_extended(R, ev, s.get("audit_controls") or {})
     return sc.apply_overrides(R.items, s.get("overrides"))
 
 

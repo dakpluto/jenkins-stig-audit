@@ -1,0 +1,72 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "report:42",
+  "privileged_recording": {
+    "paths": {
+      "sudo": {
+        "configuration_verified": true,
+        "coverage_verified": true,
+        "records": [
+          {
+            "time": "2026-11-12T11:00:00Z",
+            "source": "sudo:42",
+            "actor": "alice",
+            "full_text_verified": true,
+            "command_record_reference": "session:42:command:1"
+          }
+        ]
+      },
+      "shared-admin": {
+        "configuration_verified": true,
+        "coverage_verified": true,
+        "records": [
+          {
+            "time": "2026-11-12T11:00:00Z",
+            "source": "session:43",
+            "individual": "alice",
+            "account": "root",
+            "individual_identity_verified": true
+          }
+        ]
+      }
+    }
+  },
+  "log_tool_protection": {
+    "inventory_complete": true,
+    "effective_access_reviewed": true,
+    "paths": {
+      "/opt/gitlab/embedded/bin/svlogd": {
+        "access_restricted": true,
+        "modification_restricted": true,
+        "deletion_restricted": true
+      }
+    }
+  },
+  "log_backup": {
+    "sources": {
+      "audit": {
+        "coverage_verified": true,
+        "separate_destination_verified": true,
+        "history_verified": true,
+        "destination_reference": "backup:server2",
+        "schedule_interval_hours": 24,
+        "maximum_success_gap_hours": 48,
+        "last_success_at": "2026-11-12T10:00:00Z"
+      }
+    }
+  },
+  "log_integrity": {
+    "sources": {
+      "audit": {
+        "mechanism": "digital_signature",
+        "coverage_verified": true,
+        "mechanism_approved": true,
+        "verification_material_protected": true,
+        "verification_success": true,
+        "configuration_reference": "signer:42",
+        "verification_reference": "verify:42",
+        "last_verified_at": "2026-11-12T11:00:00Z"
+      }
+    }
+  }
+}
