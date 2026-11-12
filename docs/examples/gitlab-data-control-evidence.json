@@ -1,0 +1,90 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "assessment:42",
+  "data_controls": {
+    "at_rest": {
+      "inventory_complete": true,
+      "locations": {
+        "repositories": {
+          "confidentiality_verified": true,
+          "integrity_verified": true,
+          "effective_access_verified": true,
+          "storage_reference": "storage:42",
+          "configuration_reference": "config:42",
+          "verification_reference": "test:42"
+        }
+      }
+    },
+    "offline": {
+      "inventory_complete": true,
+      "copies": {
+        "backup-media": {
+          "encryption_verified": true,
+          "cryptographic_integrity_verified": true,
+          "key_protection_verified": true,
+          "coverage_verified": true,
+          "mechanism_reference": "offline:42",
+          "verification_reference": "verify:42",
+          "key_management_reference": "kms:42"
+        }
+      }
+    },
+    "input_validation": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "implementation_reference": "source:42",
+      "inputs": {
+        "admin/session_timeout": {
+          "server_validation_verified": true,
+          "type_format_verified": true,
+          "bounds_verified": true,
+          "unexpected_parameters_verified": true,
+          "invalid_input_rejected": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "validation:42"
+        }
+      }
+    },
+    "error_identification": {
+      "inventory_complete": true,
+      "conditions": {
+        "authorization_failure": {
+          "recognition_verified": true,
+          "configuration_reference": "errors:42",
+          "records": [
+            {
+              "time": "2026-11-12T11:00:00Z",
+              "source": "record:42"
+            }
+          ]
+        }
+      }
+    },
+    "error_sanitization": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "implementation_reference": "source:42",
+      "outputs": {
+        "rails-errors": {
+          "sanitization_verified": true,
+          "corrective_information_verified": true,
+          "sensitive_disclosure_prevented": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "sanitization:42"
+        }
+      }
+    },
+    "tool_integrity": {
+      "inventory_complete": true,
+      "baseline_authenticated": true,
+      "baseline_independently_protected": true,
+      "baseline_approved": true,
+      "baseline_reference": "signed-manifest:42",
+      "paths": {
+        "/opt/gitlab/embedded/bin/svlogd": {
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    }
+  }
+}

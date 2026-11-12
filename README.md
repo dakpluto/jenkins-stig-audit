@@ -158,7 +158,7 @@ determination. For example, checking that a SAML IdP actually enforces CAC.
 | JNKS-025 | HTTP access log | 000016 |
 | JNKS-026 | Log file/directory permissions | 000118, 000119, 000120 |
 | JNKS-027 | Logs off-loaded (rsyslog forwarding / remote logger) | 000358 |
-| JNKS-028 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
+| JNKS-028 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357 |
 | JNKS-029 | chronyd active and synchronized | 000116, 000374 |
 
 If Configuration-as-Code (`jenkins.yaml`) is in use, fix findings in the CasC
@@ -210,7 +210,7 @@ approved deployment process. Repository update checks remain disabled by default
 | GLAB-024 | NGINX access log | 000016 |
 | GLAB-025 | Log file/directory permissions | 000118, 000119, 000120 |
 | GLAB-026 | Logs off-loaded (`udp_log_shipping_host` or rsyslog) | 000358 |
-| GLAB-027 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
+| GLAB-027 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357 |
 | GLAB-028 | chronyd active and synchronized | 000116, 000374, 000920 |
 | GLAB-029 | No active accounts idle > 35 days; dormant-user deactivation | 000163, 000705 |
 | GLAB-030 | Non-repudiation coverage, attribution and protected retention | 000080 |
@@ -233,8 +233,60 @@ approved deployment process. Repository update checks remain disabled by default
 | GLAB-047 | Unique underlying session identifiers (V-204764) | 000223 |
 | GLAB-048 | Only system-generated session identifiers (V-204765) | 000223 |
 | GLAB-049 | Session ID generation through an approved RNG | 000224 |
+| GLAB-050 | Confidentiality and integrity of all information at rest | 000231 |
+| GLAB-051 | Cryptographic protection of offline information | 000231 |
+| GLAB-052 | Management-interface input validation | 000251 |
+| GLAB-053 | Identification of security-relevant error conditions | 000266 |
+| GLAB-054 | Useful error information without sensitive disclosure | 000266 |
+| GLAB-055 | Log tool verification against a trusted cryptographic baseline | 000290 |
+| GLAB-056 | User-initiated management logout | 000296 |
+| GLAB-057 | Explicit logout confirmation and reliable termination | 000297 |
+| GLAB-058 | Security attribute binding during processing | 000313 |
+| GLAB-059 | Security attribute binding during transmission | 000314 |
+| GLAB-060 | Approved and controlled remote management access | 000315 |
+| GLAB-061 | Immediate remote management disconnect/disable capability | 000316 |
+| GLAB-062 | Nonprivileged rejection of privileged operations | 000340 |
+| GLAB-063 | Attributable privileged role activity logging | 000343 |
+| GLAB-064 | provide an immediate warning to the SA and ISSO, at a minimum, when allocated log record storage volume reaches 75% of maximum log record storage capacity | 000359 |
+| GLAB-065 | provide an immediate real-time alert to authorized users of all log failure events requiring real-time alerts | 000360 |
+| GLAB-066 | compare internal application server clocks at least every 24 hours with an authoritative time source | 000371 |
+| GLAB-067 | synchronize internal application server clocks to an authoritative time source when the time difference is greater than the organization-defined time period | 000372 |
+| GLAB-068 | record time stamps for log records that meet a granularity of one second for a minimum degree of precision | 000375 |
+| GLAB-069 | log the enforcement actions used to restrict access associated with changes to the application server | 000381 |
+| GLAB-070 | require users to reauthenticate when organization-defined circumstances or situations require reauthentication | 000389 |
+| GLAB-071 | The application server, for PKI-based authentication, must implement a local cache of revocation data to support path discovery and validation in case of the inability to access revocation information via the network | 000401 |
+| GLAB-072 | accept Personal Identity Verification (PIV) credentials from other federal agencies to access the management interface | 000402 |
+| GLAB-073 | electronically verify Personal Identity Verification (PIV) credentials from other federal agencies to access the management interface | 000403 |
+| GLAB-074 | accept Federal Identity, Credential, and Access Management (FICAM)-approved third-party credentials | 000404 |
+| GLAB-075 | conform to Federal Identity, Credential, and Access Management (FICAM)-issued profiles | 000405 |
+| GLAB-076 | only allow the use of DoW PKI-established certificate authorities for verification of the establishment of protected sessions | 000427 |
+| GLAB-077 | implement cryptographic mechanisms to prevent unauthorized modification of organization-defined information at rest on organization-defined information system components | 000428 |
+| GLAB-078 | implement cryptographic mechanisms to prevent unauthorized disclosure of organization-defined information at rest on organization-defined information system components | 000429 |
+| GLAB-079 | The application server, when a MAC I system, must be in a high-availability (HA) cluster | 000435 |
+| GLAB-080 | protect against or limit the effects of all types of Denial of Service (DoS) attacks by employing organization-defined security safeguards | 000435 |
+| GLAB-081 | protect the confidentiality and integrity of transmitted information through the use of an approved TLS version | 000439 |
+| GLAB-082 | remove all export ciphers to protect the confidentiality and integrity of transmitted information | 000439 |
+| GLAB-083 | employ approved cryptographic mechanisms to prevent unauthorized disclosure of information and/or detect changes to information during transmission | 000440 |
+| GLAB-084 | maintain the confidentiality and integrity of information during preparation for transmission | 000441 |
+| GLAB-085 | maintain the confidentiality and integrity of information during reception | 000442 |
+| GLAB-086 | behave in a predictable and documented manner that reflects organizational and system objectives when invalid inputs are received | 000447 |
+| GLAB-087 | remove organization-defined software components after updated versions have been installed | 000454 |
+| GLAB-088 | generate log records when successful/unsuccessful attempts to modify privileges occur | 000495 |
+| GLAB-089 | generate log records when successful/unsuccessful attempts to delete privileges occur | 000499 |
+| GLAB-090 | generate log records for privileged activities | 000504 |
+| GLAB-091 | The application must generate log records showing starting and ending times for user access to the application server management interface | 000505 |
+| GLAB-092 | generate log records when concurrent logons from different workstations occur to the application server management interface | 000506 |
+| GLAB-093 | use NIST-approved or NSA-approved key management technology and processes | 000514 |
+| GLAB-094 | use DoW or CNSS-approved PKI Class 3 or Class 4 certificates | 000514 |
+| GLAB-095 | The application server must, at a minimum, transfer the logs of interconnected systems in real time, and transfer the logs of standalone systems weekly | 000515 |
+| GLAB-096 | implement NSA-approved cryptography to protect classified information in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards | 000416 |
+| GLAB-097 | alert organization-defined personnel or roles upon detection of unauthorized access, modification, or deletion of audit information | 000795 |
+| GLAB-098 | implement multifactor authentication for local; network; and/or remote access to privileged accounts; and/or nonprivileged accounts such that the device meets organization-defined strength of mechanism requirements | 000825 |
+| GLAB-099 | protect nonlocal maintenance sessions by separating the maintenance session from other network sessions with the system by logically separated communications paths | 000880 |
+| GLAB-100 | include only approved trust anchors in trust stores or certificate stores managed by the organization | 000910 |
+| GLAB-101 | provide protected storage for cryptographic keys with organization-defined safeguards and/or hardware protected key store | 000915 |
 
-See [GitLab audit control configuration and evidence](docs/gitlab-audit-controls.md) for policy inputs, bounded collection, external evidence format and applicability. These checks default to Not_Reviewed until sufficient evidence is available.
+See [GitLab audit control configuration and evidence](docs/gitlab-audit-controls.md) and [infrastructure control evidence](docs/gitlab-infrastructure-controls.md) for policy inputs, bounded collection, external evidence format and applicability. These checks default to Not_Reviewed until sufficient evidence is available.
 
 
 ## Nexus Repository checks
@@ -281,7 +333,7 @@ The API calls are `GET`s only, and password fields are removed from the stored r
 | NXRM-020 | Jetty request log | 000016 |
 | NXRM-021 | Log file/directory permissions | 000118, 000119, 000120 |
 | NXRM-022 | Logs off-loaded (rsyslog imfile + forwarding) | 000358 |
-| NXRM-023 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357, 000359 |
+| NXRM-023 | Audit storage capacity and 75% alert (manual, with `df` evidence) | 000357 |
 | NXRM-024 | chronyd active and synchronized | 000116, 000374, 000920 |
 
 ## Crunchy Data PostgreSQL 16 (product STIG)
@@ -665,3 +717,7 @@ sealed or vaulted and that their use is logged and reviewed.
   PostgreSQL 16 server, not GitLab's embedded database.
 - An automated result supports an assessor's determination but does not replace
   it. Review `Not_Reviewed` items and the SRG rules that no check covers.
+
+### Offline RHEL 8 runtime bundle
+
+With Ansible already installed, use `python scripts/build_airgap.py --output dist/stig-audit-airgap.zip` to package the runtime without tests, reports, Git metadata, caches or local secret overrides. The ZIP normalizes text to LF, preserves executable shell scripts, and includes a file-hash manifest and SHA-256 sidecar. See [offline deployment](docs/airgap-deployment.md). Point `gitlab_stig_xccdf` at the SRG already on the server.

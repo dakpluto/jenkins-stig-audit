@@ -1,0 +1,299 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "review:42",
+  "assurance_controls": {
+    "privilege_modification": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "change-role": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "coverage_verified": true,
+          "records": [
+            {
+              "operation": "change-role",
+              "outcome": "success",
+              "actor": "alice",
+              "target": "user:42",
+              "source": "record:42",
+              "individual_attribution_verified": true,
+              "time": "2026-11-12T11:00:00Z"
+            },
+            {
+              "operation": "change-role",
+              "outcome": "failure",
+              "actor": "alice",
+              "target": "user:42",
+              "source": "record:42",
+              "individual_attribution_verified": true,
+              "time": "2026-11-12T11:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    "privilege_deletion": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "revoke-role": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "coverage_verified": true,
+          "records": [
+            {
+              "operation": "revoke-role",
+              "outcome": "success",
+              "actor": "alice",
+              "target": "user:42",
+              "source": "record:42",
+              "individual_attribution_verified": true,
+              "time": "2026-11-12T11:00:00Z"
+            },
+            {
+              "operation": "revoke-role",
+              "outcome": "failure",
+              "actor": "alice",
+              "target": "user:42",
+              "source": "record:42",
+              "individual_attribution_verified": true,
+              "time": "2026-11-12T11:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    "management_session_times": {
+      "inventory_complete": true,
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "logging_coverage_verified": true,
+          "records": [
+            {
+              "actor": "alice",
+              "session_reference": "report-session:42",
+              "started_at": "2026-11-12T10:00:00Z",
+              "ended_at": "2026-11-12T11:00:00Z",
+              "termination_method": "logout",
+              "start_source": "start:42",
+              "end_source": "end:42",
+              "correlation_verified": true
+            }
+          ]
+        }
+      }
+    },
+    "concurrent_management_logons": {
+      "inventory_complete": true,
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "logging_coverage_verified": true,
+          "distinct_workstations_verified": true,
+          "concurrency_recorded": true,
+          "records": [
+            {
+              "concurrency_reference": "overlap:42",
+              "sessions": [
+                {
+                  "actor": "alice",
+                  "source": "session:1",
+                  "workstation_reference": "workstation:1",
+                  "started_at": "2026-11-12T10:00:00Z",
+                  "ended_at": "2026-11-12T11:00:00Z"
+                },
+                {
+                  "actor": "alice",
+                  "source": "session:2",
+                  "workstation_reference": "workstation:2",
+                  "started_at": "2026-11-12T10:30:00Z",
+                  "ended_at": "2026-11-12T11:30:00Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "key_management": {
+      "inventory_complete": true,
+      "items": {
+        "database": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "approved_technology_verified": true,
+          "generation_distribution_verified": true,
+          "access_storage_verified": true,
+          "rotation_revocation_verified": true,
+          "backup_destruction_verified": true,
+          "approval_reference": "approved:42",
+          "lifecycle_policy_reference": "lifecycle:42"
+        }
+      }
+    },
+    "certificate_class": {
+      "inventory_complete": true,
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "approving_authority_verified": true,
+          "certificate_class_verified": true,
+          "chain_verified": true,
+          "intended_usage_verified": true,
+          "certificate_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    "log_transfer": {
+      "inventory_complete": true,
+      "items": {
+        "audit": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "coverage_verified": true,
+          "destination_receipt_verified": true,
+          "history_verified": true,
+          "real_time_verified": true,
+          "interconnected": true,
+          "maximum_delivery_lag_seconds": 1,
+          "destination_reference": "collector:42",
+          "connectivity_scope_reference": "network:42"
+        }
+      }
+    },
+    "classified_crypto": {
+      "inventory_complete": true,
+      "classified_information_present": true,
+      "items": {
+        "classified-link": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "nsa_approval_verified": true,
+          "approved_configuration_verified": true,
+          "operational_environment_verified": true,
+          "scope_coverage_verified": true,
+          "nsa_approval_reference": "approval:42"
+        }
+      }
+    },
+    "audit_information_alerts": {
+      "inventory_complete": true,
+      "recipient_policy_reference": "ISSM:42",
+      "items": {
+        "audit": {
+          "events": {
+            "access": {
+              "tested_at": "2026-11-12T11:00:00Z",
+              "test_reference": "test:42",
+              "configuration_reference": "config:42",
+              "unauthorized_event_detected": true,
+              "delivery_verified": true,
+              "recipient_roles_verified": true
+            },
+            "modification": {
+              "tested_at": "2026-11-12T11:00:00Z",
+              "test_reference": "test:42",
+              "configuration_reference": "config:42",
+              "unauthorized_event_detected": true,
+              "delivery_verified": true,
+              "recipient_roles_verified": true
+            },
+            "deletion": {
+              "tested_at": "2026-11-12T11:00:00Z",
+              "test_reference": "test:42",
+              "configuration_reference": "config:42",
+              "unauthorized_event_detected": true,
+              "delivery_verified": true,
+              "recipient_roles_verified": true
+            }
+          }
+        }
+      }
+    },
+    "mfa_strength": {
+      "inventory_complete": true,
+      "strength_policy_reference": "MFA:42",
+      "accounts": {
+        "privileged": {
+          "web": {
+            "tested_at": "2026-11-12T11:00:00Z",
+            "test_reference": "test:42",
+            "configuration_reference": "config:42",
+            "multiple_factors_verified": true,
+            "mechanism_strength_verified": true,
+            "enrollment_enforced": true,
+            "bypass_prevented": true,
+            "recovery_exceptions_reviewed": true
+          },
+          "ssh": {
+            "tested_at": "2026-11-12T11:00:00Z",
+            "test_reference": "test:42",
+            "configuration_reference": "config:42",
+            "multiple_factors_verified": true,
+            "mechanism_strength_verified": true,
+            "enrollment_enforced": true,
+            "bypass_prevented": true,
+            "recovery_exceptions_reviewed": true
+          }
+        }
+      }
+    },
+    "maintenance_separation": {
+      "inventory_complete": true,
+      "items": {
+        "maintenance": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "logical_separation_verified": true,
+          "routes_controls_verified": true,
+          "other_session_separation_verified": true,
+          "bypass_prevented": true,
+          "topology_reference": "topology:42"
+        }
+      }
+    },
+    "organization_trust": {
+      "inventory_complete": true,
+      "items": {
+        "gitlab": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "effective_inventory_verified": true,
+          "overrides_reviewed": true,
+          "approval_verified": true
+        }
+      }
+    },
+    "key_storage": {
+      "inventory_complete": true,
+      "safeguard_policy_reference": "keys:42",
+      "items": {
+        "secrets": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "safeguards_verified": true,
+          "effective_access_verified": true,
+          "backup_protection_verified": true,
+          "hardware_required": false,
+          "storage_type": "file"
+        }
+      }
+    }
+  }
+}

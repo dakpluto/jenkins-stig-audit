@@ -113,15 +113,29 @@
 - name: Collect bounded audit records and optional external control evidence
   ansible.builtin.command:
     argv:
-      - /usr/bin/python3
+      - "{{ gitlab_stig_collector_python }}"
       - '-'
       - "{{ gitlab_log_dir }}/gitlab-rails/audit_json.log"
       - "{{ gitlab_stig_audit_control_evidence_file }}"
       - "{{ gitlab_install_dir }}"
       - "{{ (gitlab_stig_log_tool_paths + gitlab_stig_audit_controls.get('required_log_tools', [])) | unique | list | to_json }}"
       - "{{ gitlab_data_dir }}"
+      - "{{ gitlab_stig_error_canary }}"
     stdin: "{{ lookup('ansible.builtin.file', role_path ~ '/files/audit_controls.py') }}"
   register: _gsa_audit_controls
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Collect clock, log timestamp, trust anchor and retired-component evidence
+  ansible.builtin.command:
+    argv:
+      - "{{ gitlab_stig_collector_python }}"
+      - '-'
+      - "{{ {'timestamp_logs': gitlab_stig_timestamp_log_paths, 'trust_bundles': gitlab_stig_trust_bundle_paths, 'retired_paths': gitlab_stig_retired_component_paths, 'cipher_endpoints': gitlab_stig_tls_cipher_endpoints, 'public_certificates': gitlab_stig_public_certificate_paths, 'key_storage': gitlab_stig_key_storage_paths} | to_json }}"
+    stdin: "{{ lookup('ansible.builtin.file', role_path ~ '/files/infrastructure_controls.py') }}"
+  register: _gsa_infrastructure
   changed_when: false
   failed_when: false
   check_mode: false

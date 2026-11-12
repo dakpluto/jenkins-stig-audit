@@ -103,6 +103,66 @@ gitlab_stig_audit_controls:
   peer_connections: []
   session_termination_methods: [logout]
   session_generation_paths: [gitlab_web]
+  storage_locations: []
+  offline_copies: []
+  management_inputs: []
+  error_conditions: []
+  error_outputs: []
+  management_interfaces: []
+  security_attributes: {}              # attribute name -> approved values
+  processing_workflows: []
+  transmission_paths: []
+  remote_management_paths: []
+  privileged_functions: []
+  privileged_role_operations: {}        # role name -> required operation names
+  log_storage_volumes: []
+  logging_failure_events: []
+  authoritative_time_sources: []
+  clock_max_offset_seconds: null
+  timestamp_log_sources: []
+  enforcement_actions: []
+  reauthentication_triggers: []
+  federal_piv_issuers: []
+  third_party_credential_providers: []
+  ficam_profiles: []
+  protected_session_trust_stores: []
+  approved_ca_fingerprints: []
+  integrity_components: []
+  confidentiality_components: []
+  dos_safeguards: []
+  tls_connections: []
+  preparation_paths: []
+  reception_paths: []
+  invalid_input_cases: []
+  retired_components: []
+  privilege_modification_operations: []
+  privilege_deletion_operations: []
+  key_management_scopes: []
+  certificate_policy_requirements: {}   # certificate -> {class: 3 or 4, policy_oids: [...], approval_reference: ...}
+  log_transfer_sources: []
+  log_transfer_real_time_limit_seconds: null
+  classified_crypto_paths: []
+  audit_information_scopes: []
+  mfa_access_matrix: {}                 # account class -> required access paths
+  maintenance_paths: []
+  organization_trust_stores: []
+  approved_trust_anchors: {}            # store -> approved SHA-256 certificate fingerprints
+  cryptographic_key_stores: []
 # Additional absolute paths to logging binaries, scripts/configuration or agent controls.
 # Standard Omnibus log tools and runit service controls are discovered automatically.
 gitlab_stig_log_tool_paths: []
+# Optional non-secret test canary whose presence in error logs demonstrates disclosure.
+# Never put an actual credential here. Blank disables the exact-marker check.
+gitlab_stig_error_canary: ""
+
+# Additional read-only infrastructure collection; no keys, credential values or log text are exported.
+gitlab_stig_timestamp_log_paths: {}       # source name -> absolute JSON log path
+gitlab_stig_trust_bundle_paths: {}        # trust-store name -> absolute PEM bundle path
+gitlab_stig_retired_component_paths: {}   # retired component name -> absolute paths that must be absent
+# Optional single-port Nmap enumeration from the target; requires nmap already installed.
+# name must match tls_connections; endpoints are never scanned unless listed here.
+gitlab_stig_tls_cipher_endpoints: {}      # name -> {host: gitlab.example.mil, port: 443}
+gitlab_stig_public_certificate_paths: {} # name -> absolute public PEM certificate path (leaf first)
+gitlab_stig_key_storage_paths: {}        # key-store name -> absolute key/secret file, metadata only
+# Follow Ansible's discovered/configured interpreter on RHEL 8, including local execution.
+gitlab_stig_collector_python: "{{ ansible_facts.discovered_interpreter_python | default(ansible_python_interpreter | default('/usr/bin/python3')) }}"

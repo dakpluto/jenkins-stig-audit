@@ -4,6 +4,7 @@ Local POSIX metadata proves specific exposure, not the absence of ACL/sudo bypas
 External facts must be recent and reference independently reviewable observations.
 """
 import math
+import re
 from datetime import datetime
 
 import stig_common as sc
@@ -11,8 +12,17 @@ import stig_common as sc
 
 def timestamp(value):
     try:
-        value = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return value.timestamp() if value.tzinfo else None
+        text = str(value).replace("Z", "+00:00").replace(" ", "T")
+        # strptime also supports RHEL 8 controllers whose Python lacks fromisoformat.
+        text = re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", text)
+        parsed = None
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+            try:
+                parsed = datetime.strptime(text, fmt)
+                break
+            except ValueError:
+                pass
+        return parsed.timestamp() if parsed is not None else None
     except (ValueError, TypeError, OverflowError, OSError):
         return None
 

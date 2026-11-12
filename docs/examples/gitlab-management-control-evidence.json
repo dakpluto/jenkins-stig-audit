@@ -1,0 +1,141 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "assessment:42",
+  "management_controls": {
+    "logout": {
+      "inventory_complete": true,
+      "interfaces": {
+        "gitlab-web": {
+          "authenticated_before": true,
+          "visible_usable_control": true,
+          "user_initiated_logout_completed": true,
+          "old_session_rejected": true,
+          "explicit_message_visible": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42"
+        }
+      }
+    },
+    "processing_attributes": {
+      "inventory_complete": true,
+      "policy_reference": "ISSM:42",
+      "paths": {
+        "repository-read": {
+          "binding_verified": true,
+          "lifecycle_coverage_verified": true,
+          "unauthorized_change_prevented": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42",
+          "observed_attributes": {
+            "classification": [
+              "CUI"
+            ]
+          },
+          "configuration_reference": "attributes:42"
+        }
+      }
+    },
+    "transmission_attributes": {
+      "inventory_complete": true,
+      "policy_reference": "ISSM:42",
+      "paths": {
+        "repository-download": {
+          "binding_verified": true,
+          "lifecycle_coverage_verified": true,
+          "unauthorized_change_prevented": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42",
+          "observed_attributes": {
+            "classification": [
+              "CUI"
+            ]
+          },
+          "configuration_reference": "attributes:42"
+        }
+      }
+    },
+    "remote_access": {
+      "inventory_complete": true,
+      "approval_reference": "policy:42",
+      "paths": {
+        "admin-web": {
+          "method_approved": true,
+          "authentication_enforced": true,
+          "authorization_enforced": true,
+          "network_restrictions_verified": true,
+          "bypass_prevented": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42",
+          "configuration_reference": "remote:42"
+        }
+      }
+    },
+    "remote_disconnect": {
+      "inventory_complete": true,
+      "paths": {
+        "admin-web": {
+          "implemented": true,
+          "authorized_operators_verified": true,
+          "immediate_effect_verified": true,
+          "scope_coverage_verified": true,
+          "exercise_completed": true,
+          "existing_connections_terminated": true,
+          "new_access_blocked": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42",
+          "mode": "both",
+          "configuration_reference": "disconnect:42",
+          "procedure_reference": "procedure:42"
+        }
+      }
+    },
+    "privileged_authorization": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "implementation_reference": "source:42",
+      "effective_roles_reviewed": true,
+      "functions": {
+        "change-security-settings": {
+          "server_authorization_verified": true,
+          "safeguard_bypass_prevented": true,
+          "authorized_control_succeeded": true,
+          "nonprivileged_rejected": true,
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "exercise:42",
+          "tested_nonprivileged_roles": [
+            "developer",
+            "guest"
+          ]
+        }
+      }
+    },
+    "privileged_logging": {
+      "inventory_complete": true,
+      "version_license_coverage_verified": true,
+      "gitlab_version": "17.3.4",
+      "coverage_reference": "coverage:42",
+      "roles": {
+        "administrator": {
+          "delegation_impersonation_reviewed": true,
+          "operations": {
+            "change-security-settings": {
+              "coverage_verified": true,
+              "records": [
+                {
+                  "time": "2026-11-12T11:00:00Z",
+                  "actor": "alice",
+                  "target": "security-settings",
+                  "source": "record:42",
+                  "operation": "change-security-settings",
+                  "role": "administrator",
+                  "individual_attribution_verified": true,
+                  "impersonated": false
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

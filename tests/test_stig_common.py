@@ -86,7 +86,12 @@ class ReportTests(unittest.TestCase):
         for mod, evaluate in ((gs, gs.gitlab_stig_evaluate), (nx, nx.nexus_stig_evaluate)):
             with self.subTest(product=mod.__name__):
                 results = evaluate({}, {})
-                self.assertNotIn('V-204833', sc.stig_bind(results, idx)['bound'])
+                bindings = sc.stig_bind(results, idx)['bound']
+                if mod is gs:
+                    self.assertEqual(bindings['V-204833'], ['GLAB-095'])
+                    self.assertEqual(next(r for r in results if r['id'] == 'GLAB-095')['status'], sc.NR)
+                else:
+                    self.assertNotIn('V-204833', bindings)
 
     def test_every_check_uses_known_srg_ids_or_is_documented(self):
         bases = set(r["group_title"] for r in load_index()["rules"])

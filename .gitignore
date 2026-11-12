@@ -4,3 +4,6 @@ __pycache__/
 *.retry
 stig/*.zip
 stig/*.xml
+
+# Generated offline deployment bundles
+dist/

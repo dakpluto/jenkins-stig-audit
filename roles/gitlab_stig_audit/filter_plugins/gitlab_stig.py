@@ -21,8 +21,12 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "stig_common", "filter_plugins"))
 import stig_common as sc  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gitlab_audit_extended import evaluate_extended  # noqa: E402
+from gitlab_audit_extended import evaluate_extended, timestamp as _audit_timestamp  # noqa: E402
 from gitlab_auth_controls import evaluate_auth_controls  # noqa: E402
+from gitlab_data_controls import evaluate_data_controls  # noqa: E402
+from gitlab_management_controls import evaluate_management_controls  # noqa: E402
+from gitlab_infrastructure_controls import CHECKS as INFRA_CHECKS, VULN_IDS as INFRA_VULNS, evaluate_infrastructure_controls  # noqa: E402
+from gitlab_assurance_controls import CHECKS as ASSURANCE_CHECKS, VULN_IDS as ASSURANCE_VULNS, evaluate_assurance_controls  # noqa: E402
 
 NF, OPEN, NA, NR = sc.NF, sc.OPEN, sc.NA, sc.NR
 
@@ -134,7 +138,7 @@ CHECKS = [
      ["SRG-APP-000358"], "low",
      "Set logging['udp_log_shipping_host'] in gitlab.rb, or read /var/log/gitlab with rsyslog imfile and forward it."),
     ("GLAB-027", "Audit storage capacity must be allocated and monitored",
-     ["SRG-APP-000357", "SRG-APP-000359"], "low",
+     ["SRG-APP-000357"], "low",
      "Place /var/log/gitlab on a filesystem sized for retention and alert the SA/ISSO at 75% usage."),
     ("GLAB-028", "Audit time stamps must come from a synchronized, authoritative time source",
      ["SRG-APP-000116", "SRG-APP-000374", "SRG-APP-000920"], "medium",
@@ -186,7 +190,37 @@ CHECKS.extend([
      ["SRG-APP-000223"], "medium", "Verify generation implementation, reject fabricated/tampered identifiers and test fixation across login."),
     ("GLAB-049", "Session identifiers must use an approved random number generator",
      ["SRG-APP-000224"], "high", "Trace session generation to the validated cryptographic module and verify its approved runtime configuration."),
+    ("GLAB-050", "All information at rest must have confidentiality and integrity protection",
+     ["SRG-APP-000231"], "medium", "Inventory all local and external stores and verify confidentiality, integrity and effective access controls."),
+    ("GLAB-051", "Offline information must have cryptographic confidentiality and integrity protection",
+     ["SRG-APP-000231"], "medium", "Inventory offline copies and verify encryption, cryptographic integrity and key protection."),
+    ("GLAB-052", "Management interface inputs must be validated",
+     ["SRG-APP-000251"], "medium", "Review installed management input validation and representative rejection tests, with explicitly approved exceptions."),
+    ("GLAB-053", "Security-relevant error conditions must be identified",
+     ["SRG-APP-000266"], "medium", "Verify recognition and correlated records for every required security-relevant error class."),
+    ("GLAB-054", "Errors must support correction without sensitive disclosure",
+     ["SRG-APP-000266"], "medium", "Verify error sanitization and useful corrective information across logs, responses and administrative messages."),
+    ("GLAB-055", "Log tools must have cryptographic integrity protection",
+     ["SRG-APP-000290"], "medium", "Compare the complete log tool inventory with an authenticated, independently protected approved cryptographic baseline."),
+    ("GLAB-056", "Management interfaces must provide user-initiated logout",
+     ["SRG-APP-000296"], "medium", "Verify a visible usable logout control and successful user-initiated session termination on all management interfaces."),
+    ("GLAB-057", "Logout must display an explicit session termination message",
+     ["SRG-APP-000297"], "medium", "Verify a rendered logout confirmation and rejection of the prior authenticated session."),
+    ("GLAB-058", "Required security attributes must remain associated during processing",
+     ["SRG-APP-000313"], "medium", "Define approved attribute types/values and verify binding throughout inventoried processing workflows."),
+    ("GLAB-059", "Required security attributes must remain associated during transmission",
+     ["SRG-APP-000314"], "medium", "Verify required attributes accompany or remain reliably bound to information across inventoried transmission paths."),
+    ("GLAB-060", "Remote management access methods must be controlled",
+     ["SRG-APP-000315"], "medium", "Compare all effective remote management paths with approved methods, authentication, authorization and network restrictions."),
+    ("GLAB-061", "Remote management access must be immediately disconnectable or disableable",
+     ["SRG-APP-000316"], "medium", "Verify implemented controls, authorized operators and a controlled exercise demonstrating immediate disconnection or disablement."),
+    ("GLAB-062", "Non-privileged users must not execute privileged functions",
+     ["SRG-APP-000340"], "medium", "Review effective roles and controlled negative authorization tests across all privileged functions and safeguards."),
+    ("GLAB-063", "Privileged role activity must be logged",
+     ["SRG-APP-000343"], "medium", "Verify privileged role/operation coverage and attributable records, including delegated and impersonated activity where applicable."),
 ])
+CHECKS.extend(INFRA_CHECKS)
+CHECKS.extend(ASSURANCE_CHECKS)
 CHECK_META = sc.catalog(CHECKS)
 
 # Components that ship inside Omnibus and should only listen on loopback/sockets.
@@ -344,11 +378,7 @@ def _vis(v):
 
 
 def _audit_time(value):
-    try:
-        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed.timestamp() if parsed.tzinfo else None
-    except (ValueError, TypeError, OverflowError):
-        return None
+    return _audit_timestamp(value)
 
 
 def _audit_controls(R, ev, policy):
@@ -995,10 +1025,18 @@ def gitlab_stig_evaluate(ev, settings=None):
     _audit_controls(R, ev, s.get("audit_controls") or {})
     evaluate_extended(R, ev, s.get("audit_controls") or {})
     evaluate_auth_controls(R, ev, s.get("audit_controls") or {})
+    evaluate_data_controls(R, ev, s.get("audit_controls") or {})
+    evaluate_management_controls(R, ev, s.get("audit_controls") or {})
+    evaluate_infrastructure_controls(R, ev, s.get("audit_controls") or {})
+    evaluate_assurance_controls(R, ev, s.get("audit_controls") or {})
     # These share a base SRG ID; bind each to its actual V-ID before checklist mapping.
     for result in R.items:
-        if result["id"] in ("GLAB-047", "GLAB-048"):
-            result["vuln_ids"] = ["V-204764" if result["id"] == "GLAB-047" else "V-204765"]
+        exact = {"GLAB-047": "V-204764", "GLAB-048": "V-204765", "GLAB-050": "V-204770",
+                 "GLAB-051": "V-204771", "GLAB-053": "V-204773", "GLAB-054": "V-204774"}
+        exact.update(INFRA_VULNS)
+        exact.update(ASSURANCE_VULNS)
+        if result["id"] in exact:
+            result["vuln_ids"] = [exact[result["id"]]]
     return sc.apply_overrides(R.items, s.get("overrides"))
 
 

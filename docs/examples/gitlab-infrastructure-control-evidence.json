@@ -1,0 +1,365 @@
+{
+  "observed_at": "2026-11-12T12:00:00Z",
+  "reference": "assessment:42",
+  "infrastructure_controls": {
+    "failure_alerts": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "write-failure": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "detection_verified": true,
+          "delivery_verified": true,
+          "real_time_verified": true,
+          "recipients_authorized": true
+        }
+      }
+    },
+    "enforcement_logging": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "block-user": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "change_correlated": true,
+          "enforcement_recorded": true,
+          "individual_attribution_verified": true,
+          "change_reference": "change:42",
+          "enforcement_record_reference": "record:42"
+        }
+      }
+    },
+    "reauthentication": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "admin-mode": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "trigger_exercised": true,
+          "fresh_authentication_verified": true,
+          "bypass_prevented": true
+        }
+      }
+    },
+    "piv_acceptance": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "agency": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "trust_approved": true,
+          "identity_mapping_verified": true,
+          "successful_authentication_verified": true
+        }
+      }
+    },
+    "piv_verification": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "agency": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "chain_verified": true,
+          "validity_verified": true,
+          "revocation_verified": true,
+          "usage_verified": true,
+          "identity_mapping_verified": true,
+          "invalid_credentials_rejected": true
+        }
+      }
+    },
+    "third_party_credentials": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "approved-provider": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "provider_approved": true,
+          "credential_approved": true,
+          "successful_authentication_verified": true,
+          "invalid_credentials_rejected": true,
+          "approval_profile_reference": "approved-profile:42"
+        }
+      }
+    },
+    "ficam_profiles": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "approved-profile-v1": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "profile_version_identified": true,
+          "conformance_verified": true,
+          "assurance_verified": true,
+          "trust_verified": true,
+          "claims_verified": true,
+          "approval_profile_reference": "approved-profile:42"
+        }
+      }
+    },
+    "at_rest_integrity": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "repositories": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "scope_coverage_verified": true,
+          "cryptographic_integrity_verified": true,
+          "verification_material_protected": true,
+          "verification_success": true,
+          "cryptographic_mechanism_reference": "mechanism:42"
+        }
+      }
+    },
+    "at_rest_confidentiality": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "repositories": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "scope_coverage_verified": true,
+          "encryption_verified": true,
+          "key_management_verified": true,
+          "approved_mechanism_verified": true,
+          "cryptographic_mechanism_reference": "mechanism:42"
+        }
+      }
+    },
+    "dos_protection": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "gateway": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "threat_coverage_verified": true,
+          "safeguard_enabled": true,
+          "effective_limits_verified": true,
+          "bypass_prevented": true
+        }
+      }
+    },
+    "tls_versions": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "approved_protocols_only": true,
+          "certificate_validation_verified": true,
+          "connection_coverage_verified": true,
+          "approved_protocols": [
+            "TLSv1.2",
+            "TLSv1.3"
+          ]
+        }
+      }
+    },
+    "export_ciphers": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "effective_cipher_policy_verified": true,
+          "export_ciphers_disabled": true,
+          "capable_enumeration_verified": true,
+          "accepted_ciphers": [
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+          ],
+          "enumeration_capability_reference": "scanner:42"
+        }
+      }
+    },
+    "transmission_crypto": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "web": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "approved_algorithms_verified": true,
+          "validated_modules_verified": true,
+          "peer_validation_verified": true,
+          "connection_coverage_verified": true,
+          "cryptographic_mechanism_reference": "mechanism:42"
+        }
+      }
+    },
+    "transmission_preparation": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "staging": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "confidentiality_verified": true,
+          "integrity_verified": true,
+          "staging_queues_ipc_reviewed": true,
+          "boundary_coverage_verified": true
+        }
+      }
+    },
+    "reception": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "handoff": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "confidentiality_verified": true,
+          "integrity_verified": true,
+          "decrypted_handoffs_reviewed": true,
+          "boundary_coverage_verified": true
+        }
+      }
+    },
+    "invalid_input_behavior": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "items": {
+        "invalid-range": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "expected_behavior_documented": true,
+          "expected_behavior_observed": true,
+          "no_unintended_state_change": true,
+          "continued_operation_verified": true
+        }
+      }
+    },
+    "capacity_alerts": {
+      "inventory_complete": true,
+      "items": {
+        "logs": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "threshold_percent": 75,
+          "volume_coverage_verified": true,
+          "immediate_delivery_verified": true,
+          "sa_delivery_verified": true,
+          "isso_delivery_verified": true
+        }
+      }
+    },
+    "clock_comparison": {
+      "tested_at": "2026-11-12T11:00:00Z",
+      "test_reference": "test:42",
+      "configuration_reference": "config:42",
+      "application_clock_coverage_verified": true,
+      "authoritative_source_verified": true,
+      "source": "approved-time",
+      "provider": "chrony",
+      "effective_source_polling_reviewed": true,
+      "maximum_comparison_interval_seconds": 86400,
+      "comparison_history_verified": true
+    },
+    "clock_correction": {
+      "tested_at": "2026-11-12T11:00:00Z",
+      "test_reference": "test:42",
+      "configuration_reference": "config:42",
+      "application_clock_coverage_verified": true,
+      "authoritative_source_verified": true,
+      "source": "approved-time",
+      "provider": "chrony",
+      "effective_source_polling_reviewed": true,
+      "correction_threshold_seconds": 0.1,
+      "correction_behavior_verified": true
+    },
+    "timestamp_precision": {
+      "inventory_complete": true,
+      "items": {
+        "audit": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "format_coverage_verified": true
+        }
+      }
+    },
+    "revocation_cache": {
+      "inventory_complete": true,
+      "items": {
+        "idp": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "cache_present": true,
+          "cache_freshness_verified": true,
+          "path_validation_supported": true,
+          "network_outage_exercised": true,
+          "cached_validation_verified": true,
+          "revoked_credentials_rejected": true
+        }
+      }
+    },
+    "protected_session_trust": {
+      "inventory_complete": true,
+      "items": {
+        "gitlab": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "effective_trust_inventory_verified": true,
+          "overrides_reviewed": true,
+          "only_approved_authorities_verified": true
+        }
+      }
+    },
+    "high_availability": {
+      "tested_at": "2026-11-12T11:00:00Z",
+      "test_reference": "test:42",
+      "configuration_reference": "config:42",
+      "mac_i": true,
+      "applicability_reference": "MAC-I:42",
+      "cluster_verified": true,
+      "dependency_coverage_verified": true,
+      "replication_health_verified": true,
+      "failover_exercised": true
+    },
+    "retired_components": {
+      "inventory_complete": true,
+      "gitlab_version": "17.3.4",
+      "removal_policy_reference": "cleanup:42",
+      "items": {
+        "old-agent": {
+          "tested_at": "2026-11-12T11:00:00Z",
+          "test_reference": "test:42",
+          "configuration_reference": "config:42",
+          "removal_required": true,
+          "removed_verified": true,
+          "running_processes_reviewed": true,
+          "retained_components_reviewed": true
+        }
+      }
+    }
+  }
+}
